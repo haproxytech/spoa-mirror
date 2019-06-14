@@ -1,0 +1,70 @@
+/***
+ * Copyright 2018,2019 HAProxy Technologies
+ *
+ * This file is part of spoa-mirror.
+ *
+ * spoa-mirror is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * spoa-mirror is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
+#ifndef _COMMON_DEBUG_H
+#define _COMMON_DEBUG_H
+
+#define CHECK_ARG(a,f)           do { if (a) { f; } } while (0)
+#define CHECK_ARG_ERRNO(a,e,f)   do { if (a) { errno = (e); f; } } while (0)
+#define CHECK_ARG_NULL(a,f)      CHECK_ARG_ERRNO(_NULL(a), EFAULT, f)
+#define CHECK_ARG_PATH(a,f)      do { if (_NULL(a)) { errno = EFAULT; f; } else if (*(a) == '\0') { errno = ENOENT; f; } } while (0)
+
+#ifdef DEBUG
+#  define DBG_FUNC_ENABLED       (1 << 7)
+#  define IFDEF_DBG(a, b)        a
+#  define DBG_PARM(a, ...)       a, ##__VA_ARGS__
+#  define C_DBG(l,C,f, ...)                            \
+	do {                                           \
+		if (cfg.debug_level & (1 << (l)))      \
+			c_log((C), f, ##__VA_ARGS__);  \
+	} while (0)
+#  define F_DBG(l,F,f, ...)                            \
+	do {                                           \
+		if (cfg.debug_level & (1 << (l)))      \
+			f_log((F), f, ##__VA_ARGS__);  \
+	} while (0)
+#  define W_DBG(l,W,f, ...)                            \
+	do {                                           \
+		if (cfg.debug_level & (1 << (l)))      \
+			w_log((W), f, ##__VA_ARGS__);  \
+	} while (0)
+#  define DBG_FUNC(W,f, ...)                                                 \
+	do {                                                                 \
+		if (cfg.debug_level & DBG_FUNC_ENABLED)                      \
+			W_DBG(0, (W), "%s(" f ")", __func__, ##__VA_ARGS__); \
+	} while (0)
+#else
+#  define IFDEF_DBG(a, b)        b
+#  define DBG_PARM(...)
+#  define C_DBG(...)             while (0)
+#  define F_DBG(...)             while (0)
+#  define W_DBG(...)             while (0)
+#  define DBG_FUNC(...)          while (0)
+#endif /* DEBUG */
+
+#endif /* _COMMON_DEBUG_H */
+
+/*
+ * Local variables:
+ *  c-indent-level: 8
+ *  c-basic-offset: 8
+ * End:
+ *
+ * vi: noexpandtab shiftwidth=8 tabstop=8
+ */

@@ -1,0 +1,40 @@
+#!/bin/sh
+#
+# build-counter by Miroslav Zagorac <mzagorac@haproxy.com>
+#
+ TMPFILE=/tmp/build-version-${RANDOM}-${RANDOM}-${RANDOM}-${RANDOM}
+ SUMFILE=.source-md5sums
+BUILDCNT=.build-counter
+
+
+md5_sum ()
+{
+	test ${#} -eq 1 || return
+
+	find ../src -type f -name "*.c" -exec md5sum {} + | sort -k2 > "${1}"
+	find ../include -type f ! -name config.h ! -name version.h -a -name "*.h" -exec md5sum {} + | sort -k2 >> "${1}"
+}
+
+inc_build_number ()
+{
+	if test -f "${SUMFILE}"; then
+		test -f "${BUILDCNT}" \
+			&& expr 0`cat "${BUILDCNT}"` + 1 > "${BUILDCNT}" \
+			|| echo 1 > "${BUILDCNT}"
+	else
+		test -f "${BUILDCNT}" || echo 1 > "${BUILDCNT}"
+	fi
+
+	md5_sum "${SUMFILE}"
+}
+
+
+if test -f "${SUMFILE}"; then
+	md5_sum "${TMPFILE}"
+	cmp -s "${SUMFILE}" "${TMPFILE}" || inc_build_number
+	rm -f "${TMPFILE}"
+else
+	inc_build_number
+fi
+
+exit 0

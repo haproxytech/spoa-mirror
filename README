@@ -1,0 +1,167 @@
+                     -------------------------------
+                         spoa-mirror for HAProxy
+                     -------------------------------
+
+
+Summary
+------------------------------------------------------------------------
+
+  1. Introduction
+  2. Build instructions
+  3. Use of the program
+  4. Known bugs and limitations
+
+
+1. Introduction
+------------------------------------------------------------------------
+
+Replicating (mirroring) HTTP requests using the HAProxy SPOP, i.e. Stream
+Processing Offload Protocol.
+
+This is a very simple program that can be used to replicate HTTP POST requests
+via the SPOP protocol.  All requests are replicated to the web address (URL)
+selected when running the program.
+
+The program originated from a test program located in the contrib/spoa_example
+directory.  spoa.c is an original program that comes with HAProxy source.
+
+The program uses the libev event library, as opposed to the original program
+that uses the libevent library.
+
+
+2. Build instructions
+------------------------------------------------------------------------
+
+Prerequisites for configuring and compiling the program:
+
+  * GNU autoconf
+    https://www.gnu.org/software/autoconf/
+
+  * GNU automake
+    https://www.gnu.org/software/automake/
+
+  * POSIX threads library
+
+  * cURL library
+    https://curl.haxx.se/
+
+  * libev library
+    http://software.schmorp.de/pkg/libev.html
+
+
+Creating the build subsystem (configure script):
+
+  % ./scripts/bootstrap
+
+
+Configuring the program:
+
+  % ./configure
+
+The program can be configured with debugging features enabled, but it is
+not recommended for actual use:
+
+  % ./configure --enable-debug
+
+To configure the program, the system must have installed development packages
+for cURL and libev, which will be selected automatically when running the
+configure script.
+
+
+Compiling the program:
+
+  % make all
+
+After that, in the directory src will be located spoa-mirror program.
+
+
+3. Use of the program
+------------------------------------------------------------------------
+
+The options supported by the program can be found using the '-h' option:
+
+  % ./src/spoa-mirror -h
+
+--- help output -------
+Usage: spoa-mirror { -h --help }
+       spoa-mirror { -V --version }
+       spoa-mirror { -r --runtime=TIME } [OPTION]...
+
+Options are:
+  -a, --address=NAME              Specify the address to listen on (default: "0.0.0.0").
+  -b, --connection-backlog=VALUE  Specify the connection backlog size (default: 10).
+  -c, --capability=NAME           Enable the support of the specified capability.
+  -D, --daemonize                 Run this program as a daemon.
+  -h, --help                      Show this text.
+  -i, --monitor-interval=TIME     Set the monitor interval (default: 5.00s).
+  -l, --logfile=[MODE:]FILE       Log all messages to logfile (default: stdout/stderr).
+  -m, --max-frame-size=VALUE      Specify the maximum frame size (default: 16384 bytes).
+  -n, --num-workers=VALUE         Specify the number of workers (default: 10).
+  -p, --port=VALUE                Specify the port to listen on (default: 12345).
+  -r, --runtime=TIME              Run this program for the specified time (0 = unlimited).
+  -t, --processing-delay=TIME     Set a delay to process a message (default: 0).
+  -u, --mirror-url=URL            Specify the URL for the HTTP mirroring.
+  -I, --mirror-interface=NAME     Specify the interface/address for outgoing connections.
+  -P, --mirror-local-port=VALUE   Specify the local port range for outgoing connections.
+  -V, --version                   Show program version.
+
+Supported capabilities: fragmentation, pipelining, async.
+
+Allowed logging file opening modes: a, w.  The 'a' mode allows openning or
+creating file for writing at end-of-file.  The 'w' mode allows truncating
+the file to zero length or creating a new file.  If a capital letter is used
+for the mode, then line buffering is used when writing to the log file.
+
+The time delay/interval is specified in milliseconds by default, but can be
+in any other unit if the number is suffixed by a unit (us, ms, s, m, h, d).
+
+Copyright (C) 2018,2019 HAProxy Technologies
+SPDX-License-Identifier: GPL-2.0-or-later
+--- help output -------
+
+
+The program simultaneously supports short and long format options.
+
+
+The test directory contains the configuration files for HAProxy (haproxy.cfg)
+and SPOE (spoe.cfg).  ssl-cert.pem is a certificate intended for testing if we
+want to use HTTPS HAProxy frontend.
+
+During the normal work of the program, should be placed under the comment the
+following lines in the spoe.cfg:
+
+--- spoe.cfg ----------
+  messages check-client-ip
+  messages test
+--- spoe.cfg ----------
+
+These two rows can be used when debugging the program, especially if it is
+configured with the option --enable-debug .
+
+
+First, the spoa-mirror program should be launched by referring to the URL to
+which the HTTP request will be copied.  In the example below, URL is set to
+http://localhost:8100/ .
+
+  % ./src/spoa-mirror -r0 -u"http://localhost:8100/"
+
+'-r' is the option that must be specified when launching a program.  It is
+used to prevent the program from starting unnecessarily when testing the
+program options, or printing the program help.  In addition, with this option,
+the program runtime is set.  If the time is set to 0, the program runtime is
+unlimited.
+
+
+After that, the HAProxy should be started (as the root user), using haproxy.cfg
+configuration file:
+
+  # /path-to/haproxy -f haproxy.cfg
+
+
+4. Known bugs and limitations
+------------------------------------------------------------------------
+
+When mirroring an HTTP request, the HTTPS protocol (using the '-u' option) can
+not be used as the destination URL.  This also means that HAProxy should be
+used in SSL termination mode if HTTPS is used in the HAProxy frontend part.
+
