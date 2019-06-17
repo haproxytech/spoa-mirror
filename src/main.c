@@ -253,15 +253,15 @@ static int getopt_set_ports(const char *ports, int *range)
 
 	if (*ports != '\0') {
 		if (!str_toll(ports, &endptr, 0, 10, value, 0, 65535))
-			(void)fprintf(stderr, "1 ERROR: invalid port range: '%s'\n", ports);
+			(void)fprintf(stderr, "ERROR: invalid port range: '%s'\n", ports);
 		else if (_NULL(endptr) || (endptr[0] == '\0'))
 			retval = FUNC_RET_OK;
 		else if (endptr[0] != '-')
-			(void)fprintf(stderr, "2 ERROR: invalid port range: '%s'\n", ports);
+			(void)fprintf(stderr, "ERROR: invalid port range: '%s'\n", ports);
 		else if (!str_toll(endptr + 1, &endptr, 1, 10, value + 1, 0, 65535))
-			(void)fprintf(stderr, "3 ERROR: invalid port range: '%s'\n", ports);
+			(void)fprintf(stderr, "ERROR: invalid port range: '%s'\n", ports);
 		else if (value[1] < value[0])
-			(void)fprintf(stderr, "4 ERROR: invalid port range: '%s'\n", ports);
+			(void)fprintf(stderr, "ERROR: invalid port range: '%s'\n", ports);
 		else
 			retval = FUNC_RET_OK;
 	} else {
