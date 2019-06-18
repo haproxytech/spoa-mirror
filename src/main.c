@@ -327,7 +327,7 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 #ifdef HAVE_LIBCURL
 	const char *mir_url = NULL;
 #  ifdef USE_THREADS
-	CURLcode    rc;
+	CURLcode    rc = CURLE_FAILED_INIT;
 #  endif
 #endif
 
