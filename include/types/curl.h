@@ -87,6 +87,9 @@ enum CURL_HTTP_METHOD_enum
 #undef CURL_HTTP_METHOD_DEF
 };
 
+#ifndef CURL_AT_LEAST_VERSION
+#  define CURL_AT_LEAST_VERSION(x,y,z)   0
+#endif
 #if CURL_AT_LEAST_VERSION(7, 55, 0)
 #  define CURL_v075500(a,b)   a
 #else

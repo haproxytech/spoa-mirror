@@ -161,12 +161,14 @@ static void mir_curl_check_multi_info(struct curl_data *curl)
 			CURL_v075500(curl_off_t, double) size_upload = -1;
 			CURL_v075500(curl_off_t, double) size_download = -1;
 			const char *url = NULL;
-			long        response_code = -1, version = -1;
+			long        response_code = -1, version = CURL_HTTP_VERSION_NONE;
 
 			if ((rc = curl_easy_getinfo(msg->easy_handle, CURLINFO_EFFECTIVE_URL, &url)) != CURLE_OK)
 				CURL_ERR_EASY("Failed to get effective URL", rc);
+#if CURL_AT_LEAST_VERSION(7, 50, 0)
 			if ((rc = curl_easy_getinfo(msg->easy_handle, CURLINFO_HTTP_VERSION, &version)) != CURLE_OK)
-				CURL_ERR_EASY("Failed to get effective URL", rc);
+				CURL_ERR_EASY("Failed to get HTTP version", rc);
+#endif
 			if ((rc = curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &response_code)) != CURLE_OK)
 				CURL_ERR_EASY("Failed to get response code", rc);
 			if ((rc = curl_easy_getinfo(msg->easy_handle, CURL_v076100(CURLINFO_TOTAL_TIME_T, CURLINFO_TOTAL_TIME), &total_time)) != CURLE_OK)
