@@ -47,7 +47,7 @@ int socket_set_keepalive (int socket_fd, int alive, int idle, int intvl, int cnt
 int rlimit_setnofile (void);
 void logfile_mark(const char *msg);
 int logfile(const char *filename);
-int daemonize(bool_t flag_chdir, bool_t flag_fdclose);
+int daemonize(bool_t flag_chdir, bool_t flag_fdclose, int *fd, size_t n);
 
 #endif /* _PROTO_UTIL_H */
 

@@ -1053,6 +1053,8 @@ int logfile(const char *filename)
  * ARGUMENTS
  *   flag_chdir   -
  *   flag_fdclose -
+ *   fd           -
+ *   n            -
  *
  * DESCRIPTION
  *   -
@@ -1060,15 +1062,16 @@ int logfile(const char *filename)
  * RETURN VALUE
  *   -
  */
-int daemonize(bool_t flag_chdir, bool_t flag_fdclose)
+int daemonize(bool_t flag_chdir, bool_t flag_fdclose, int *fd, size_t n)
 {
 #ifdef DEBUG
-	pid_t pid[3];
+	pid_t  pid[3];
 #endif
-	pid_t pidf;
-	int   i;
+	pid_t  pidf;
+	size_t j;
+	int    i;
 
-	DBG_FUNC(NULL, "%hhu, %hhu", flag_chdir, flag_fdclose);
+	DBG_FUNC(NULL, "%hhu, %hhu, %p, %zu", flag_chdir, flag_fdclose, fd, n);
 
 #ifdef DEBUG
 	pid[0] = getpid();
@@ -1106,11 +1109,25 @@ int daemonize(bool_t flag_chdir, bool_t flag_fdclose)
 	if (flag_chdir)
 		(void)chdir("/");
 
-	/* Close off file descriptors; except stdin, stdout and stderr. */
-	for (i = sysconf(_SC_OPEN_MAX) - 1; i >= 0; i--)
-		if (TEST_NAND3(i, STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO))
-			if (_OK(close(i)))
-				W_DBG(1, NULL, "  fd %d closed", i);
+	/*
+	 * Close off file descriptors; except stdin, stdout, stderr and those
+	 * listed in the array fd[] (if it's not a NULL pointer).
+	 */
+	for (i = sysconf(_SC_OPEN_MAX) - 1; i >= 0; i--) {
+		if (TEST_OR3(i, STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO))
+			continue;
+		else if (_nNULL(fd) && (n > 0)) {
+			for (j = 0; (j < n) && (fd[j] != i); j++);
+			if (j < n) {
+				W_DBG(1, NULL, "  fd %d skipped", i);
+
+				continue;
+			}
+		}
+
+		if (_OK(close(i)))
+			W_DBG(1, NULL, "  fd %d closed", i);
+	}
 
 	if (flag_fdclose) {
 		/* Close off stdin, stdout and stderr. */

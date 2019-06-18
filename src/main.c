@@ -432,7 +432,7 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 
 	if (!flag_error && (retval == EX_OK))
 		if (cfg.opt_flags & FLAG_OPT_DAEMONIZE)
-			retval = daemonize(1, !cfg.logfile_in_use);
+			retval = daemonize(1, !cfg.logfile_in_use, NULL, 0);
 
 	if (!flag_error && (retval == EX_OK))
 		retval = worker_run();
