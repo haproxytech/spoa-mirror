@@ -110,7 +110,9 @@ static const char *mir_curl_get_http_version(long version)
 		{ "HTTP/???", CURL_HTTP_VERSION_NONE },
 		{ "HTTP/1.0", CURL_HTTP_VERSION_1_0  },
 		{ "HTTP/1.1", CURL_HTTP_VERSION_1_1  },
+#if CURL_AT_LEAST_VERSION(7, 33, 0)
 		{ "HTTP/2.0", CURL_HTTP_VERSION_2_0  },
+#endif
 
 		/* This has to be the last element. */
 		{ "?", -1 }
@@ -663,7 +665,7 @@ static size_t mir_curl_write_cb(void *buffer __maybe_unused, size_t size, size_t
 
 /***
  * NAME
- *   mir_curl_xferinfo_cb - CURLOPT_XFERINFOFUNCTION callback function
+ *   mir_curl_xferinfo_cb - CURLOPT_XFERINFOFUNCTION/CURLOPT_PROGRESSFUNCTION callback function
  *
  * ARGUMENTS
  *   clientp -
@@ -678,6 +680,8 @@ static size_t mir_curl_write_cb(void *buffer __maybe_unused, size_t size, size_t
  * RETURN VALUE
  *   -
  */
+#if CURL_AT_LEAST_VERSION(7, 32, 0)
+
 static int mir_curl_xferinfo_cb(void *clientp, curl_off_t dltotal __maybe_unused, curl_off_t dlnow __maybe_unused, curl_off_t ultotal __maybe_unused, curl_off_t ulnow __maybe_unused)
 {
 	struct curl_con *con = (typeof(con))clientp;
@@ -688,6 +692,21 @@ static int mir_curl_xferinfo_cb(void *clientp, curl_off_t dltotal __maybe_unused
 
 	return 0;
 }
+
+#else
+
+static int mir_curl_xferinfo_cb(void *clientp, double dltotal __maybe_unused, double dlnow __maybe_unused, double ultotal __maybe_unused, double ulnow __maybe_unused)
+{
+	struct curl_con *con = (typeof(con))clientp;
+
+	DBG_FUNC(NULL, "%p, %f, %f, %f, %f", clientp, dltotal, dlnow, ultotal, ulnow);
+
+	CURL_DBG("Progress: %s (%.0f/%.0f %.0f/%.0f)", con->mir->url, dlnow, dltotal, ulnow, ultotal);
+
+	return 0;
+}
+
+#endif /* CURL_AT_LEAST_VERSION(7, 32, 0) */
 
 
 /***
@@ -868,9 +887,9 @@ int mir_curl_add(struct curl_data *curl, struct mirror *mir)
 		CURL_ERR_EASY("Failed to set private data pointer", rc);
 	else if ((rc = curl_easy_setopt(con->easy, CURLOPT_NOPROGRESS, 0L)) != CURLE_OK)
 		CURL_ERR_EASY("Failed to switch on the progress meter", rc);
-	else if ((rc = curl_easy_setopt(con->easy, CURLOPT_XFERINFOFUNCTION, mir_curl_xferinfo_cb)) != CURLE_OK)
+	else if ((rc = curl_easy_setopt(con->easy, CURL_v073200(CURLOPT_XFERINFOFUNCTION, CURLOPT_PROGRESSFUNCTION), mir_curl_xferinfo_cb)) != CURLE_OK)
 		CURL_ERR_EASY("Failed to set transfer callback function", rc);
-	else if ((rc = curl_easy_setopt(con->easy, CURLOPT_XFERINFODATA, con)) != CURLE_OK)
+	else if ((rc = curl_easy_setopt(con->easy, CURL_v073200(CURLOPT_XFERINFODATA, CURLOPT_PROGRESSDATA), con)) != CURLE_OK)
 		CURL_ERR_EASY("Failed to set transfer callback function data", rc);
 	else if ((rc = curl_easy_setopt(con->easy, CURLOPT_LOW_SPEED_LIMIT, CURL_LS_LIMIT)) != CURLE_OK)
 		CURL_ERR_EASY("Failed to set low speed limit", rc);
