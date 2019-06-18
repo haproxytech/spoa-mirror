@@ -69,6 +69,7 @@ struct config_data {
 	int64_t       runtime_us;
 	uint8_t       cap_flags;
 	const char   *logfile;
+	bool_t        logfile_in_use;
 #ifdef HAVE_LIBCURL
 	char         *mir_url;
 	const char   *mir_address;

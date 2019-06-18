@@ -425,12 +425,14 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 #endif
 
 	if (!flag_error && (retval == EX_OK))
-		if (_nNULL(cfg.logfile))
+		if (_nNULL(cfg.logfile)) {
 			retval = logfile(cfg.logfile);
+			cfg.logfile_in_use = _nERROR(retval);
+		}
 
 	if (!flag_error && (retval == EX_OK))
 		if (cfg.opt_flags & FLAG_OPT_DAEMONIZE)
-			retval = daemonize(1, _NULL(cfg.logfile));
+			retval = daemonize(1, !cfg.logfile_in_use);
 
 	if (!flag_error && (retval == EX_OK))
 		retval = worker_run();
@@ -444,7 +446,7 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 	PTR_FREE(cfg.mir_url);
 #endif
 
-	if (_nNULL(cfg.logfile))
+	if (cfg.logfile_in_use)
 		logfile_mark("stop ");
 
 	return flag_error ? EX_USAGE : retval;
