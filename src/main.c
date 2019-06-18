@@ -32,6 +32,7 @@ struct config_data cfg = {
 	.processing_delay_us = DEFAULT_PROCESSING_DELAY,
 	.monitor_interval_us = DEFAULT_MONITOR_INTERVAL,
 	.runtime_us          = DEFAULT_RUNTIME,
+	.pidfile_fd          = -1,
 };
 struct program_data prg;
 
@@ -65,6 +66,7 @@ static void usage(const char *program_name, bool_t flag_verbose)
 #ifdef DEBUG
 		(void)printf("  -d, --debug=LEVEL               Enable and specify the debug mode level (default: %d).\n", DEFAULT_DEBUG_LEVEL);
 #endif
+		(void)printf("  -F, --pidfile=FILE              Specifies a file to write the process-id to.\n");
 		(void)printf("  -h, --help                      Show this text.\n");
 		(void)printf("  -i, --monitor-interval=TIME     Set the monitor interval (default: %s).\n", str_delay(DEFAULT_MONITOR_INTERVAL));
 		(void)printf("  -l, --logfile=[MODE:]FILE       Log all messages to logfile (default: stdout/stderr).\n");
@@ -305,6 +307,7 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 #ifdef DEBUG
 		{ "debug",              required_argument, NULL, 'd' },
 #endif
+		{ "pidfile",            required_argument, NULL, 'F' },
 		{ "help",               no_argument,       NULL, 'h' },
 		{ "monitor-interval",   required_argument, NULL, 'i' },
 		{ "logfile",            required_argument, NULL, 'l' },
@@ -352,6 +355,8 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 		else if (c == 'd')
 			flag_error |= _OK(getopt_set_debug_level(optarg, &(cfg.debug_level), 0, DBG_FUNC_ENABLED - 1)) ? 0 : 1;
 #endif
+		else if (c == 'F')
+			cfg.pidfile = optarg;
 		else if (c == 'h')
 			cfg.opt_flags |= FLAG_OPT_HELP;
 		else if (c == 'i')
@@ -424,6 +429,11 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 #  endif
 #endif
 
+	/* Opening the pidfile. */
+	if (!flag_error && (retval == EX_OK))
+		if (_nNULL(cfg.pidfile))
+			retval = pidfile(cfg.pidfile, &(cfg.pidfile_fd));
+
 	if (!flag_error && (retval == EX_OK))
 		if (_nNULL(cfg.logfile)) {
 			retval = logfile(cfg.logfile);
@@ -432,7 +442,12 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 
 	if (!flag_error && (retval == EX_OK))
 		if (cfg.opt_flags & FLAG_OPT_DAEMONIZE)
-			retval = daemonize(1, !cfg.logfile_in_use, NULL, 0);
+			retval = daemonize(1, !cfg.logfile_in_use, &(cfg.pidfile_fd), 1);
+
+	/* Writing PID into the pidfile. */
+	if (!flag_error && (retval == EX_OK))
+		if (cfg.pidfile_fd >= 0)
+			retval = pidfile(NULL, &(cfg.pidfile_fd));
 
 	if (!flag_error && (retval == EX_OK))
 		retval = worker_run();
@@ -445,6 +460,10 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 
 	PTR_FREE(cfg.mir_url);
 #endif
+
+	/* Closing the pidfile. */
+	if (cfg.pidfile_fd >= 0)
+		retval = pidfile(cfg.pidfile, &(cfg.pidfile_fd));
 
 	if (cfg.logfile_in_use)
 		logfile_mark("stop ");

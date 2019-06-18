@@ -1048,6 +1048,61 @@ int logfile(const char *filename)
 
 /***
  * NAME
+ *   pidfile -
+ *
+ * ARGUMENTS
+ *   filename -
+ *   fd       -
+ *
+ * DESCRIPTION
+ *   -
+ *
+ * RETURN VALUE
+ *   -
+ */
+int pidfile(const char *filename, int *fd)
+{
+	char buffer[16];
+	int  n, retval = FUNC_RET_OK;
+
+	DBG_FUNC(NULL, "\"%s\", %p", filename, fd);
+
+	if (_NULL(filename)) {
+		if (*fd < 0)
+			return retval;
+
+		n = snprintf(buffer, sizeof(buffer), "%"PRI_PIDT"\n", getpid());
+		if (IN_RANGE(n, 0, (int)SIZEOF_N(buffer, 1))) {
+			retval = _ERROR(write(*fd, buffer, n)) ? FUNC_RET_ERROR : FUNC_RET_OK;
+			if (_ERROR(retval))
+				(void)fprintf(stderr, "ERROR: unable to write PID to pidfile: %m\n");
+		} else {
+			(void)fprintf(stderr, "ERROR: unable to write PID to pidfile: buffer too small\n");
+
+			retval = FUNC_RET_ERROR;
+		}
+	}
+	else if (*fd >= 0) {
+		FD_CLOSE(*fd);
+
+		if (_ERROR(unlink(filename)))
+			retval = FUNC_RET_ERROR;
+	}
+	else {
+		*fd = open(filename, O_WRONLY | O_CREAT | O_EXCL, 0644);
+		if (_ERROR(*fd)) {
+			(void)fprintf(stderr, "ERROR: unable to create pidfile: %m\n");
+
+			retval = FUNC_RET_ERROR;
+		}
+	}
+
+	return retval;
+}
+
+
+/***
+ * NAME
  *   daemonize -
  *
  * ARGUMENTS
