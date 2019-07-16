@@ -35,6 +35,7 @@
 #define STR_CAP_FRAGMENTATION        "fragmentation"
 #define STR_CAP_PIPELINING           "pipelining"
 #define STR_CAP_ASYNC                "async"
+#define STR_CAP_NONE                 "<none>"
 
 #define CAP_DEFINES                  \
 	CAP_DEF(FRAGMENTATION, 0x01) \

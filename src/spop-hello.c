@@ -135,15 +135,21 @@ static int check_healthcheck_cb(struct spoe_frame *frame, void *arg1, void *arg2
 static int check_capabilities_cb(struct spoe_frame *frame, void *arg1, void *arg2)
 {
 	const char *str = arg1;
-	uint        len = *(uint64_t *)arg2;
-	int         retval = _NULL(str) ? FUNC_RET_ERROR : FUNC_RET_OK;
+	uint        len = _NULL(str) ? SIZEOF_N(STR_CAP_NONE, 1) : *(uint64_t *)arg2;
+	int         retval = FUNC_RET_OK;
 
 	DBG_FUNC(FW_PTR, "%p, %p, %p", frame, arg1, arg2);
 
+	F_DBG(1, frame, "--> HAPROXY-HELLO capabilities check: %.*s", len, PTR_SAFE(str, STR_CAP_NONE));
+
+	/*
+	 * This is not an error.
+	 *
+	 * In the case of using health checking, this function is called with
+	 * argument arg1 which is a NULL pointer.
+	 */
 	if (_NULL(str))
 		return retval;
-
-	F_DBG(1, frame, "--> HAPROXY-HELLO capabilities check: %.*s", len, str);
 
 	while (len && _nERROR(retval)) {
 		/* Skip leading spaces. */
