@@ -18,7 +18,7 @@ Summary
 Replicating (mirroring) HTTP requests using the HAProxy SPOP, i.e. Stream
 Processing Offload Protocol.
 
-This is a very simple program that can be used to replicate HTTP POST requests
+This is a very simple program that can be used to replicate HTTP requests
 via the SPOP protocol.  All requests are replicated to the web address (URL)
 selected when running the program.
 
@@ -165,4 +165,7 @@ configuration file:
 When mirroring an HTTP request, the HTTPS protocol (using the '-u' option) can
 not be used as the destination URL.  This also means that HAProxy should be
 used in SSL termination mode if HTTPS is used in the HAProxy frontend part.
+
+HTTP methods that certainly work are GET, HEAD and POST.  Other methods can be
+added if necessary.
 
