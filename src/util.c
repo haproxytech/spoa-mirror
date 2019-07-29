@@ -592,6 +592,7 @@ char *parse_url(const char *url)
 	char     *retptr = NULL, *host, *port = NULL, *ptr, path;
 	uint64_t  rc;
 	size_t    len;
+	bool_t    flag_https = 0;
 
 	DBG_FUNC(NULL, "\"%s\"", url);
 
@@ -600,12 +601,19 @@ char *parse_url(const char *url)
 
 	len = strlen(url);
 
-	if (strncasecmp(url, STR_ADDRSIZE(STR_HTTP_PFX)) != 0) {
+	if (strncasecmp(url, STR_ADDRSIZE(STR_HTTP_PFX)) == 0) {
+		/* Do nothing. */
+	}
+	else if (strncasecmp(url, STR_ADDRSIZE(STR_HTTPS_PFX)) == 0) {
+		flag_https = 1;
+	}
+	else {
 		w_log(NULL, _E("Invalid URL scheme '%s'"), url);
 
 		return retptr;
 	}
-	else if (_NULL(retptr = mem_dup(url, len))) {
+
+	if (_NULL(retptr = mem_dup(url, len))) {
 		w_log(NULL, _E("Failed to allocate data: %m"));
 
 		return retptr;
@@ -628,7 +636,7 @@ char *parse_url(const char *url)
 	 * reserved.  The "/" character may be used within HTTP to designate a
 	 * hierarchical structure.
 	 */
-	host = retptr + STR_SIZE(STR_HTTP_PFX);
+	host = retptr + (flag_https ? STR_SIZE(STR_HTTPS_PFX) : STR_SIZE(STR_HTTP_PFX));
 
 	/* Remove all the trailing '/' characters from the URL. */
 	for (ptr = retptr + len - 1; *ptr == '/'; *(ptr--) = '\0');

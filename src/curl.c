@@ -831,6 +831,44 @@ static CURLcode mir_curl_add_out(struct curl_con *con, const struct mirror *mir)
 
 /***
  * NAME
+ *   mir_curl_add_cert -
+ *
+ * ARGUMENTS
+ *   con -
+ *   mir -
+ *
+ * DESCRIPTION
+ *   -
+ *
+ * RETURN VALUE
+ *   -
+ */
+static CURLcode mir_curl_add_cert(struct curl_con *con, const struct mirror *mir)
+{
+	CURLcode retval = CURLE_BAD_FUNCTION_ARGUMENT;
+
+	DBG_FUNC(NULL, "%p, %p", con, mir);
+
+	if (_NULL(con) || _NULL(mir))
+		return retval;
+
+	if (strncasecmp(mir->url, STR_ADDRSIZE(STR_HTTPS_PFX)) != 0) {
+		retval = CURLE_OK;
+	} else {
+		CURL_DBG("disabling SSL peer/host verification");
+
+		if ((retval = curl_easy_setopt(con->easy, CURLOPT_SSL_VERIFYPEER, 0L)) != CURLE_OK)
+			CURL_ERR_EASY("Failed to disable SSL peer verification", retval);
+		else if ((retval = curl_easy_setopt(con->easy, CURLOPT_SSL_VERIFYHOST, 0L)) != CURLE_OK)
+			CURL_ERR_EASY("Failed to disable SSL host verification", retval);
+	}
+
+	return retval;
+}
+
+
+/***
+ * NAME
  *   mir_curl_add -
  *
  * ARGUMENTS
@@ -866,6 +904,8 @@ int mir_curl_add(struct curl_data *curl, struct mirror *mir)
 	else if (_NULL(con->easy = curl_easy_init()))
 		w_log(NULL, CURL_STR _E("Failed to initialize easy handle"));
 	else if ((rc = mir_curl_add_out(con, mir)) != CURLE_OK)
+		/* Do nothing. */;
+	else if ((rc = mir_curl_add_cert(con, mir)) != CURLE_OK)
 		/* Do nothing. */;
 	else if ((rc = curl_easy_setopt(con->easy, CURLOPT_URL, mir->url)) != CURLE_OK)
 		CURL_ERR_EASY("Failed to set URL", rc);
