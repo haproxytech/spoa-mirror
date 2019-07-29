@@ -869,6 +869,47 @@ static CURLcode mir_curl_add_cert(struct curl_con *con, const struct mirror *mir
 
 /***
  * NAME
+ *   mir_curl_add_url -
+ *
+ * ARGUMENTS
+ *   con -
+ *   mir -
+ *
+ * DESCRIPTION
+ *   -
+ *
+ * RETURN VALUE
+ *   -
+ */
+static CURLcode mir_curl_add_url(struct curl_con *con, const struct mirror *mir)
+{
+	CURLcode retval = CURLE_BAD_FUNCTION_ARGUMENT;
+
+	DBG_FUNC(NULL, "%p, %p", con, mir);
+
+	if (_NULL(con) || _NULL(mir))
+		return retval;
+
+#if CURL_AT_LEAST_VERSION(7, 33, 0)
+	if (_NULL(mir->version) || (strcasecmp(mir->version, "2.0") != 0))
+		retval = CURLE_OK;
+	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_HTTP_VERSION, (long)CURL_HTTP_VERSION_2_0)) != CURLE_OK)
+		CURL_ERR_EASY("Failed to set HTTP version", retval);
+#else
+	retval = CURLE_OK;
+#endif
+
+	if (retval != CURLE_OK)
+		/* Do nothing. */;
+	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_URL, mir->url)) != CURLE_OK)
+		CURL_ERR_EASY("Failed to set URL", retval);
+
+	return retval;
+}
+
+
+/***
+ * NAME
  *   mir_curl_add -
  *
  * ARGUMENTS
@@ -907,8 +948,8 @@ int mir_curl_add(struct curl_data *curl, struct mirror *mir)
 		/* Do nothing. */;
 	else if ((rc = mir_curl_add_cert(con, mir)) != CURLE_OK)
 		/* Do nothing. */;
-	else if ((rc = curl_easy_setopt(con->easy, CURLOPT_URL, mir->url)) != CURLE_OK)
-		CURL_ERR_EASY("Failed to set URL", rc);
+	else if ((rc = mir_curl_add_url(con, mir)) != CURLE_OK)
+		/* Do nothing. */;
 	else if ((rc = mir_curl_set_headers(con, mir)) != CURLE_OK)
 		/* Do nothing. */;
 	else if ((rc = curl_easy_setopt(con->easy, CURLOPT_WRITEFUNCTION, mir_curl_write_cb)) != CURLE_OK)
