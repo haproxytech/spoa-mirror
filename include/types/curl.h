@@ -39,8 +39,8 @@
  * If the download receives less than "low speed limit" bytes/second during
  * "low speed time" seconds, the operations is aborted.
  */
-#define CURL_LS_LIMIT         0
-#define CURL_LS_TIME          0
+#define CURL_LS_LIMIT         0L
+#define CURL_LS_TIME          0L
 
 #define CURL_KEEPIDLE_TIME    10
 #define CURL_KEEPINTVL_TIME   10
