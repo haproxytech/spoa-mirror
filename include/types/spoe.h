@@ -23,7 +23,7 @@
 #define SPOE_BUFFER_ADVANCE(r)                    \
 	if (_nERROR(r)) {                         \
 		retval = ptr - (typeof(ptr))*buf; \
-		*buf   = ptr;                     \
+		*buf   = (typeof(*buf))ptr;       \
 	}
 
 struct spoe_engine {

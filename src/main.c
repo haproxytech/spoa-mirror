@@ -370,7 +370,7 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 		else if (c == 'p')
 			cfg.server_port = atoi(optarg);
 		else if (c == 'r')
-			flag_error |= _OK(getopt_set_time(optarg, &(cfg.runtime_us), 0, TIMEINT_S(86400 * 7))) ? 0 : 1;
+			flag_error |= _OK(getopt_set_time(optarg, (uint64_t *)&(cfg.runtime_us), 0, TIMEINT_S(86400 * 7))) ? 0 : 1;
 		else if (c == 't')
 			flag_error |= _OK(getopt_set_time(optarg, &(cfg.processing_delay_us), 0, TIMEINT_S(1))) ? 0 : 1;
 #ifdef HAVE_LIBCURL

@@ -479,7 +479,7 @@ static CURLcode mir_curl_set_headers(struct curl_con *con, const struct mirror *
 		return retval;
 
 	list_for_each_entry_safe(hdr, hdr_back, mir->hdrs, list) {
-		slist = curl_slist_append(con->hdrs, hdr->ptr);
+		slist = curl_slist_append(con->hdrs, (const char *)hdr->ptr);
 		if (_NULL(slist)) {
 			retval = CURLE_OUT_OF_MEMORY;
 

@@ -49,7 +49,7 @@ int acc_payload(struct spoe_frame *frame)
 		retval = FUNC_RET_ERROR;
 	}
 	else if (frame->flags & SPOE_FRM_FL_FIN) {
-		frame->buf    = frame->frag.ptr;
+		frame->buf    = (char *)frame->frag.ptr;
 		frame->len    = frame->frag.len;
 		frame->offset = 0;
 	}

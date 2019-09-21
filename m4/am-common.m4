@@ -61,7 +61,6 @@ AC_DEFUN([AM_PROG_CC_SET], [
 			-Wmissing-noreturn \
 			-Wmissing-prototypes \
 			-Wnested-externs \
-			-Wno-pointer-sign \
 			-Wparentheses \
 			-Wpointer-arith \
 			-Wreturn-type \
