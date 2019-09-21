@@ -151,7 +151,7 @@ static int check_capabilities_cb(struct spoe_frame *frame, void *arg1, void *arg
 	if (_NULL(str))
 		return retval;
 
-	while (len && _nERROR(retval)) {
+	while (len > 0) {
 		/* Skip leading spaces. */
 		for ( ; (len > 0) && (*str == ' '); len--, str++);
 
@@ -179,12 +179,15 @@ static int check_capabilities_cb(struct spoe_frame *frame, void *arg1, void *arg
 
 		/* Skip trailing spaces. */
 		for ( ; (len > 0) && (*str == ' '); len--, str++);
-		if (len == 0)
-			break;
-		else if (*str == ',')
+
+		if ((len > 0) && (*str == ',')) {
 			str++;
-		else
-			retval = FUNC_RET_ERROR;
+			len--;
+		} else {
+			retval = (len == 0) ? FUNC_RET_OK : FUNC_RET_ERROR;
+
+			break;
+		}
 	}
 
 	if (FC_PTR->pipelining || FC_PTR->async || FC_PTR->fragmentation)
