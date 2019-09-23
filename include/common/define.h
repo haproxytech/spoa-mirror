@@ -118,7 +118,9 @@
 #  endif
 #  define __fmt(a,b,c)             __attribute__((format(a, b, c)))
 #  define __maybe_unused           __attribute__((unused))
-#  define __packed                 __attribute__((packed))
+#  ifndef __packed
+#     define __packed              __attribute__((packed))
+#  endif
 #  define __noreturn               __attribute__((noreturn))
 #else
 #  ifndef __always_inline
