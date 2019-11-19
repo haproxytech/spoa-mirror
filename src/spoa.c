@@ -724,8 +724,6 @@ void write_frame_cb(struct ev_loop *loop __maybe_unused, ev_io *ev, int revents 
 
 	DBG_FUNC(CW_PTR, "%p, %p, 0x%08x", loop, ev, revents);
 
-	C_DBG(1, client, "<-- Sending data");
-
 	if (_NULL(f = acquire_outgoing_frame(client))) {
 		ev_io_stop(CW_PTR->ev_base, &(client->ev_frame_wr));
 		ev_async_send(CW_PTR->ev_base, &(CW_PTR->ev_async));
