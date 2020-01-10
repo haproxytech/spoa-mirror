@@ -1,5 +1,5 @@
 /***
- * Copyright 2018,2019 HAProxy Technologies
+ * Copyright 2018-2020 HAProxy Technologies
  *
  * This file is part of spoa-mirror.
  *
@@ -812,7 +812,7 @@ static CURLcode mir_curl_add_out(struct curl_con *con, const struct mirror *mir)
 	if (_NULL(con) || _NULL(mir))
 		return retval;
 
-	if (mir->out_address != NULL)
+	if (_nNULL(mir->out_address))
 		if ((retval = curl_easy_setopt(con->easy, CURLOPT_INTERFACE, mir->out_address)) != CURLE_OK)
 			CURL_ERR_EASY("Failed to set outgoing connections interface", retval);
 
