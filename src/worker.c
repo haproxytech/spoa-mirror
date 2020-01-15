@@ -1,5 +1,5 @@
 /***
- * Copyright 2018,2019 HAProxy Technologies
+ * Copyright 2018-2020 HAProxy Technologies
  *
  * This file is part of spoa-mirror.
  *
@@ -253,6 +253,7 @@ __noreturn static void *worker_thread_exit(struct worker *worker)
  */
 static void *worker_thread(void *data)
 {
+	char               name[16];
 	struct client     *c, *cback;
 	struct spoe_frame *f, *fback;
 	struct worker     *w = data;
@@ -264,6 +265,10 @@ static void *worker_thread(void *data)
 #else
 	W_DBG(1, w, "  Worker started, thread id: %"PRI_PTHREADT, pthread_self());
 #endif
+
+	/* Can w->thread be used instead of the function pthread_self()? */
+	(void)snprintf(name, sizeof(name), "sm/wrk: %d", w->id);
+	(void)pthread_setname_np(pthread_self(), name);
 
 	w->nbclients = 0;
 	LIST_INIT(&(w->engines));
