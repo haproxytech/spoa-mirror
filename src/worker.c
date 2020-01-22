@@ -275,12 +275,14 @@ static void *worker_thread(void *data)
 	LIST_INIT(&(w->clients));
 	LIST_INIT(&(w->frames));
 
-	w->ev_base = ev_loop_new(EVFLAG_AUTO);
+	w->ev_base = ev_loop_new(cfg.ev_backend);
 	if (_NULL(w->ev_base)) {
 		w_log(w, _F("Failed to initialize libev for worker %02d: %m"), w->id);
 
 		return worker_thread_exit(w);
 	}
+
+	W_DBG(1, w, "  libev: using backend '%s'", ev_backend_type(w->ev_base));
 
 	worker_async_init(w);
 
@@ -554,7 +556,7 @@ static int worker_run_exit(int fd, struct ev_loop *ev_base, struct ev_signal *ev
 int worker_run(void)
 {
 	struct ev_timer   ev_runtime;
-	struct ev_loop   *ev_base = NULL;
+	struct ev_loop   *ev_base;
 	struct ev_io      ev_accept;
 	struct ev_signal  ev_sigint;
 	int               rc, i, fd = -1;
@@ -570,12 +572,14 @@ int worker_run(void)
 	(void)memset(&ev_sigint, 0, sizeof(ev_sigint));
 	(void)memset(&ev_accept, 0, sizeof(ev_accept));
 
-	ev_base = ev_default_loop(EVFLAG_AUTO);
+	ev_base = ev_default_loop(cfg.ev_backend);
 	if (_NULL(ev_base)) {
 		w_log(NULL, _F("Failed to initialize libev: %m"));
 
 		return EX_SOFTWARE;
 	}
+
+	W_DBG(1, NULL, "  libev: using backend '%s'", ev_backend_type(ev_base));
 
 	(void)signal(SIGPIPE, SIG_IGN);
 

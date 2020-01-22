@@ -1,5 +1,5 @@
 /***
- * Copyright 2018,2019 HAProxy Technologies
+ * Copyright 2018-2020 HAProxy Technologies
  *
  * This file is part of spoa-mirror.
  *
@@ -73,6 +73,7 @@ struct config_data {
 	bool_t        logfile_in_use;
 	const char   *pidfile;
 	int           pidfile_fd;
+	uint          ev_backend;
 #ifdef HAVE_LIBCURL
 	char         *mir_url;
 	const char   *mir_address;

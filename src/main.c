@@ -1,5 +1,5 @@
 /***
- * Copyright 2018,2019 HAProxy Technologies
+ * Copyright 2018-2020 HAProxy Technologies
  *
  * This file is part of spoa-mirror.
  *
@@ -33,6 +33,7 @@ struct config_data cfg = {
 	.monitor_interval_us = DEFAULT_MONITOR_INTERVAL,
 	.runtime_us          = DEFAULT_RUNTIME,
 	.pidfile_fd          = -1,
+	.ev_backend          = EVFLAG_AUTO,
 };
 struct program_data prg;
 
@@ -60,6 +61,7 @@ static void usage(const char *program_name, bool_t flag_verbose)
 	if (flag_verbose) {
 		(void)printf("Options are:\n");
 		(void)printf("  -a, --address=NAME              Specify the address to listen on (default: \"%s\").\n", DEFAULT_SERVER_ADDRESS);
+		(void)printf("  -B, --libev-backend=TYPE        Specify the libev backend type (default: AUTO).\n");
 		(void)printf("  -b, --connection-backlog=VALUE  Specify the connection backlog size (default: %d).\n", DEFAULT_CONNECTION_BACKLOG);
 		(void)printf("  -c, --capability=NAME           Enable the support of the specified capability.\n");
 		(void)printf("  -D, --daemonize                 Run this program as a daemon.\n");
@@ -81,6 +83,7 @@ static void usage(const char *program_name, bool_t flag_verbose)
 		(void)printf("  -P, --mirror-local-port=VALUE   Specify the local port range for outgoing connections.\n");
 #endif
 		(void)printf("  -V, --version                   Show program version.\n\n");
+		(void)printf("Supported libev backends: %s.\n\n", ev_backends_supported());
 		(void)printf("Supported capabilities: " STR_CAP_FRAGMENTATION ", " STR_CAP_PIPELINING ", " STR_CAP_ASYNC ".\n\n");
 		(void)printf("Allowed logging file opening modes: a, w.  The 'a' mode allows openning or\n");
 		(void)printf("creating file for writing at end-of-file.  The 'w' mode allows truncating\n");
@@ -88,7 +91,7 @@ static void usage(const char *program_name, bool_t flag_verbose)
 		(void)printf("for the mode, then line buffering is used when writing to the log file.\n\n");
 		(void)printf("The time delay/interval is specified in milliseconds by default, but can be\n");
 		(void)printf("in any other unit if the number is suffixed by a unit (us, ms, s, m, h, d).\n\n");
-		(void)printf("Copyright 2018,2019 HAProxy Technologies\n");
+		(void)printf("Copyright 2018-2020 HAProxy Technologies\n");
 		(void)printf("SPDX-License-Identifier: GPL-2.0-or-later\n\n");
 	} else {
 		(void)printf("For help type: %s -h\n\n", program_name);
@@ -129,6 +132,47 @@ static int getopt_set_capability(const char *name)
 		cfg.cap_flags |= capabilities[i].flag;
 	} else {
 		(void)fprintf(stderr, "ERROR: unsupported capability '%s'\n", name);
+
+		retval = FUNC_RET_ERROR;
+	}
+
+	return retval;
+}
+
+
+/***
+ * NAME
+ *   getopt_set_ev_backend -
+ *
+ * ARGUMENTS
+ *   type -
+ *
+ * DESCRIPTION
+ *   -
+ *
+ * RETURN VALUE
+ *   -
+ */
+static int getopt_set_ev_backend(const char *type)
+{
+#define LIBEV_BACKEND_DEF(v,s)   { s, EVBACKEND_##v },
+	static const struct {
+		const char *str;
+		uint        type;
+	} backends[] = { LIBEV_BACKEND_DEFINES };
+#undef LIBEV_BACKEND_DEF
+	int i, retval = FUNC_RET_OK;
+
+	DBG_FUNC(NULL, "\"%s\"", type);
+
+	for (i = 0; i < TABLESIZE(backends); i++)
+		if (strcasecmp(backends[i].str, type) == 0)
+			break;
+
+	if (i < TABLESIZE(backends)) {
+		cfg.ev_backend |= backends[i].type;
+	} else {
+		(void)fprintf(stderr, "ERROR: invalid libev backend '%s'\n", type);
 
 		retval = FUNC_RET_ERROR;
 	}
@@ -301,6 +345,7 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 {
 	static const struct option longopts[] = {
 		{ "address",            required_argument, NULL, 'a' },
+		{ "libev-backend",      required_argument, NULL, 'B' },
 		{ "connection-backlog", required_argument, NULL, 'b' },
 		{ "capability",         required_argument, NULL, 'c' },
 		{ "daemonize",          no_argument,       NULL, 'D' },
@@ -345,6 +390,8 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 	while ((c = getopt_long(argc, argv, shortopts, longopts, &longopts_idx)) != EOF) {
 		if (c == 'a')
 			cfg.server_address = optarg;
+		else if (c == 'B')
+			flag_error |= _OK(getopt_set_ev_backend(optarg)) ? 0 : 1;
 		else if (c == 'b')
 			cfg.connection_backlog = atoi(optarg);
 		else if (c == 'c')

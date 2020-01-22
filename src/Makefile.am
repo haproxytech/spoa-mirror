@@ -10,6 +10,7 @@ spoa_mirror_CPPFLAGS = $(AM_CPPFLAGS) -DPACKAGE_BUILD=`cat .build-counter` -I../
  spoa_mirror_LDFLAGS = $(AM_LDFLAGS)
         bin_PROGRAMS = spoa-mirror
  spoa_mirror_SOURCES = \
+	libev.c \
 	main.c \
 	spoa-message.c \
 	spoa.c \

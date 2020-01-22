@@ -1,5 +1,5 @@
 /***
- * Copyright 2018,2019 HAProxy Technologies
+ * Copyright 2018-2020 HAProxy Technologies
  *
  * This file is part of spoa-mirror.
  *
@@ -102,6 +102,7 @@
 #ifdef HAVE_LIBCURL
 #  include "types/curl.h"
 #endif
+#include "types/libev.h"
 #include "types/main.h"
 #include "types/spoa-message.h"
 #include "types/spoa.h"
@@ -114,6 +115,7 @@
 #ifdef HAVE_LIBCURL
 #  include "proto/curl.h"
 #endif
+#include "proto/libev.h"
 #include "proto/spoa-message.h"
 #include "proto/spoa.h"
 #include "proto/spoe-decode.h"
