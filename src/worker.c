@@ -105,7 +105,7 @@ static int bind_server_socket(struct addrinfo *ai)
 		flag_ok = 1;
 
 	if (flag_ok)
-		W_DBG(1, NULL, "  Server socket created: %d", retval);
+		W_DBG(WORKER, NULL, "  Server socket created: %d", retval);
 	else
 		FD_CLOSE(retval);
 
@@ -147,15 +147,15 @@ static int create_server_socket(void)
 		w_log(NULL, _E("Failed to get address info for '%s': %s"), cfg.server_address, gai_strerror(rc));
 	} else {
 		for (ai = res; _nNULL(ai); ai = ai->ai_next) {
-			W_DBG(3, NULL, (ai == res) ? "  --- addrinfo: %p" : "  ---", ai);
-			W_DBG(3, NULL, "    ai_flags:     %d", ai->ai_flags);
-			W_DBG(3, NULL, "    ai_family:    %d", ai->ai_family);
-			W_DBG(3, NULL, "    ai_socktype:  %d", ai->ai_socktype);
-			W_DBG(3, NULL, "    ai_protocol:  %d", ai->ai_protocol);
-			W_DBG(3, NULL, "    ai_addrlen:   %d", ai->ai_addrlen);
-			W_DBG(3, NULL, "    ai_canonname: \"%s\"", ai->ai_canonname);
-			W_DBG(3, NULL, "    ai_addr:      %p", ai->ai_addr);
-			W_DBG(3, NULL, "    ai_next:      %p", ai->ai_next);
+			W_DBG(INFO, NULL, (ai == res) ? "  --- addrinfo: %p" : "  ---", ai);
+			W_DBG(INFO, NULL, "    ai_flags:     %d", ai->ai_flags);
+			W_DBG(INFO, NULL, "    ai_family:    %d", ai->ai_family);
+			W_DBG(INFO, NULL, "    ai_socktype:  %d", ai->ai_socktype);
+			W_DBG(INFO, NULL, "    ai_protocol:  %d", ai->ai_protocol);
+			W_DBG(INFO, NULL, "    ai_addrlen:   %d", ai->ai_addrlen);
+			W_DBG(INFO, NULL, "    ai_canonname: \"%s\"", ai->ai_canonname);
+			W_DBG(INFO, NULL, "    ai_addr:      %p", ai->ai_addr);
+			W_DBG(INFO, NULL, "    ai_next:      %p", ai->ai_next);
 
 			/*
 			 * getaddrinfo() returns a list of address structures.
@@ -199,7 +199,7 @@ static void worker_thread_monitor_cb(struct ev_loop *loop __maybe_unused, struct
 	DBG_FUNC(w, "%p, %p, 0x%08x", loop, ev, revents);
 
 	if (w->nbclients || ev_async_pending(&(w->ev_async)))
-		W_DBG(1, w, "  %u clients connected (%u frames), async event %spending",
+		W_DBG(WORKER, w, "  %u clients connected (%u frames), async event %spending",
 		      w->nbclients, w->nbframes, ev_async_pending(&(w->ev_async)) ? "" : "not ");
 #endif
 }
@@ -232,7 +232,7 @@ __noreturn static void *worker_thread_exit(struct worker *worker)
 		worker->ev_base = NULL;
 	}
 
-	W_DBG(1, worker, "  Worker is stopped");
+	W_DBG(WORKER, worker, "  Worker is stopped");
 
 	pthread_exit(NULL);
 }
@@ -261,9 +261,9 @@ static void *worker_thread(void *data)
 	DBG_FUNC(w, "%p", data);
 
 #ifdef __linux__
-	W_DBG(1, w, "  Worker started, thread id: %"PRI_PTHREADT, syscall(SYS_gettid));
+	W_DBG(WORKER, w, "  Worker started, thread id: %"PRI_PTHREADT, syscall(SYS_gettid));
 #else
-	W_DBG(1, w, "  Worker started, thread id: %"PRI_PTHREADT, pthread_self());
+	W_DBG(WORKER, w, "  Worker started, thread id: %"PRI_PTHREADT, pthread_self());
 #endif
 
 	/* Can w->thread be used instead of the function pthread_self()? */
@@ -282,7 +282,7 @@ static void *worker_thread(void *data)
 		return worker_thread_exit(w);
 	}
 
-	W_DBG(1, w, "  libev: using backend '%s'", ev_backend_type(w->ev_base));
+	W_DBG(WORKER, w, "  libev: using backend '%s'", ev_backend_type(w->ev_base));
 
 	worker_async_init(w);
 
@@ -298,7 +298,7 @@ static void *worker_thread(void *data)
 	ev_timer_init(ev_monitor_ptr, worker_thread_monitor_cb, cfg.monitor_interval_us / 1e6, cfg.monitor_interval_us / 1e6);
 	ev_timer_start(w->ev_base, &(w->ev_monitor));
 
-	W_DBG(1, w, "  Worker ready to process client messages");
+	W_DBG(WORKER, w, "  Worker ready to process client messages");
 
 	(void)ev_run(w->ev_base, 0);
 
@@ -356,17 +356,17 @@ static void worker_stop(struct ev_loop *loop, const char *msg __maybe_unused)
 
 	DBG_FUNC(NULL, "%p, \"%s\"", loop, msg);
 
-	W_DBG(1, NULL, "  Stopping the server, %s", msg);
+	W_DBG(WORKER, NULL, "  Stopping the server, %s", msg);
 
 	ev_once(loop, -1, 0, 0, worker_stop_ev, loop);
 
-	W_DBG(1, NULL, "  Main event loop stopped");
+	W_DBG(WORKER, NULL, "  Main event loop stopped");
 
 	for (i = 0; i < cfg.num_workers; i++) {
 		ev_once(prg.workers[i].ev_base, -1, 0, 0, worker_stop_ev, prg.workers[i].ev_base);
 		ev_async_send(prg.workers[i].ev_base, &(prg.workers[i].ev_async));
 
-		W_DBG(1, NULL, "  Worker %02d: event loop stopped", prg.workers[i].id);
+		W_DBG(WORKER, NULL, "  Worker %02d: event loop stopped", prg.workers[i].id);
 	}
 }
 
@@ -450,7 +450,7 @@ static void worker_accept_cb(struct ev_loop *loop __maybe_unused, struct ev_io *
 		return;
 	}
 
-	W_DBG(1, NULL,
+	W_DBG(WORKER, NULL,
 	      "  <%lu> New client connection accepted and assigned to worker %02d",
 	      prg.clicount, w->id);
 
@@ -499,7 +499,7 @@ static void worker_accept_cb(struct ev_loop *loop __maybe_unused, struct ev_io *
 	ev_io_start(w->ev_base, &(c->ev_frame_rd));
 	ev_async_send(w->ev_base, &(w->ev_async));
 
-	W_DBG(1, NULL, "  <%lu> New read event added to worker %02d", prg.clicount, w->id);
+	W_DBG(WORKER, NULL, "  <%lu> New read event added to worker %02d", prg.clicount, w->id);
 }
 
 
@@ -579,7 +579,7 @@ int worker_run(void)
 		return EX_SOFTWARE;
 	}
 
-	W_DBG(1, NULL, "  libev: using backend '%s'", ev_backend_type(ev_base));
+	W_DBG(WORKER, NULL, "  libev: using backend '%s'", ev_backend_type(ev_base));
 
 	(void)signal(SIGPIPE, SIG_IGN);
 
@@ -627,7 +627,7 @@ int worker_run(void)
 		ev_timer_start(ev_base, &ev_runtime);
 	}
 
-	W_DBG(1, NULL,
+	W_DBG(WORKER, NULL,
 	      "  Server is ready"
 	      " [" STR_CAP_FRAGMENTATION "=%s - " STR_CAP_PIPELINING "=%s - " STR_CAP_ASYNC "=%s - debug=%s - max-frame-size=%u]",
 	      STR_BOOL(cfg.cap_flags & FLAG_CAP_FRAGMENTATION),
@@ -645,7 +645,7 @@ int worker_run(void)
 		if (rc != 0)
 			w_log(w, _E("Failed to join worker thread %02d: %s"), w->id, strerror(rc));
 
-		W_DBG(1, NULL, "  Worker %02d: terminated (%d)", w->id, rc);
+		W_DBG(WORKER, NULL, "  Worker %02d: terminated (%d)", w->id, rc);
 	}
 
 	return worker_run_exit(fd, ev_base, &ev_sigint, &ev_accept, EX_OK);

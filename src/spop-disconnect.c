@@ -1,5 +1,5 @@
 /***
- * Copyright 2018,2019 HAProxy Technologies
+ * Copyright 2018-2020 HAProxy Technologies
  *
  * This file is part of spoa-mirror.
  *
@@ -44,7 +44,7 @@ static int check_discon_status_code_cb(struct spoe_frame *frame __maybe_unused, 
 
 	DBG_FUNC(FW_PTR, "%p, %p, %p", frame, arg1, arg2);
 
-	F_DBG(1, frame, "--> HAPROXY-DISCONNECT status code: %d (%s)", (int)status, spoe_frm_err_reasons(status));
+	F_DBG(SPOA, frame, "--> HAPROXY-DISCONNECT status code: %d (%s)", (int)status, spoe_frm_err_reasons(status));
 #endif
 
 	return FUNC_RET_OK;
@@ -76,7 +76,7 @@ static int check_discon_message_cb(struct spoe_frame *frame __maybe_unused, void
 
 	DBG_FUNC(FW_PTR, "%p, %p, %p", frame, arg1, arg2);
 
-	F_DBG(1, frame, "--> HAPROXY-DISCONNECT message: %.*s", (int)len, str);
+	F_DBG(SPOA, frame, "--> HAPROXY-DISCONNECT message: %.*s", (int)len, str);
 #endif
 
 	return FUNC_RET_OK;
@@ -162,8 +162,8 @@ int prepare_agentdicon(struct spoe_frame *frame)
 	                           SPOE_ENC_KV, "message", 7, SPOE_DATA_T_STR, reason, strlen(reason),
 	                           SPOE_ENC_END);
 
-	F_DBG(1, frame, "<-- AGENT-DISCONNECT status code: %u", FC_PTR->status_code);
-	F_DBG(1, frame, "<-- AGENT-DISCONNECT message: %s", reason);
+	F_DBG(SPOA, frame, "<-- AGENT-DISCONNECT status code: %u", FC_PTR->status_code);
+	F_DBG(SPOA, frame, "<-- AGENT-DISCONNECT message: %s", reason);
 
 	return retval;
 }

@@ -1,5 +1,5 @@
 /***
- * Copyright 2018,2019 HAProxy Technologies
+ * Copyright 2018-2020 HAProxy Technologies
  *
  * This file is part of spoa-mirror.
  *
@@ -62,13 +62,13 @@ int spoa_msg_iprep(struct spoe_frame *frame, const char **buf, const char *end, 
 		if (_nNULL(inet_ntop(AF_INET, &(data.ipv4), addr, INET_ADDRSTRLEN)))
 			retval = random() % 101;
 
-		F_DBG(1, frame, "IPv4 score for %.*s is %d", INET_ADDRSTRLEN, addr, retval);
+		F_DBG(SPOA, frame, "IPv4 score for %.*s is %d", INET_ADDRSTRLEN, addr, retval);
 	}
 	else if (type == SPOE_DATA_T_IPV6) {
 		if (_nNULL(inet_ntop(AF_INET6, &(data.ipv6), addr, INET6_ADDRSTRLEN)))
 			retval = random() % 101;
 
-		F_DBG(1, frame, "IPv6 score for %.*s is %d", INET6_ADDRSTRLEN, addr, retval);
+		F_DBG(SPOA, frame, "IPv6 score for %.*s is %d", INET6_ADDRSTRLEN, addr, retval);
 	}
 	else {
 		return 0;
@@ -101,7 +101,7 @@ void spoa_msg_iprep_action(struct spoe_frame *frame, char **buf, int ip_score)
 {
 	DBG_FUNC(FW_PTR, "%p, %p:%p, %d", frame, DPTR_ARGS(buf), ip_score);
 
-	F_DBG(1, frame, "Add action: set variable ip_score=%d", ip_score);
+	F_DBG(SPOA, frame, "Add action: set variable ip_score=%d", ip_score);
 
 	(void)spoe_encode(frame, buf,
 	                  SPOE_ENC_UINT8, SPOE_ACT_T_SET_VAR, /* Action type */
@@ -143,7 +143,7 @@ int spoa_msg_test(struct spoe_frame *frame, const char **buf, const char *end)
 
 	retval = spoe_decode(frame, &ptr, end, SPOE_DEC_UINT8, &nbargs, SPOE_DEC_END);
 	if (_nERROR(retval))
-		F_DBG(1, frame, "%hhu arg(s) expected", nbargs);
+		F_DBG(SPOA, frame, "%hhu arg(s) expected", nbargs);
 
 	for (i = 0; _nERROR(retval) && (i < nbargs); i++) {
 		retval = spoe_decode(frame, &ptr, end,
@@ -154,40 +154,40 @@ int spoa_msg_test(struct spoe_frame *frame, const char **buf, const char *end)
 			break;
 		}
 		else if (type == SPOE_DATA_T_NULL) {
-			F_DBG(1, frame, "test[%d] name='%.*s' type=%hhu:", i, (int)len, str, type);
+			F_DBG(SPOA, frame, "test[%d] name='%.*s' type=%hhu:", i, (int)len, str, type);
 		}
 		else if (type == SPOE_DATA_T_BOOL) {
-			F_DBG(1, frame, "test[%d] name='%.*s' type=%hhu: %02hhx", i, (int)len, str, type, data.boolean);
+			F_DBG(SPOA, frame, "test[%d] name='%.*s' type=%hhu: %02hhx", i, (int)len, str, type, data.boolean);
 		}
 		else if (type == SPOE_DATA_T_INT32) {
-			F_DBG(1, frame, "test[%d] name='%.*s' type=%hhu: %d", i, (int)len, str, type, data.int32);
+			F_DBG(SPOA, frame, "test[%d] name='%.*s' type=%hhu: %d", i, (int)len, str, type, data.int32);
 		}
 		else if (type == SPOE_DATA_T_UINT32) {
-			F_DBG(1, frame, "test[%d] name='%.*s' type=%hhu: %08x", i, (int)len, str, type, data.uint32);
+			F_DBG(SPOA, frame, "test[%d] name='%.*s' type=%hhu: %08x", i, (int)len, str, type, data.uint32);
 		}
 		else if (type == SPOE_DATA_T_INT64) {
-			F_DBG(1, frame, "test[%d] name='%.*s' type=%hhu: %"PRId64, i, (int)len, str, type, data.int64);
+			F_DBG(SPOA, frame, "test[%d] name='%.*s' type=%hhu: %"PRId64, i, (int)len, str, type, data.int64);
 		}
 		else if (type == SPOE_DATA_T_UINT64) {
-			F_DBG(1, frame, "test[%d] name='%.*s' type=%hhu: %016"PRIx64, i, (int)len, str, type, data.uint64);
+			F_DBG(SPOA, frame, "test[%d] name='%.*s' type=%hhu: %016"PRIx64, i, (int)len, str, type, data.uint64);
 		}
 		else if (type == SPOE_DATA_T_IPV4) {
 			if (_nNULL(inet_ntop(AF_INET, &(data.ipv4), addr, INET_ADDRSTRLEN)))
 				retval = FUNC_RET_ERROR;
 
-			F_DBG(1, frame, "test[%d] name='%.*s' type=%hhu: \"%s\"", i, (int)len, str, type, addr);
+			F_DBG(SPOA, frame, "test[%d] name='%.*s' type=%hhu: \"%s\"", i, (int)len, str, type, addr);
 		}
 		else if (type == SPOE_DATA_T_IPV6) {
 			if (_nNULL(inet_ntop(AF_INET6, &(data.ipv6), addr, INET6_ADDRSTRLEN)))
 				retval = FUNC_RET_ERROR;
 
-			F_DBG(1, frame, "test[%d] name='%.*s' type=%hhu: \"%s\"", i, (int)len, str, type, addr);
+			F_DBG(SPOA, frame, "test[%d] name='%.*s' type=%hhu: \"%s\"", i, (int)len, str, type, addr);
 		}
 		else if (type == SPOE_DATA_T_STR) {
-			F_DBG(1, frame, "test[%d] name='%.*s' type=%hhu: \"%.*s\"", i, (int)len, str, type, (int)data.chk.len, data.chk.ptr);
+			F_DBG(SPOA, frame, "test[%d] name='%.*s' type=%hhu: \"%.*s\"", i, (int)len, str, type, (int)data.chk.len, data.chk.ptr);
 		}
 		else if (type == SPOE_DATA_T_BIN) {
-			F_DBG(1, frame, "test[%d] name='%.*s' type=%hhu: <%s> <%s>", i, (int)len, str, type, str_hex(data.chk.ptr, data.chk.len), str_ctrl(data.chk.ptr, data.chk.len));
+			F_DBG(SPOA, frame, "test[%d] name='%.*s' type=%hhu: <%s> <%s>", i, (int)len, str, type, str_hex(data.chk.ptr, data.chk.len), str_ctrl(data.chk.ptr, data.chk.len));
 		}
 		else {
 			f_log(frame, _E("test[%d] name='%.*s': Invalid argument data type: %hhu"), i, (int)len, str, type);
@@ -236,7 +236,7 @@ static struct list *spoa_msg_arg_hdrs(struct spoe_frame *frame, const char *buf,
 	for (i = 0; buf < end; i++) {
 		rc = spoe_decode(frame, &buf, end, SPOE_DEC_STR0, &str, &len, SPOE_DEC_END);
 
-		F_DBG(1, frame, "str[%d]: <%.*s>", i, (int)len, str);
+		F_DBG(SPOA, frame, "str[%d]: <%.*s>", i, (int)len, str);
 
 		if (_ERROR(rc) || _NULL(str))
 			break;
@@ -299,7 +299,7 @@ int spoa_msg_mirror(struct spoe_frame *frame, const char **buf, const char *end)
 
 	retval = spoe_decode(frame, &ptr, end, SPOE_DEC_UINT8, &nbargs, SPOE_DEC_END);
 	if (_nERROR(retval))
-		F_DBG(1, frame, "%hhu arg(s) expected", nbargs);
+		F_DBG(SPOA, frame, "%hhu arg(s) expected", nbargs);
 
 	for (i = 0; _nERROR(retval) && (i < nbargs); i++) {
 		retval = spoe_decode(frame, &ptr, end,
@@ -312,7 +312,7 @@ int spoa_msg_mirror(struct spoe_frame *frame, const char **buf, const char *end)
 		else if (type == SPOE_DATA_T_STR) {
 			char **mir_ptr;
 
-			F_DBG(1, frame, "mirror[%d] name='%.*s' type=%hhu: \"%.*s\"", i, (int)len, str, type, (int)data.chk.len, data.chk.ptr);
+			F_DBG(SPOA, frame, "mirror[%d] name='%.*s' type=%hhu: \"%.*s\"", i, (int)len, str, type, (int)data.chk.len, data.chk.ptr);
 
 			if ((len == STR_SIZE(SPOE_MSG_ARG_METHOD)) && (memcmp(str, STR_ADDRSIZE(SPOE_MSG_ARG_METHOD)) == 0))
 				mir_ptr = &(mir->method);
@@ -336,7 +336,7 @@ int spoa_msg_mirror(struct spoe_frame *frame, const char **buf, const char *end)
 			}
 		}
 		else if (type == SPOE_DATA_T_BIN) {
-			F_DBG(1, frame, "mirror[%d] name='%.*s' type=%hhu: <%s> <%s>", i, (int)len, str, type, str_hex(data.chk.ptr, data.chk.len), str_ctrl(data.chk.ptr, data.chk.len));
+			F_DBG(SPOA, frame, "mirror[%d] name='%.*s' type=%hhu: <%s> <%s>", i, (int)len, str, type, str_hex(data.chk.ptr, data.chk.len), str_ctrl(data.chk.ptr, data.chk.len));
 
 			if ((len == STR_SIZE(SPOE_MSG_ARG_HDRS)) && (memcmp(str, STR_ADDRSIZE(SPOE_MSG_ARG_HDRS)) == 0)) {
 				if (_nNULL(mir->hdrs))
@@ -444,7 +444,7 @@ void mir_ptr_free(struct mirror **data)
 	if (_NULL(data) || _NULL(*data))
 		return;
 
-	W_DBG(2, NULL, "  freeing mirror { \"%s\" \"%s\" \"%s\" %d \"%s\" %p %p %zu/%zu }", (*data)->url, (*data)->path, (*data)->method, (*data)->request_method, (*data)->version, (*data)->hdrs, (*data)->body, (*data)->body_head, (*data)->body_size);
+	W_DBG(NOTICE, NULL, "  freeing mirror { \"%s\" \"%s\" \"%s\" %d \"%s\" %p %p %zu/%zu }", (*data)->url, (*data)->path, (*data)->method, (*data)->request_method, (*data)->version, (*data)->hdrs, (*data)->body, (*data)->body_head, (*data)->body_size);
 
 	PTR_FREE((*data)->out_address);
 	PTR_FREE((*data)->url);

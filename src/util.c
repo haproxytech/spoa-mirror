@@ -1,5 +1,5 @@
 /***
- * Copyright 2018,2019 HAProxy Technologies
+ * Copyright 2018-2020 HAProxy Technologies
  *
  * This file is part of spoa-mirror.
  *
@@ -70,7 +70,7 @@ void buffer_init(struct buffer *data)
 	if (_NULL(data))
 		return;
 
-	W_DBG(2, NULL, "  initializing buffer { { %p, %p }, %p, %zu, %zu }", data->list.p, data->list.n, data->ptr, data->len, data->size);
+	W_DBG(NOTICE, NULL, "  initializing buffer { { %p, %p }, %p, %zu, %zu }", data->list.p, data->list.n, data->ptr, data->len, data->size);
 
 	LIST_INIT(&(data->list));
 	PTR_FREE(data->ptr);
@@ -99,7 +99,7 @@ void buffer_free(struct buffer *data)
 	if (_NULL(data))
 		return;
 
-	W_DBG(2, NULL, "  freeing buffer { { %p, %p }, %p, %zu, %zu }", data->list.p, data->list.n, data->ptr, data->len, data->size);
+	W_DBG(NOTICE, NULL, "  freeing buffer { { %p, %p }, %p, %zu, %zu }", data->list.p, data->list.n, data->ptr, data->len, data->size);
 
 	if (_nNULL(data->list.p) && _nNULL(data->list.n))
 		LIST_DEL(&(data->list));
@@ -209,7 +209,7 @@ ssize_t buffer_grow(struct buffer *data, const void *src, size_t n)
 		w_log(NULL, _E("Failed to allocate data: %m"));
 	}
 	else {
-		W_DBG(2, NULL, "  reallocating buffer { %p, %zu, %zu } -> { %p, %zu, %zu }",
+		W_DBG(NOTICE, NULL, "  reallocating buffer { %p, %zu, %zu } -> { %p, %zu, %zu }",
 		      data->ptr, data->len, data->size, ptr, data->len + (_NULL(src) ? 0 : n), data->size + n);
 
 		if (_NULL(src)) {
@@ -655,7 +655,7 @@ char *parse_url(const char *url)
 	path = *ptr;
 	*ptr = '\0';
 
-	W_DBG(1, NULL, "  host: \"%s\", port: \"%s\", path: '%c'", host, port, path);
+	W_DBG(UTIL, NULL, "  host: \"%s\", port: \"%s\", path: '%c'", host, port, path);
 
 	if (_ERROR(parse_hostname(host))) {
 		w_log(NULL, _E("Invalid hostname '%s'"), host);
@@ -675,7 +675,7 @@ char *parse_url(const char *url)
 	if (_nNULL(retptr)) {
 		*ptr = path;
 
-		W_DBG(1, NULL, "  URL: \"%s\"", retptr);
+		W_DBG(UTIL, NULL, "  URL: \"%s\"", retptr);
 	}
 
 	return retptr;
@@ -954,7 +954,7 @@ int rlimit_setnofile(void)
 
 	nofile.rlim_cur = nofile.rlim_max;
 
-	W_DBG(1, NULL, "  setting RLIMIT_NOFILE to %lu", nofile.rlim_cur);
+	W_DBG(UTIL, NULL, "  setting RLIMIT_NOFILE to %lu", nofile.rlim_cur);
 
 	retval = setrlimit(RLIMIT_NOFILE, &nofile);
 
@@ -1182,31 +1182,31 @@ int daemonize(bool_t flag_chdir, bool_t flag_fdclose, int *fd, size_t n)
 		else if (_nNULL(fd) && (n > 0)) {
 			for (j = 0; (j < n) && (fd[j] != i); j++);
 			if (j < n) {
-				W_DBG(1, NULL, "  fd %d skipped", i);
+				W_DBG(UTIL, NULL, "  fd %d skipped", i);
 
 				continue;
 			}
 		}
 
 		if (_OK(close(i)))
-			W_DBG(1, NULL, "  fd %d closed", i);
+			W_DBG(UTIL, NULL, "  fd %d closed", i);
 	}
 
 	if (flag_fdclose) {
 		/* Close off stdin, stdout and stderr. */
 		if (_ERROR(close(STDIN_FILENO)))
-			W_DBG(1, NULL, "  cannot close fd %d: %m", STDIN_FILENO);
+			W_DBG(UTIL, NULL, "  cannot close fd %d: %m", STDIN_FILENO);
 		if (_ERROR(close(STDERR_FILENO)))
-			W_DBG(1, NULL, "  cannot close fd %d: %m", STDERR_FILENO);
+			W_DBG(UTIL, NULL, "  cannot close fd %d: %m", STDERR_FILENO);
 		if (_ERROR(close(STDOUT_FILENO)))
-			W_DBG(1, NULL, "  cannot close fd %d: %m", STDOUT_FILENO);
+			W_DBG(UTIL, NULL, "  cannot close fd %d: %m", STDOUT_FILENO);
 
 		/* Redirect stdin, stdout and stderr to /dev/null. */
 		(void)open("/dev/null", O_RDONLY);
 		(void)open("/dev/null", O_RDWR);
 		(void)open("/dev/null", O_RDWR);
 	} else {
-		W_DBG(1, NULL, "  pids: %"PRI_PIDT" -> %"PRI_PIDT" -> %"PRI_PIDT, VAL_ARRAY3(pid));
+		W_DBG(UTIL, NULL, "  pids: %"PRI_PIDT" -> %"PRI_PIDT" -> %"PRI_PIDT, VAL_ARRAY3(pid));
 	}
 
 	return FUNC_RET_OK;

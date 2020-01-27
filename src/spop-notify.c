@@ -1,5 +1,5 @@
 /***
- * Copyright 2018,2019 HAProxy Technologies
+ * Copyright 2018-2020 HAProxy Technologies
  *
  * This file is part of spoa-mirror.
  *
@@ -52,7 +52,7 @@ int handle_hanotify(struct spoe_frame *frame)
 		return FUNC_RET_ERROR;
 	}
 
-	F_DBG(1, frame, "--> HAPROXY-NOTIFY - %sfragmented frame received"
+	F_DBG(SPOA, frame, "--> HAPROXY-NOTIFY - %sfragmented frame received"
 	      " - frag_len=%zu - len=%zu - offset=%zu",
 	      (frame->flags & SPOE_FRM_FL_FIN) ? "un" : "",
 	      frame->frag.len, frame->len, frame->offset);

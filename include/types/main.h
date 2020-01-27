@@ -20,7 +20,7 @@
 #ifndef _TYPES_MAIN_H
 #define _TYPES_MAIN_H
 
-#define DEFAULT_DEBUG_LEVEL          IFDEF_DBG(0x03, 0x02)
+#define DEFAULT_DEBUG_LEVEL          IFDEF_DBG((1 << DBG_LEVEL_FUNC) | (1 << DBG_LEVEL_SPOA), (1 << DBG_LEVEL_SPOA))
 #define DEFAULT_MAX_FRAME_SIZE       16384
 #define DEFAULT_NUM_WORKERS          10
 #define DEFAULT_MONITOR_INTERVAL     5000000
@@ -57,7 +57,7 @@ enum FLAG_OPT_enum {
 
 struct config_data {
 #ifdef DEBUG
-	uint8_t       debug_level;
+	uint32_t      debug_level;
 #endif
 	uint8_t       opt_flags;
 	unsigned int  max_frame_size;

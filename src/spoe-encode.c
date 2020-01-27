@@ -1,5 +1,5 @@
 /***
- * Copyright 2018,2019 HAProxy Technologies
+ * Copyright 2018-2020 HAProxy Technologies
  *
  * This file is part of spoa-mirror.
  *
@@ -254,7 +254,7 @@ int spoe_encode_frame(const char *msg, struct spoe_frame *frame, uint8_t spoa_ty
 
 	DBG_FUNC(FW_PTR, "\"%s\", %p, %hhu, %hhu, 0x%08x, %d, ...", msg, frame, spoa_type, spoe_type, flags, type);
 
-	F_DBG(1, frame, "<-- %s encoding frame", msg);
+	F_DBG(SPOA, frame, "<-- %s encoding frame", msg);
 
 	frame->type = spoa_type;
 
@@ -271,7 +271,7 @@ int spoe_encode_frame(const char *msg, struct spoe_frame *frame, uint8_t spoa_ty
 	retval = spoe_vencode(frame, &buf, type, ap);
 	va_end(ap);
 
-	F_DBG(1, frame, "<-- %s stream-id=%u - frame-id=%u", msg, frame->stream_id, frame->frame_id);
+	F_DBG(SPOA, frame, "<-- %s stream-id=%u - frame-id=%u", msg, frame->stream_id, frame->frame_id);
 
 	if (_nERROR(retval))
 		retval = frame->len;

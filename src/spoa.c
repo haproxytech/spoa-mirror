@@ -1,5 +1,5 @@
 /***
- * Copyright 2018,2019 HAProxy Technologies
+ * Copyright 2018-2020 HAProxy Technologies
  *
  * This file is part of spoa-mirror.
  *
@@ -132,7 +132,7 @@ static void unuse_spoe_engine(struct client *client)
 	if (!LIST_ISEMPTY(&(engine->clients)))
 		return;
 
-	C_DBG(1, client, "Remove SPOE engine '%s'", engine->id);
+	C_DBG(SPOA, client, "Remove SPOE engine '%s'", engine->id);
 	LIST_DEL(&(engine->list));
 
 	list_for_each_entry_safe(f, fback, &(engine->processing_frames), list)
@@ -167,7 +167,7 @@ void release_client(struct client *client)
 	if (_NULL(client))
 		return;
 
-	C_DBG(1, client, "Release client");
+	C_DBG(SPOA, client, "Release client");
 
 	LIST_DEL(&(client->by_worker));
 	CW_PTR->nbclients--;
@@ -335,7 +335,7 @@ static void process_frame_cb(struct ev_loop *loop __maybe_unused, struct ev_time
 
 	FW_PTR->nbframes++;
 
-	F_DBG(1, frame,
+	F_DBG(SPOA, frame,
 	      "Process frame messages: stream-id=%u - frame-id=%u - length=%zu bytes",
 	      frame->stream_id, frame->frame_id, frame->len - frame->offset);
 
@@ -349,7 +349,7 @@ static void process_frame_cb(struct ev_loop *loop __maybe_unused, struct ev_time
 		if (_ERROR(rc) || _NULL(str))
 			break;
 
-		F_DBG(1, frame, "Process SPOE Message '%.*s'", (int)len, str);
+		F_DBG(SPOA, frame, "Process SPOE Message '%.*s'", (int)len, str);
 
 		if ((len == STR_SIZE(SPOE_MSG_IPREP)) && (memcmp(str, STR_ADDRSIZE(SPOE_MSG_IPREP)) == 0))
 			rc = spoa_msg_iprep(frame, &ptr, end, &ip_score);
@@ -515,7 +515,7 @@ static ssize_t frame_recv(struct spoe_frame *frame)
 	if (_NULL(frame))
 		return retval;
 
-	C_DBG(1, FC_PTR, "--> Receiving data");
+	C_DBG(SPOA, FC_PTR, "--> Receiving data");
 
 	if (frame->buf == frame->data) {
 		frame->type = SPOA_FRM_T_HAPROXY;
@@ -539,7 +539,7 @@ static ssize_t frame_recv(struct spoe_frame *frame)
 	 */
 	retval = tcp_recv(frame, frame->len, " data");
 	if (retval == (typeof(retval))frame->len)
-		C_DBG(1, FC_PTR, "New frame of %zu bytes received: <%s> <%s>",
+		C_DBG(SPOA, FC_PTR, "New frame of %zu bytes received: <%s> <%s>",
 		      frame->len, str_hex(frame->buf, frame->len), str_ctrl(frame->buf, frame->len));
 	else
 		retval = (retval > 0) ? 0 : retval;
@@ -672,7 +672,7 @@ static ssize_t frame_send(struct spoe_frame *frame)
 
 	DBG_FUNC(FW_PTR, "%p", frame);
 
-	C_DBG(1, FC_PTR, "<-- Sending data");
+	C_DBG(SPOA, FC_PTR, "<-- Sending data");
 
 	if (frame->buf == frame->data) {
 		/*
@@ -692,7 +692,7 @@ static ssize_t frame_send(struct spoe_frame *frame)
 	 */
 	retval = tcp_send(frame, frame->len, " data");
 	if (retval == (typeof(retval))frame->len)
-		C_DBG(1, FC_PTR, "Frame of %zu bytes sent: <%s> <%s>",
+		C_DBG(SPOA, FC_PTR, "Frame of %zu bytes sent: <%s> <%s>",
 		      frame->len, str_hex(frame->buf, frame->len), str_ctrl(frame->buf, frame->len));
 	else
 		retval = (retval > 0) ? 0 : retval;
@@ -741,7 +741,7 @@ void write_frame_cb(struct ev_loop *loop __maybe_unused, ev_io *ev, int revents 
 
 	if (client->state == SPOA_ST_CONNECTING) {
 		if (f->hcheck) {
-			C_DBG(1, client, "Close client after healthcheck");
+			C_DBG(SPOA, client, "Close client after healthcheck");
 
 			release_client(client);
 

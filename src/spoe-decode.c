@@ -1,5 +1,5 @@
 /***
- * Copyright 2018,2019 HAProxy Technologies
+ * Copyright 2018-2020 HAProxy Technologies
  *
  * This file is part of spoa-mirror.
  *
@@ -496,7 +496,7 @@ int spoe_decode_kv(struct spoe_frame *frame, const char **buf, const char *end, 
 			return FUNC_RET_ERROR;
 		}
 
-		F_DBG(1, frame, "K/V item: key=%.*s", (int)len, str);
+		F_DBG(SPOA, frame, "K/V item: key=%.*s", (int)len, str);
 
 		va_start(ap, end);
 		type = va_arg(ap, typeof(type));
@@ -515,7 +515,7 @@ int spoe_decode_kv(struct spoe_frame *frame, const char **buf, const char *end, 
 
 		/* Silently ignore unknown item. */
 		if (type == SPOE_DEC_END) {
-			F_DBG(1, frame, "Skip K/V item: key=%.*s", (int)len, str);
+			F_DBG(SPOA, frame, "Skip K/V item: key=%.*s", (int)len, str);
 
 			if (_ERROR(spoe_skip_data(&ptr, end))) {
 				FC_PTR->status_code = SPOE_FRM_ERR_INVALID;
@@ -562,7 +562,7 @@ int spoe_decode_skip_msg(struct spoe_frame *frame, const char **buf, const char 
 		if (_ERROR(spoe_decode_buffer(&ptr, end, &str, &len)))
 			retval = FUNC_RET_ERROR;
 		else {
-			F_DBG(1, frame, "Skip message argument: name=%.*s", (int)len, str);
+			F_DBG(SPOA, frame, "Skip message argument: name=%.*s", (int)len, str);
 
 			if (_ERROR(spoe_skip_data(&ptr, end)))
 				retval = FUNC_RET_ERROR;
@@ -602,7 +602,7 @@ int spoe_decode_frame(const char *msg, struct spoe_frame *frame, uint8_t spoe_ty
 
 	DBG_FUNC(FW_PTR, "\"%s\", %p, %hhu, %d, %d, ...", msg, frame, spoe_type, spoe_retval, type);
 
-	F_DBG(1, frame, "--> %s decoding frame", msg);
+	F_DBG(SPOA, frame, "--> %s decoding frame", msg);
 
 	buf = frame->buf;
 	end = frame->buf + frame->len;
@@ -614,7 +614,7 @@ int spoe_decode_frame(const char *msg, struct spoe_frame *frame, uint8_t spoe_ty
 	                     SPOE_DEC_VARINT0, &frame_id,
 	                     SPOE_DEC_END);
 
-	F_DBG(1, frame, "--> %s header %hhu 0x%08x %"PRIu64" %"PRIu64,
+	F_DBG(SPOA, frame, "--> %s header %hhu 0x%08x %"PRIu64" %"PRIu64,
 	      msg, stype, flags, stream_id, frame_id);
 
 	if (_ERROR(retval))
@@ -631,7 +631,7 @@ int spoe_decode_frame(const char *msg, struct spoe_frame *frame, uint8_t spoe_ty
 		frame->fragmented = !(frame->flags & SPOE_FRM_FL_FIN);
 	}
 
-	F_DBG(1, frame, "--> %s stream-id=%u - frame-id=%u",
+	F_DBG(SPOA, frame, "--> %s stream-id=%u - frame-id=%u",
 	      msg, frame->stream_id, frame->frame_id);
 
 	if (stype == SPOE_FRM_T_UNSET) {

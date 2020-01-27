@@ -199,7 +199,7 @@ static int getopt_set_ev_backend(const char *type)
  * RETURN VALUE
  *   -
  */
-static int getopt_set_debug_level(const char *value, uint8_t *debug_level, int val_min, int val_max)
+static int getopt_set_debug_level(const char *value, uint32_t *debug_level, int val_min, int val_max)
 {
 	int64_t level;
 	int     retval = FUNC_RET_ERROR;
@@ -213,7 +213,7 @@ static int getopt_set_debug_level(const char *value, uint8_t *debug_level, int v
 		(void)fprintf(stderr, "ERROR: debug level not defined\n");
 	}
 	else if (str_toll(value, NULL, 1, 10, &level, val_min, val_max)) {
-		*debug_level = level | DBG_FUNC_ENABLED;
+		*debug_level = level | (1 << DBG_LEVEL_ENABLED);
 
 		retval = FUNC_RET_OK;
 	}
@@ -319,7 +319,7 @@ static int getopt_set_ports(const char *ports, int *range)
 		range[0] = value[0];
 		range[1] = (value[1] > 0) ? (value[1] - value[0] + 1) : 1;
 
-		W_DBG(2, NULL, "  port range set to { %d, %d }", range[0], range[1]);
+		W_DBG(NOTICE, NULL, "  port range set to { %d, %d }", range[0], range[1]);
 	}
 
 	return retval;
@@ -400,7 +400,7 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 			cfg.opt_flags |= FLAG_OPT_DAEMONIZE;
 #ifdef DEBUG
 		else if (c == 'd')
-			flag_error |= _OK(getopt_set_debug_level(optarg, &(cfg.debug_level), 0, DBG_FUNC_ENABLED - 1)) ? 0 : 1;
+			flag_error |= _OK(getopt_set_debug_level(optarg, &(cfg.debug_level), 0, (1 << DBG_LEVEL_ENABLED) - 1)) ? 0 : 1;
 #endif
 		else if (c == 'F')
 			cfg.pidfile = optarg;

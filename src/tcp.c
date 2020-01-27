@@ -1,5 +1,5 @@
 /***
- * Copyright 2018,2019 HAProxy Technologies
+ * Copyright 2018-2020 HAProxy Technologies
  *
  * This file is part of spoa-mirror.
  *
@@ -44,7 +44,7 @@ ssize_t tcp_recv(struct spoe_frame *frame, size_t len, const char *msg)
 	retval = recv(FC_PTR->fd, frame->buf + frame->offset, len - frame->offset, 0);
 	if (retval == 0) {
 		if (++(frame->rd_errors) >= TCP_RECV_ERR_MAX) {
-			C_DBG(1, FC_PTR, "socket zero receive limit reached");
+			C_DBG(SPOA, FC_PTR, "socket zero receive limit reached");
 
 			errno  = ESTALE;
 			retval = FUNC_RET_ERROR;
@@ -53,7 +53,7 @@ ssize_t tcp_recv(struct spoe_frame *frame, size_t len, const char *msg)
 	else if (retval > 0) {
 		frame->offset += retval;
 
-		C_DBG(1, FC_PTR, "%zu/%zu/%zu byte(s) received frame%s", retval, frame->offset, len, msg);
+		C_DBG(SPOA, FC_PTR, "%zu/%zu/%zu byte(s) received frame%s", retval, frame->offset, len, msg);
 
 		if (frame->offset == len) {
 			retval = frame->offset;
@@ -64,7 +64,7 @@ ssize_t tcp_recv(struct spoe_frame *frame, size_t len, const char *msg)
 	}
 	else if (TEST_OR3(errno, EAGAIN, EWOULDBLOCK, EINTR)) {
 		if (++(frame->rd_errors) >= TCP_RECV_ERR_MAX)
-			C_DBG(1, FC_PTR, "socket error receive limit reached");
+			C_DBG(SPOA, FC_PTR, "socket error receive limit reached");
 		else
 			retval = 0;
 	}
@@ -100,7 +100,7 @@ ssize_t tcp_send(struct spoe_frame *frame, size_t len, const char *msg)
 	retval = send(FC_PTR->fd, frame->buf + frame->offset, len - frame->offset, 0);
 	if (retval == 0) {
 		if (++(frame->wr_errors) >= TCP_SEND_ERR_MAX) {
-			C_DBG(1, FC_PTR, "socket zero send limit reached");
+			C_DBG(SPOA, FC_PTR, "socket zero send limit reached");
 
 			errno  = ESTALE;
 			retval = FUNC_RET_ERROR;
@@ -109,7 +109,7 @@ ssize_t tcp_send(struct spoe_frame *frame, size_t len, const char *msg)
 	else if (retval > 0) {
 		frame->offset += retval;
 
-		C_DBG(1, FC_PTR, "%zu/%zu/%zu byte(s) send frame%s", retval, frame->offset, len, msg);
+		C_DBG(SPOA, FC_PTR, "%zu/%zu/%zu byte(s) send frame%s", retval, frame->offset, len, msg);
 
 		if (frame->offset == len) {
 			retval = frame->offset;
@@ -120,7 +120,7 @@ ssize_t tcp_send(struct spoe_frame *frame, size_t len, const char *msg)
 	}
 	else if (TEST_OR3(errno, EAGAIN, EWOULDBLOCK, EINTR)) {
 		if (++(frame->wr_errors) >= TCP_SEND_ERR_MAX)
-			C_DBG(1, FC_PTR, "socket error send limit reached");
+			C_DBG(SPOA, FC_PTR, "socket error send limit reached");
 		else
 			retval = 0;
 	}

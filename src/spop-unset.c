@@ -1,5 +1,5 @@
 /***
- * Copyright 2018,2019 HAProxy Technologies
+ * Copyright 2018-2020 HAProxy Technologies
  *
  * This file is part of spoa-mirror.
  *
@@ -53,14 +53,14 @@ int handle_hafrag(struct spoe_frame *frame)
 	}
 
 	if (frame->flags & SPOE_FRM_FL_ABRT) {
-		F_DBG(1, frame, "--> UNSET - Abort processing of a fragmented frame"
+		F_DBG(SPOA, frame, "--> UNSET - Abort processing of a fragmented frame"
 		      " - frag_len=%zu - len=%zu - offset=%zu",
 		      frame->frag.len, frame->len, frame->offset);
 
 		return 0;
 	}
 
-	F_DBG(1, frame, "--> UNSET - %s fragment of a fragmented frame received"
+	F_DBG(SPOA, frame, "--> UNSET - %s fragment of a fragmented frame received"
 	      " - frag_len=%zu - len=%zu - offset=%zu",
 	      (frame->flags & SPOE_FRM_FL_FIN) ? "last" : "next",
 	      frame->frag.len, frame->len, frame->offset);

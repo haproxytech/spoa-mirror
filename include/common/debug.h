@@ -1,5 +1,5 @@
 /***
- * Copyright 2018,2019 HAProxy Technologies
+ * Copyright 2018-2020 HAProxy Technologies
  *
  * This file is part of spoa-mirror.
  *
@@ -26,28 +26,40 @@
 #define CHECK_ARG_PATH(a,f)      do { if (_NULL(a)) { errno = EFAULT; f; } else if (*(a) == '\0') { errno = ENOENT; f; } } while (0)
 
 #ifdef DEBUG
-#  define DBG_FUNC_ENABLED       (1 << 7)
+enum DBG_LEVEL_enum {
+	DBG_LEVEL_FUNC = 0, /* Function debug level. */
+	DBG_LEVEL_LOG,      /* Generic debug level 0. */
+	DBG_LEVEL_NOTICE,   /* Generic debug level 1. */
+	DBG_LEVEL_INFO,     /* Generic debug level 2. */
+	DBG_LEVEL_DEBUG,    /* Generic debug level 3. */
+	DBG_LEVEL_UTIL,     /* Util debug level. */
+	DBG_LEVEL_WORKER,   /* Worker debug level. */
+	DBG_LEVEL_SPOA,     /* SPOA debug level. */
+	DBG_LEVEL_CURL,     /* cURL debug level. */
+	DBG_LEVEL_ENABLED,  /* This have to be the last entry. */
+};
+
 #  define IFDEF_DBG(a, b)        a
 #  define DBG_PARM(a, ...)       a, ##__VA_ARGS__
-#  define C_DBG(l,C,f, ...)                            \
-	do {                                           \
-		if (cfg.debug_level & (1 << (l)))      \
-			c_log((C), f, ##__VA_ARGS__);  \
+#  define C_DBG(l,C,f, ...)                                 \
+	do {                                                \
+		if (cfg.debug_level & (1 << DBG_LEVEL_##l)) \
+			c_log((C), f, ##__VA_ARGS__);       \
 	} while (0)
-#  define F_DBG(l,F,f, ...)                            \
-	do {                                           \
-		if (cfg.debug_level & (1 << (l)))      \
-			f_log((F), f, ##__VA_ARGS__);  \
+#  define F_DBG(l,F,f, ...)                                 \
+	do {                                                \
+		if (cfg.debug_level & (1 << DBG_LEVEL_##l)) \
+			f_log((F), f, ##__VA_ARGS__);       \
 	} while (0)
-#  define W_DBG(l,W,f, ...)                            \
-	do {                                           \
-		if (cfg.debug_level & (1 << (l)))      \
-			w_log((W), f, ##__VA_ARGS__);  \
+#  define W_DBG(l,W,f, ...)                                 \
+	do {                                                \
+		if (cfg.debug_level & (1 << DBG_LEVEL_##l)) \
+			w_log((W), f, ##__VA_ARGS__);       \
 	} while (0)
-#  define DBG_FUNC(W,f, ...)                                                 \
-	do {                                                                 \
-		if (cfg.debug_level & DBG_FUNC_ENABLED)                      \
-			W_DBG(0, (W), "%s(" f ")", __func__, ##__VA_ARGS__); \
+#  define DBG_FUNC(W,f, ...)                                                    \
+	do {                                                                    \
+		if (cfg.debug_level & (1 << DBG_LEVEL_ENABLED))                 \
+			W_DBG(FUNC, (W), "%s(" f ")", __func__, ##__VA_ARGS__); \
 	} while (0)
 #else
 #  define IFDEF_DBG(a, b)        b
