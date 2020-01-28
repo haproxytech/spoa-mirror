@@ -84,7 +84,7 @@ AC_CHECK_FUNCS([strcasecmp strncasecmp strchr strdup strndup strerror strtoll st
 
 dnl Set the compiler flags
 dnl
-AM_PROG_CC_SET
+AM_PROG_CC_SET([-fno-strict-aliasing])
 
 AM_CONDITIONAL([WANT_CURL],    [test "${HAVE_CURL}" = "yes"])
 AM_CONDITIONAL([WANT_DEBUG],   [test "${enable_debug}" = "yes"])

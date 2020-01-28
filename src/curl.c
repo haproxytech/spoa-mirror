@@ -265,11 +265,10 @@ static int mir_curl_socket_set(struct curl_sock *socket, CURL *easy, curl_socket
 	socket->action = what;
 	socket->curl   = curl;
 
-	DEREF_PTR(struct ev_io, ev_io_ptr, socket->ev_io);
-	if (ev_is_active(ev_io_ptr) || ev_is_pending(ev_io_ptr))
+	if (ev_is_active(&(socket->ev_io)) || ev_is_pending(&(socket->ev_io)))
 		ev_io_stop(curl->ev_base, &(socket->ev_io));
 
-	ev_io_init(ev_io_ptr, mir_curl_ev_socket_cb, socket->fd, events);
+	ev_io_init(&(socket->ev_io), mir_curl_ev_socket_cb, socket->fd, events);
 	socket->ev_io.data = curl;
 	ev_io_start(curl->ev_base, &(socket->ev_io));
 	ev_async_send(curl->ev_base, curl->ev_async);
@@ -339,8 +338,7 @@ static int mir_curl_socket_remove(struct curl_sock *socket, struct curl_data *cu
 	if (_NULL(socket))
 		return 0;
 
-	DEREF_PTR(struct ev_io, ev_io_ptr, socket->ev_io);
-	if (ev_is_active(ev_io_ptr) || ev_is_pending(ev_io_ptr))
+	if (ev_is_active(&(socket->ev_io)) || ev_is_pending(&(socket->ev_io)))
 		ev_io_stop(curl->ev_base, &(socket->ev_io));
 	ev_async_send(curl->ev_base, curl->ev_async);
 
@@ -439,8 +437,7 @@ static int mir_curl_timer_cb(CURLM *multi __maybe_unused, long timeout_ms, void 
 	ev_timer_stop(curl->ev_base, &(curl->ev_timer));
 
 	if (timeout_ms > 0) {
-		DEREF_PTR(struct ev_timer, ev_timer_ptr, curl->ev_timer);
-		ev_timer_init(ev_timer_ptr, mir_curl_ev_timer_cb, timeout_ms / 1000.0, 0.0);
+		ev_timer_init(&(curl->ev_timer), mir_curl_ev_timer_cb, timeout_ms / 1000.0, 0.0);
 		ev_timer_start(curl->ev_base, &(curl->ev_timer));
 	}
 	else if (timeout_ms == 0) {
@@ -533,8 +530,7 @@ int mir_curl_init(struct ev_loop *loop, struct ev_async *ev, struct curl_data *c
 	curl->ev_base  = loop;
 	curl->ev_async = ev;
 
-	DEREF_PTR(struct ev_timer, ev_timer_ptr, curl->ev_timer);
-	ev_timer_init(ev_timer_ptr, mir_curl_ev_timer_cb, 0.0, 0.0);
+	ev_timer_init(&(curl->ev_timer), mir_curl_ev_timer_cb, 0.0, 0.0);
 	curl->ev_timer.data = curl;
 
 #ifndef USE_THREADS
@@ -585,8 +581,7 @@ void mir_curl_close(struct curl_data *curl)
 	if (_nNULL(curl->multi))
 		(void)curl_multi_cleanup(curl->multi);
 
-	DEREF_PTR(struct ev_timer, ev_timer_ptr, curl->ev_timer);
-	if (ev_is_active(ev_timer_ptr) || ev_is_pending(ev_timer_ptr))
+	if (ev_is_active(&(curl->ev_timer)) || ev_is_pending(&(curl->ev_timer)))
 		ev_timer_stop(curl->ev_base, &(curl->ev_timer));
 	ev_async_send(curl->ev_base, curl->ev_async);
 

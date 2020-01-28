@@ -89,8 +89,7 @@ static void release_frame(struct spoe_frame *frame)
 	if (_NULL(frame))
 		return;
 
-	DEREF_PTR(struct ev_timer, ev_process_frame_ptr, frame->ev_process_frame);
-	if (ev_is_active(ev_process_frame_ptr) || ev_is_pending(ev_process_frame_ptr)) {
+	if (ev_is_active(&(frame->ev_process_frame)) || ev_is_pending(&(frame->ev_process_frame))) {
 		ev_timer_stop(FW_PTR->ev_base, &(frame->ev_process_frame));
 		ev_async_send(FW_PTR->ev_base, &(FW_PTR->ev_async));
 	}
@@ -175,13 +174,11 @@ void release_client(struct client *client)
 	unuse_spoe_engine(client);
 	PTR_FREE(client->engine_id);
 
-	DEREF_PTR(struct ev_io, ev_frame_rd_ptr, client->ev_frame_rd);
-	if (ev_is_active(ev_frame_rd_ptr) || ev_is_pending(ev_frame_rd_ptr)) {
+	if (ev_is_active(&(client->ev_frame_rd)) || ev_is_pending(&(client->ev_frame_rd))) {
 		ev_io_stop(CW_PTR->ev_base, &(client->ev_frame_rd));
 		flag_ev_async_send = 1;
 	}
-	DEREF_PTR(struct ev_io, ev_frame_wr_ptr, client->ev_frame_wr);
-	if (ev_is_active(ev_frame_wr_ptr) || ev_is_pending(ev_frame_wr_ptr)) {
+	if (ev_is_active(&(client->ev_frame_wr)) || ev_is_pending(&(client->ev_frame_wr))) {
 		ev_io_stop(CW_PTR->ev_base, &(client->ev_frame_wr));
 		flag_ev_async_send = 1;
 	}
@@ -413,8 +410,7 @@ static struct spoe_frame *acquire_incoming_frame(struct client *client)
 	frame->engine = client->engine;
 	FC_PTR        = client;
 
-	DEREF_PTR(struct ev_timer, ev_process_frame_ptr, frame->ev_process_frame);
-	ev_timer_init(ev_process_frame_ptr, process_frame_cb, cfg.processing_delay_us / 1e6, 0.0);
+	ev_timer_init(&(frame->ev_process_frame), process_frame_cb, cfg.processing_delay_us / 1e6, 0.0);
 
 	client->incoming_frame = frame;
 

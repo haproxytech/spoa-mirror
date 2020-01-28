@@ -62,9 +62,8 @@ static void worker_async_init(struct worker *worker)
 {
 	DBG_FUNC(worker, "%p", worker);
 
-	DEREF_PTR(struct ev_async, ev_async_ptr, worker->ev_async);
-	ev_async_init(ev_async_ptr, worker_async_cb);
-	ev_async_start(worker->ev_base, ev_async_ptr);
+	ev_async_init(&(worker->ev_async), worker_async_cb);
+	ev_async_start(worker->ev_base, &(worker->ev_async));
 }
 
 
@@ -222,8 +221,7 @@ __noreturn static void *worker_thread_exit(struct worker *worker)
 {
 	DBG_FUNC(worker, "%p", worker);
 
-	DEREF_PTR(struct ev_timer, ev_monitor_ptr, worker->ev_monitor);
-	if (ev_is_active(ev_monitor_ptr) || ev_is_pending(ev_monitor_ptr))
+	if (ev_is_active(&(worker->ev_monitor)) || ev_is_pending(&(worker->ev_monitor)))
 		ev_timer_stop(worker->ev_base, &(worker->ev_monitor));
 
 	if (_nNULL(worker->ev_base) && !ev_is_default_loop(worker->ev_base)) {
@@ -294,8 +292,7 @@ static void *worker_thread(void *data)
 	}
 #endif
 
-	DEREF_PTR(struct ev_timer, ev_monitor_ptr, w->ev_monitor);
-	ev_timer_init(ev_monitor_ptr, worker_thread_monitor_cb, cfg.monitor_interval_us / 1e6, cfg.monitor_interval_us / 1e6);
+	ev_timer_init(&(w->ev_monitor), worker_thread_monitor_cb, cfg.monitor_interval_us / 1e6, cfg.monitor_interval_us / 1e6);
 	ev_timer_start(w->ev_base, &(w->ev_monitor));
 
 	W_DBG(WORKER, w, "  Worker ready to process client messages");
@@ -492,10 +489,8 @@ static void worker_accept_cb(struct ev_loop *loop __maybe_unused, struct ev_io *
 	LIST_ADDQ(&(w->clients), &(c->by_worker));
 	w->nbclients++;
 
-	DEREF_PTR(struct ev_io, ev_frame_rd_ptr, c->ev_frame_rd);
-	ev_io_init(ev_frame_rd_ptr, read_frame_cb, fd, EV_READ);
-	DEREF_PTR(struct ev_io, ev_frame_wr_ptr, c->ev_frame_wr);
-	ev_io_init(ev_frame_wr_ptr, write_frame_cb, fd, EV_WRITE);
+	ev_io_init(&(c->ev_frame_rd), read_frame_cb, fd, EV_READ);
+	ev_io_init(&(c->ev_frame_wr), write_frame_cb, fd, EV_WRITE);
 	ev_io_start(w->ev_base, &(c->ev_frame_rd));
 	ev_async_send(w->ev_base, &(w->ev_async));
 
@@ -613,17 +608,14 @@ int worker_run(void)
 			w_log(NULL, _E("Failed to start thread for worker %02d: %m"), w->id);
 	}
 
-	DEREF_PTR(struct ev_io, ev_accept_ptr, ev_accept);
-	ev_io_init(ev_accept_ptr, worker_accept_cb, fd, EV_READ);
+	ev_io_init(&ev_accept, worker_accept_cb, fd, EV_READ);
 	ev_io_start(ev_base, &ev_accept);
 
-	DEREF_PTR(struct ev_signal, ev_sigint_ptr, ev_sigint);
-	ev_signal_init(ev_sigint_ptr, worker_sigint_cb, SIGINT);
+	ev_signal_init(&ev_sigint, worker_sigint_cb, SIGINT);
 	ev_signal_start(ev_base, &ev_sigint);
 
 	if (cfg.runtime_us > 0) {
-		DEREF_PTR(struct ev_timer, ev_runtime_ptr, ev_runtime);
-		ev_timer_init(ev_runtime_ptr, worker_runtime_cb, cfg.runtime_us / 1e6, 0.0);
+		ev_timer_init(&ev_runtime, worker_runtime_cb, cfg.runtime_us / 1e6, 0.0);
 		ev_timer_start(ev_base, &ev_runtime);
 	}
 

@@ -89,7 +89,7 @@ AC_DEFUN([AM_PROG_CC_SET], [
 	esac
 
 	TMP_CFLAGS="${CFLAGS}"
-	for _loop_cflags in ${_var_cflags}; do
+	for _loop_cflags in ${_var_cflags} $1; do
 		AC_MSG_CHECKING([whether ${CC} accepts ${_loop_cflags}])
 		CFLAGS="${TMP_CFLAGS} ${_loop_cflags}"
 		AC_TRY_COMPILE([], [],

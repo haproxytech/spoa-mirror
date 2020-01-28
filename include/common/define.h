@@ -1,5 +1,5 @@
 /***
- * Copyright 2018,2019 HAProxy Technologies
+ * Copyright 2018-2020 HAProxy Technologies
  *
  * This file is part of spoa-mirror.
  *
@@ -46,9 +46,6 @@
 #define STRUCT_ELEM(s,e,v)         (_NULL(s) ? (v) : (s)->e)
 #define STRUCT_ELEM_SAFE(s,e,v)    (TEST_OR2(NULL, (s), (s)->e) ? (v) : (s)->e)
 #define FD_CLOSE(a)                do { if ((a) >= 0) { (void)close(a); (a) = -1; } } while (0)
-
-/* warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing] */
-#define DEREF_PTR(t,n,m)           t *n = &(m)
 
 #define BUFFER_NEXT(n)             do { __n = (__n + 1) % TABLESIZE(n); } while (0)
 #define BUFFER_DEF(t,n,s)          static __THR t (n)[s]; static __THR size_t __n = 0; ONCE((void)memset((n), 0, sizeof(n))); BUFFER_NEXT(n)
