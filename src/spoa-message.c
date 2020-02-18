@@ -235,19 +235,33 @@ static struct list *spoa_msg_arg_hdrs(struct spoe_frame *frame, const char *buf,
 	/* Build the HTTP headers. */
 	for (i = 0; buf < end; i++) {
 		rc = spoe_decode(frame, &buf, end, SPOE_DEC_STR0, &str, &len, SPOE_DEC_END);
+		if (_ERROR(rc))
+			break;
 
 		F_DBG(SPOA, frame, "str[%d]: <%.*s>", i, (int)len, str);
 
-		if (_ERROR(rc) || _NULL(str))
-			break;
-		else if (!(i & 1) && _NULL(hdr = buffer_alloc(cfg.max_frame_size, NULL)))
-			break;
-		else if (_ERROR(rc = buffer_grow(hdr, str, len)))
-			break;
-		else if (_ERROR(rc = buffer_grow(hdr, (i & 1) ? "\0" : ": ", (i & 1) ? 1 : 2)))
-			break;
-		else if (i & 1)
+		if (i & 1) {
+			if (_NULL(str)) {
+				/* HTTP header has no value. */
+				if (_ERROR(rc = buffer_grow(hdr, ";\0", 2)))
+					break;
+			}
+			else if (_ERROR(rc = buffer_grow_kv(hdr, ": ", 2, str, len, "\0", 1, NULL))) {
+				break;
+			}
+
+			F_DBG(SPOA, frame, "header[%d]: <%.*s>", i / 2, (int)hdr->len, hdr->ptr);
 			LIST_ADDQ(retptr, &(hdr->list));
+		}
+		else if (_NULL(str)) {
+			/* HTTP header has no name. */
+			f_log(frame, _W("HTTP header defined without a name"));
+
+			break;
+		}
+		else if (_NULL(hdr = buffer_alloc(cfg.max_frame_size, str, len, NULL))) {
+			break;
+		}
 	}
 
 	/* In the case of a fault, the allocated memory is released. */
