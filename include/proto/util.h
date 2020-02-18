@@ -22,7 +22,7 @@
 
 void buffer_init(struct buffer *data);
 void buffer_free(struct buffer *data);
-struct buffer *buffer_alloc(size_t size);
+struct buffer *buffer_alloc(size_t size, const void *src, ...);
 void buffer_ptr_free(struct buffer **data);
 ssize_t buffer_grow(struct buffer *data, const void *src, size_t n);
 const char *str_hex(const void *data, size_t size);

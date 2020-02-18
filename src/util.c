@@ -114,6 +114,7 @@ void buffer_free(struct buffer *data)
  *
  * ARGUMENTS
  *   size -
+ *   src  -
  *
  * DESCRIPTION
  *   -
@@ -121,11 +122,12 @@ void buffer_free(struct buffer *data)
  * RETURN VALUE
  *   -
  */
-struct buffer *buffer_alloc(size_t size)
+struct buffer *buffer_alloc(size_t size, const void *src, ...)
 {
+	va_list        ap;
 	struct buffer *retptr;
 
-	DBG_FUNC(NULL, "%zu", size);
+	DBG_FUNC(NULL, "%zu, %p, ...", size, src);
 
 	if (_NULL(retptr = calloc(1, sizeof(*retptr)))) {
 		/* Do nothing. */
@@ -136,6 +138,18 @@ struct buffer *buffer_alloc(size_t size)
 	else {
 		LIST_INIT(&(retptr->list));
 		retptr->size = size;
+
+		va_start(ap, src);
+		for ( ; _nNULL(src); src = va_arg(ap, typeof(src))) {
+			size_t n = va_arg(ap, typeof(n));
+
+			if (_ERROR(buffer_grow(retptr, src, n))) {
+				buffer_ptr_free(&retptr);
+
+				break;
+			}
+		}
+		va_end(ap);
 	}
 
 	return retptr;

@@ -240,7 +240,7 @@ static struct list *spoa_msg_arg_hdrs(struct spoe_frame *frame, const char *buf,
 
 		if (_ERROR(rc) || _NULL(str))
 			break;
-		else if (!(i & 1) && _NULL(hdr = buffer_alloc(cfg.max_frame_size)))
+		else if (!(i & 1) && _NULL(hdr = buffer_alloc(cfg.max_frame_size, NULL)))
 			break;
 		else if (_ERROR(rc = buffer_grow(hdr, str, len)))
 			break;
