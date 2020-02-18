@@ -250,6 +250,45 @@ ssize_t buffer_grow(struct buffer *data, const void *src, size_t n)
 
 /***
  * NAME
+ *   buffer_grow_kv -
+ *
+ * ARGUMENTS
+ *   data -
+ *   src  -
+ *   n    -
+ *
+ * DESCRIPTION
+ *   -
+ *
+ * RETURN VALUE
+ *   -
+ */
+ssize_t buffer_grow_kv(struct buffer *data, const void *src, size_t n, ...)
+{
+	va_list ap;
+	ssize_t retval = FUNC_RET_ERROR;
+
+	DBG_FUNC(NULL, "%p, %p, %zu, ...", data, src, n);
+
+	if (_NULL(data))
+		return retval;
+
+	va_start(ap, n);
+	while (_nNULL(src) && (n > 0)) {
+		if (_ERROR(retval = buffer_grow(data, src, n)))
+			break;
+
+		if (_nNULL(src = va_arg(ap, typeof(src))))
+			n = va_arg(ap, typeof(n));
+	}
+	va_end(ap);
+
+	return retval;
+}
+
+
+/***
+ * NAME
  *   str_hex -
  *
  * ARGUMENTS

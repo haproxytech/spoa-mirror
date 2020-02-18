@@ -25,6 +25,7 @@ void buffer_free(struct buffer *data);
 struct buffer *buffer_alloc(size_t size, const void *src, ...);
 void buffer_ptr_free(struct buffer **data);
 ssize_t buffer_grow(struct buffer *data, const void *src, size_t n);
+ssize_t buffer_grow_kv(struct buffer *data, const void *src, size_t n, ...);
 const char *str_hex(const void *data, size_t size);
 const char *str_ctrl(const void *data, size_t size);
 void *mem_dup(const void *s, size_t size);
