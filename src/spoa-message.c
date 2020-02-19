@@ -254,8 +254,12 @@ static struct list *spoa_msg_arg_hdrs(struct spoe_frame *frame, const char *buf,
 			LIST_ADDQ(retptr, &(hdr->list));
 		}
 		else if (_NULL(str)) {
-			/* HTTP header has no name. */
-			f_log(frame, _W("HTTP header defined without a name"));
+			if (buf != end) {
+				/* HTTP header has no name. */
+				f_log(frame, _E("HTTP header defined without a name"));
+
+				rc = FUNC_RET_ERROR;
+			}
 
 			break;
 		}
