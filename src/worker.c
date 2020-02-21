@@ -472,17 +472,13 @@ static void worker_accept_cb(struct ev_loop *loop __maybe_unused, struct ev_io *
 		return;
 	}
 
-	c->id             = prg.clicount;
 	c->fd             = fd;
-	c->worker         = w;
+	c->id             = prg.clicount;
 	c->state          = SPOA_ST_CONNECTING;
-	c->status_code    = SPOE_FRM_ERR_NONE;
 	c->max_frame_size = cfg.max_frame_size;
-	c->engine         = NULL;
-	c->pipelining     = false;
-	c->async          = false;
-	c->incoming_frame = NULL;
-	c->outgoing_frame = NULL;
+	c->status_code    = SPOE_FRM_ERR_NONE;
+	c->worker         = w;
+
 	LIST_INIT(&(c->processing_frames));
 	LIST_INIT(&(c->outgoing_frames));
 
