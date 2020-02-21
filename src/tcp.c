@@ -81,9 +81,10 @@ ssize_t tcp_recv(struct spoe_frame *frame, size_t len, const char *msg)
  *   tcp_send -
  *
  * ARGUMENTS
- *   frame -
- *   len   -
- *   msg   -
+ *   client -
+ *   frame  -
+ *   len    -
+ *   msg    -
  *
  * DESCRIPTION
  *   -
@@ -91,16 +92,16 @@ ssize_t tcp_recv(struct spoe_frame *frame, size_t len, const char *msg)
  * RETURN VALUE
  *   -
  */
-ssize_t tcp_send(struct spoe_frame *frame, size_t len, const char *msg)
+ssize_t tcp_send(const struct client *client, struct spoe_frame *frame, size_t len, const char *msg)
 {
 	ssize_t retval;
 
-	DBG_FUNC(NULL, "%p, %zu, \"%s\"", frame, len, msg);
+	DBG_FUNC(NULL, "%p, %p, %zu, \"%s\"", client, frame, len, msg);
 
-	retval = send(FC_PTR->fd, frame->buf + frame->offset, len - frame->offset, 0);
+	retval = send(client->fd, frame->buf + frame->offset, len - frame->offset, 0);
 	if (retval == 0) {
 		if (++(frame->wr_errors) >= TCP_SEND_ERR_MAX) {
-			C_DBG(SPOA, FC_PTR, "socket zero send limit reached");
+			C_DBG(SPOA, client, "socket zero send limit reached");
 
 			errno  = ESTALE;
 			retval = FUNC_RET_ERROR;
@@ -109,7 +110,7 @@ ssize_t tcp_send(struct spoe_frame *frame, size_t len, const char *msg)
 	else if (retval > 0) {
 		frame->offset += retval;
 
-		C_DBG(SPOA, FC_PTR, "%zu/%zu/%zu byte(s) send frame%s", retval, frame->offset, len, msg);
+		C_DBG(SPOA, client, "%zu/%zu/%zu byte(s) send frame%s", retval, frame->offset, len, msg);
 
 		if (frame->offset == len) {
 			retval = frame->offset;
@@ -120,13 +121,13 @@ ssize_t tcp_send(struct spoe_frame *frame, size_t len, const char *msg)
 	}
 	else if (TEST_OR3(errno, EAGAIN, EWOULDBLOCK, EINTR)) {
 		if (++(frame->wr_errors) >= TCP_SEND_ERR_MAX)
-			C_DBG(SPOA, FC_PTR, "socket error send limit reached");
+			C_DBG(SPOA, client, "socket error send limit reached");
 		else
 			retval = 0;
 	}
 
 	if (_ERROR(retval))
-		c_log(FC_PTR, _E("Failed to send frame%s: %m"), msg);
+		c_log(client, _E("Failed to send frame%s: %m"), msg);
 
 	return retval;
 }

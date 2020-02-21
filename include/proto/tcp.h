@@ -21,7 +21,7 @@
 #define _PROTO_TCP_H
 
 ssize_t tcp_recv(struct spoe_frame *frame, size_t len, const char *msg);
-ssize_t tcp_send(struct spoe_frame *frame, size_t len, const char *msg);
+ssize_t tcp_send(const struct client *client, struct spoe_frame *frame, size_t len, const char *msg);
 
 #endif /* _PROTO_TCP_H */
 

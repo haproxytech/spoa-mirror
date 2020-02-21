@@ -654,7 +654,8 @@ void read_frame_cb(struct ev_loop *loop __maybe_unused, ev_io *ev, int revents _
  *   frame_send -
  *
  * ARGUMENTS
- *   frame -
+ *   client -
+ *   frame  -
  *
  * DESCRIPTION
  *   -
@@ -662,20 +663,20 @@ void read_frame_cb(struct ev_loop *loop __maybe_unused, ev_io *ev, int revents _
  * RETURN VALUE
  *   -
  */
-static ssize_t frame_send(struct spoe_frame *frame)
+static ssize_t frame_send(const struct client *client, struct spoe_frame *frame)
 {
 	ssize_t retval = FUNC_RET_ERROR;
 
-	DBG_FUNC(FW_PTR, "%p", frame);
+	DBG_FUNC(FW_PTR, "%p, %p", client, frame);
 
-	C_DBG(SPOA, FC_PTR, "<-- Sending data");
+	C_DBG(SPOA, client, "<-- Sending data");
 
 	if (frame->buf == frame->data) {
 		/*
 		 * Send the frame length:
 		 *   frame->buf points on length part (frame->data)
 		 */
-		retval = tcp_send(frame, SPOA_FRM_LEN, " length");
+		retval = tcp_send(client, frame, SPOA_FRM_LEN, " length");
 		if (retval == SPOA_FRM_LEN)
 			frame->buf += SPOA_FRM_LEN;
 		else
@@ -686,9 +687,9 @@ static ssize_t frame_send(struct spoe_frame *frame)
 	 * Send the frame data:
 	 *   frame->buf points on frame part (frame->data + SPOA_FRM_LEN)
 	 */
-	retval = tcp_send(frame, frame->len, " data");
+	retval = tcp_send(client, frame, frame->len, " data");
 	if (retval == (typeof(retval))frame->len)
-		C_DBG(SPOA, FC_PTR, "Frame of %zu bytes sent: <%s> <%s>",
+		C_DBG(SPOA, client, "Frame of %zu bytes sent: <%s> <%s>",
 		      frame->len, str_hex(frame->buf, frame->len), str_ctrl(frame->buf, frame->len));
 	else
 		retval = (retval > 0) ? 0 : retval;
@@ -727,7 +728,7 @@ void write_frame_cb(struct ev_loop *loop __maybe_unused, ev_io *ev, int revents 
 		return;
 	}
 
-	n = frame_send(f);
+	n = frame_send(client, f);
 	if (n <= 0) {
 		if (_ERROR(n))
 			release_client(client);
