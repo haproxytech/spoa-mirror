@@ -89,6 +89,7 @@ Usage: spoa-mirror { -h --help }
 
 Options are:
   -a, --address=NAME              Specify the address to listen on (default: "0.0.0.0").
+  -B, --libev-backend=TYPE        Specify the libev backend type (default: AUTO).
   -b, --connection-backlog=VALUE  Specify the connection backlog size (default: 10).
   -c, --capability=NAME           Enable the support of the specified capability.
   -D, --daemonize                 Run this program as a daemon.
@@ -106,6 +107,8 @@ Options are:
   -P, --mirror-local-port=VALUE   Specify the local port range for outgoing connections.
   -V, --version                   Show program version.
 
+Supported libev backends: select, poll, epoll, linuxaio.
+
 Supported capabilities: fragmentation, pipelining, async.
 
 Allowed logging file opening modes: a, w.  The 'a' mode allows openning or
@@ -116,7 +119,7 @@ for the mode, then line buffering is used when writing to the log file.
 The time delay/interval is specified in milliseconds by default, but can be
 in any other unit if the number is suffixed by a unit (us, ms, s, m, h, d).
 
-Copyright (C) 2018,2019 HAProxy Technologies
+Copyright 2018-2020 HAProxy Technologies
 SPDX-License-Identifier: GPL-2.0-or-later
 --- help output -------
 
