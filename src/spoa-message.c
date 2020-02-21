@@ -430,8 +430,12 @@ int spoa_msg_mirror(struct spoe_frame *frame, const char **buf, const char *end)
 		}
 	}
 
-	if (_ERROR(retval))
+	if (_ERROR(retval) || _NULL(cfg.mir_url))
 		mir_ptr_free(&mir);
+
+#else
+
+	mir_ptr_free(&mir);
 #endif /* HAVE_LIBCURL */
 
 	SPOE_BUFFER_ADVANCE(retval);
