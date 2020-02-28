@@ -49,16 +49,11 @@ int acc_payload(struct spoe_frame *frame)
 		retval = FUNC_RET_ERROR;
 	}
 	else if (frame->flags & SPOE_FRM_FL_FIN) {
-		frame->buf    = (char *)frame->frag.ptr;
-		frame->len    = frame->frag.len;
-		frame->offset = 0;
+		SPOE_FRAME_BUFFER_SET(frame, (typeof(frame->buf))frame->frag.ptr, 0, frame->frag.len, frame->flags);
 	}
 	else {
 		/* Wait for next parts. */
-		frame->buf    = frame->data;
-		frame->offset = 0;
-		frame->len    = 0;
-		frame->flags  = 0;
+		SPOE_FRAME_BUFFER_SET(frame, frame->data, 0, 0, 0);
 
 		retval = 1;
 	}
@@ -220,14 +215,11 @@ static void reset_frame(struct spoe_frame *frame)
 	buffer_free(&(frame->frag));
 
 	frame->type       = SPOA_FRM_T_UNKNOWN;
-	frame->buf        = frame->data;
-	frame->offset     = 0;
-	frame->len        = 0;
 	frame->stream_id  = 0;
 	frame->frame_id   = 0;
-	frame->flags      = 0;
 	frame->hcheck     = false;
 	frame->fragmented = false;
+	SPOE_FRAME_BUFFER_SET(frame, frame->data, 0, 0, 0);
 	LIST_INIT(&(frame->list));
 }
 

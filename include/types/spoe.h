@@ -20,6 +20,13 @@
 #ifndef _TYPES_SPOE_H
 #define _TYPES_SPOE_H
 
+#define SPOE_FRAME_BUFFER_SET(f,a,b,c,d)   \
+	do {                               \
+		(f)->buf    = (a);         \
+		(f)->offset = (b);         \
+		(f)->len    = (c);         \
+		(f)->flags  = (d);         \
+	} while (0)
 #define SPOE_BUFFER_ADVANCE(r)                    \
 	if (_nERROR(r)) {                         \
 		retval = ptr - (typeof(ptr))*buf; \

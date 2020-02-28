@@ -40,10 +40,7 @@ int prepare_agentack(struct spoe_frame *frame)
 
 	DBG_FUNC(FW_PTR, "%p", frame);
 
-	frame->buf    = frame->data + SPOA_FRM_LEN;
-	frame->offset = 0;
-	frame->len    = 0;
-	frame->flags  = 0;
+	SPOE_FRAME_BUFFER_SET(frame, frame->data + SPOA_FRM_LEN, 0, 0, 0);
 
 	/* Set ACK frame type, flags, stream-id and frame-id. */
 	retval = spoe_encode_frame("ACK", frame,
