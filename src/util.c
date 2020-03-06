@@ -721,11 +721,13 @@ char *parse_url(const char *url)
 
 			PTR_FREE(retptr);
 		} else {
+			/* Return the <host> terminator. */
 			*(port - 1) = ':';
 		}
 	}
 
 	if (_nNULL(retptr)) {
+		/* Return the first character of the <path>. */
 		*ptr = path;
 
 		W_DBG(UTIL, NULL, "  URL: \"%s\"", retptr);
