@@ -172,16 +172,16 @@ int spoa_msg_test(struct spoe_frame *frame, const char **buf, const char *end)
 			F_DBG(SPOA, frame, "test[%d] name='%.*s' type=%hhu: %016"PRIx64, i, (int)len, str, type, data.uint64);
 		}
 		else if (type == SPOE_DATA_T_IPV4) {
-			if (_nNULL(inet_ntop(AF_INET, &(data.ipv4), addr, INET_ADDRSTRLEN)))
+			if (_NULL(inet_ntop(AF_INET, &(data.ipv4), addr, INET_ADDRSTRLEN)))
 				retval = FUNC_RET_ERROR;
 
-			F_DBG(SPOA, frame, "test[%d] name='%.*s' type=%hhu: \"%s\"", i, (int)len, str, type, addr);
+			F_DBG(SPOA, frame, "test[%d] name='%.*s' type=%hhu: \"%s\"", i, (int)len, str, type, _ERROR(retval) ? "invalid" : addr);
 		}
 		else if (type == SPOE_DATA_T_IPV6) {
-			if (_nNULL(inet_ntop(AF_INET6, &(data.ipv6), addr, INET6_ADDRSTRLEN)))
+			if (_NULL(inet_ntop(AF_INET6, &(data.ipv6), addr, INET6_ADDRSTRLEN)))
 				retval = FUNC_RET_ERROR;
 
-			F_DBG(SPOA, frame, "test[%d] name='%.*s' type=%hhu: \"%s\"", i, (int)len, str, type, addr);
+			F_DBG(SPOA, frame, "test[%d] name='%.*s' type=%hhu: \"%s\"", i, (int)len, str, type, _ERROR(retval) ? "invalid" : addr);
 		}
 		else if (type == SPOE_DATA_T_STR) {
 			F_DBG(SPOA, frame, "test[%d] name='%.*s' type=%hhu: \"%.*s\"", i, (int)len, str, type, (int)data.chk.len, data.chk.ptr);
