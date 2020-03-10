@@ -349,9 +349,7 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 		{ "connection-backlog", required_argument, NULL, 'b' },
 		{ "capability",         required_argument, NULL, 'c' },
 		{ "daemonize",          no_argument,       NULL, 'D' },
-#ifdef DEBUG
 		{ "debug",              required_argument, NULL, 'd' },
-#endif
 		{ "pidfile",            required_argument, NULL, 'F' },
 		{ "help",               no_argument,       NULL, 'h' },
 		{ "monitor-interval",   required_argument, NULL, 'i' },
@@ -401,6 +399,9 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 #ifdef DEBUG
 		else if (c == 'd')
 			flag_error |= _OK(getopt_set_debug_level(optarg, &(cfg.debug_level), 0, (1 << DBG_LEVEL_ENABLED) - 1)) ? 0 : 1;
+#else
+		else if (c == 'd')
+			(void)fprintf(stderr, "WARNING: the program is not configured to run in debug mode, option '%c' ignored\n", c);
 #endif
 		else if (c == 'F')
 			cfg.pidfile = optarg;
