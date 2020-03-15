@@ -246,7 +246,7 @@ static struct list *spoa_msg_arg_hdrs(struct spoe_frame *frame, const char *buf,
 				if (_ERROR(rc = buffer_grow(hdr, ";\0", 2)))
 					break;
 			}
-			else if (_ERROR(rc = buffer_grow_kv(hdr, ": ", 2, str, len, "\0", 1, NULL))) {
+			else if (_ERROR(rc = buffer_grow_va(hdr, ": ", 2, str, len, "\0", 1, NULL))) {
 				break;
 			}
 

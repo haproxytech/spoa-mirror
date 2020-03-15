@@ -250,7 +250,7 @@ ssize_t buffer_grow(struct buffer *data, const void *src, size_t n)
 
 /***
  * NAME
- *   buffer_grow_kv -
+ *   buffer_grow_va -
  *
  * ARGUMENTS
  *   data -
@@ -263,7 +263,7 @@ ssize_t buffer_grow(struct buffer *data, const void *src, size_t n)
  * RETURN VALUE
  *   -
  */
-ssize_t buffer_grow_kv(struct buffer *data, const void *src, size_t n, ...)
+ssize_t buffer_grow_va(struct buffer *data, const void *src, size_t n, ...)
 {
 	va_list ap;
 	ssize_t retval = FUNC_RET_ERROR;
