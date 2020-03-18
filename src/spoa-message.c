@@ -22,6 +22,41 @@
 
 /***
  * NAME
+ *   spoa_msg_arg_dup -
+ *
+ * ARGUMENTS
+ *   frame  -
+ *   i      -
+ *   arg    -
+ *   arglen -
+ *   data   -
+ *   ptr    -
+ *   len    -
+ *   errmsg -
+ *
+ * DESCRIPTION
+ *   -
+ *
+ * RETURN VALUE
+ *   -
+ */
+static void *spoa_msg_arg_dup(const struct spoe_frame *frame, int i, const char *arg, size_t arglen, const union spoe_data *data, char **ptr, size_t *len, const char *errmsg)
+{
+	DBG_FUNC(FW_PTR, "%p, %d, \"%.*s\", %zu, %p, %p:%p, %p, \"%s\"", frame, i, (int)arglen, arg, arglen, data, DPTR_ARGS(ptr), len, errmsg);
+
+	if (_nNULL(*ptr))
+		f_log(frame, _E("arg[%d] '%.*s': Duplicated argument"), i, (int)arglen, arg);
+	else if (_NULL(*ptr = mem_dup(data->chk.ptr, data->chk.len)))
+		f_log(frame, _E("Failed to %s"), errmsg);
+	else if (_nNULL(len))
+		*len = data->chk.len;
+
+	return *ptr;
+}
+
+
+/***
+ * NAME
  *   spoa_msg_iprep -
  *
  * ARGUMENTS
@@ -344,37 +379,24 @@ int spoa_msg_mirror(struct spoe_frame *frame, const char **buf, const char *end)
 				continue;
 			}
 
-			if (_nNULL(*mir_ptr)) {
-				f_log(frame, _W("Duplicated argument, ignored: '%.*s'"), (int)len, str);
-			}
-			else if (_NULL(*mir_ptr = mem_dup(data.chk.ptr, data.chk.len))) {
-				f_log(frame, _E("Failed to allocate memory for headers"));
-
+			if (_NULL(spoa_msg_arg_dup(frame, i, str, len, &data, mir_ptr, NULL, "allocate memory for headers")))
 				retval = FUNC_RET_ERROR;
-			}
 		}
 		else if (type == SPOE_DATA_T_BIN) {
 			F_DBG(SPOA, frame, "mirror[%d] name='%.*s' type=%hhu: <%s> <%s>", i, (int)len, str, type, str_hex(data.chk.ptr, data.chk.len), str_ctrl(data.chk.ptr, data.chk.len));
 
 			if ((len == STR_SIZE(SPOE_MSG_ARG_HDRS)) && (memcmp(str, STR_ADDRSIZE(SPOE_MSG_ARG_HDRS)) == 0)) {
-				if (_nNULL(mir->hdrs))
-					f_log(frame, _W("Duplicated argument, ignored: '%.*s'"), (int)len, str);
+				if (_nNULL(mir->hdrs)) {
+					f_log(frame, _E("arg[%d] '%.*s': Duplicated argument"), i, (int)len, str);
+
+					retval = FUNC_RET_ERROR;
+				}
 				else if (_NULL(mir->hdrs = spoa_msg_arg_hdrs(frame, data.chk.ptr, data.chk.ptr + data.chk.len - 1)))
 					retval = FUNC_RET_ERROR;
 			}
 			else if ((len == STR_SIZE(SPOE_MSG_ARG_BODY)) && (memcmp(str, STR_ADDRSIZE(SPOE_MSG_ARG_BODY)) == 0)) {
-				if (_nNULL(mir->body)) {
-					f_log(frame, _W("Duplicated argument, ignored: '%.*s'"), (int)len, str);
-				}
-				else if (_nNULL(data.chk.ptr) && (data.chk.len != 0)) {
-					mir->body_size = data.chk.len;
-
-					if (_NULL(mir->body = mem_dup(data.chk.ptr, data.chk.len))) {
-						f_log(frame, _E("Failed to allocate memory for body"));
-
-						retval = FUNC_RET_ERROR;
-					}
-				}
+				if (_NULL(spoa_msg_arg_dup(frame, i, str, len, &data, &(mir->body), &(mir->body_size), "allocate memory for body")))
+					retval = FUNC_RET_ERROR;
 			}
 			else {
 				f_log(frame, _W("Unknown argument, ignored: '%.*s'"), (int)len, str);
