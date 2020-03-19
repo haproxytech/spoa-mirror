@@ -213,7 +213,7 @@ static int getopt_set_debug_level(const char *value, uint32_t *debug_level, int 
 		(void)fprintf(stderr, "ERROR: debug level not defined\n");
 	}
 	else if (str_toll(value, NULL, 1, 10, &level, val_min, val_max)) {
-		*debug_level = level | (1 << DBG_LEVEL_ENABLED);
+		*debug_level = ((level == -1) ? val_max : level) | (1 << DBG_LEVEL_ENABLED);
 
 		retval = FUNC_RET_OK;
 	}
@@ -398,7 +398,7 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 			cfg.opt_flags |= FLAG_OPT_DAEMONIZE;
 #ifdef DEBUG
 		else if (c == 'd')
-			flag_error |= _OK(getopt_set_debug_level(optarg, &(cfg.debug_level), 0, (1 << DBG_LEVEL_ENABLED) - 1)) ? 0 : 1;
+			flag_error |= _OK(getopt_set_debug_level(optarg, &(cfg.debug_level), -1, (1 << DBG_LEVEL_ENABLED) - 1)) ? 0 : 1;
 #else
 		else if (c == 'd')
 			(void)fprintf(stderr, "WARNING: the program is not configured to run in debug mode, option '%c' ignored\n", c);
