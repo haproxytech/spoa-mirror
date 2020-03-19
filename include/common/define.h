@@ -62,6 +62,7 @@
 #define STR_ADDRSIZE(a)            (a), STR_SIZE(a)
 #define STR_BOOL(a)                ((a) ? "true" : "false")
 
+#define ALIGN_VALUE(v,b)           (((v) == 0) ? 0 : (((((v) - 1) >> (b)) + 1) << (b)))
 #define CLAMP_VALUE(v,a,b)         (((v) < (a)) ? (a) : (((v) > (b)) ? (b) : (v)))
 
 #define IN_RANGE(v,a,b)            (((v) >= (a)) && ((v) <= (b)))

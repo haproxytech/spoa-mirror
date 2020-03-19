@@ -199,6 +199,7 @@ void buffer_ptr_free(struct buffer **data)
 ssize_t buffer_grow(struct buffer *data, const void *src, size_t n)
 {
 	uint8_t *ptr;
+	size_t   size = ALIGN_VALUE(n, 5);
 	int      retval = FUNC_RET_ERROR;
 
 	DBG_FUNC(NULL, "%p, %p, %zu", data, src, n);
@@ -222,18 +223,18 @@ ssize_t buffer_grow(struct buffer *data, const void *src, size_t n)
 
 		retval = data->len;
 	}
-	else if (_NULL(ptr = realloc(data->ptr, data->size + n))) {
+	else if (_NULL(ptr = realloc(data->ptr, data->size + size))) {
 		w_log(NULL, _E("Failed to allocate data: %m"));
 	}
 	else {
 		W_DBG(NOTICE, NULL, "  reallocating buffer { %p, %zu, %zu } -> { %p, %zu, %zu }",
-		      data->ptr, data->len, data->size, ptr, data->len + (_NULL(src) ? 0 : n), data->size + n);
+		      data->ptr, data->len, data->size, ptr, data->len + (_NULL(src) ? 0 : n), data->size + size);
 
 		if (_NULL(src)) {
 			/* Clearing allocated buffer. */
-			(void)memset(ptr + data->size, 0, data->size - n);
+			(void)memset(ptr + data->size, 0, size);
 
-			data->size += n;
+			data->size += size;
 		} else {
 			/* Copying src data to buffer. */
 			(void)memcpy(ptr + data->len, src, n);
