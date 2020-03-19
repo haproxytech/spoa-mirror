@@ -209,7 +209,10 @@ ssize_t buffer_grow(struct buffer *data, const void *src, size_t n)
 	if (_NULL(data->ptr))
 		buffer_init(data);
 
-	if (_nNULL(data->ptr) && ((data->size - data->len) >= n)) {
+	if (n == 0) {
+		retval = data->len;
+	}
+	else if (_nNULL(data->ptr) && ((data->size - data->len) >= n)) {
 		if (_nNULL(src)) {
 			/* Copying src data to buffer. */
 			(void)memcpy(data->ptr + data->len, src, n);
@@ -217,9 +220,9 @@ ssize_t buffer_grow(struct buffer *data, const void *src, size_t n)
 			data->len += n;
 		}
 
-		retval = data->size;
+		retval = data->len;
 	}
-	else if (_NULL(ptr = realloc(data->ptr, data->len + n))) {
+	else if (_NULL(ptr = realloc(data->ptr, data->size + n))) {
 		w_log(NULL, _E("Failed to allocate data: %m"));
 	}
 	else {
@@ -228,20 +231,19 @@ ssize_t buffer_grow(struct buffer *data, const void *src, size_t n)
 
 		if (_NULL(src)) {
 			/* Clearing allocated buffer. */
-			(void)memset(ptr + data->size, 0, data->len + n - data->size);
+			(void)memset(ptr + data->size, 0, data->size - n);
 
-			data->size = data->len + n;
+			data->size += n;
 		} else {
 			/* Copying src data to buffer. */
 			(void)memcpy(ptr + data->len, src, n);
 
-			data->len  += n;
-			data->size  = data->len;
+			data->len += n;
 		}
 
 		data->ptr = ptr;
 
-		retval = data->size;
+		retval = data->len;
 	}
 
 	return retval;
