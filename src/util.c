@@ -70,12 +70,10 @@ void buffer_init(struct buffer *data)
 	if (_NULL(data))
 		return;
 
-	W_DBG(NOTICE, NULL, "  initializing buffer { { %p, %p }, %p, %zu, %zu }", data->list.p, data->list.n, data->ptr, data->len, data->size);
+	W_DBG(NOTICE, NULL, "  initializing buffer { { %p %p } %p %zu/%zu }", data->list.p, data->list.n, data->ptr, data->len, data->size);
 
+	(void)memset(data, 0, sizeof(*data));
 	LIST_INIT(&(data->list));
-	PTR_FREE(data->ptr);
-	data->len  = 0;
-	data->size = 0;
 }
 
 
@@ -99,12 +97,14 @@ void buffer_free(struct buffer *data)
 	if (_NULL(data))
 		return;
 
-	W_DBG(NOTICE, NULL, "  freeing buffer { { %p, %p }, %p, %zu, %zu }", data->list.p, data->list.n, data->ptr, data->len, data->size);
+	W_DBG(NOTICE, NULL, "  freeing buffer { { %p %p } %p %zu/%zu }", data->list.p, data->list.n, data->ptr, data->len, data->size);
 
 	if (_nNULL(data->list.p) && _nNULL(data->list.n))
 		LIST_DEL(&(data->list));
-	PTR_FREE(data->ptr);
+	if (data->size > 0)
+		PTR_FREE(data->ptr);
 	(void)memset(data, 0, sizeof(*data));
+	LIST_INIT(&(data->list));
 }
 
 
@@ -227,7 +227,7 @@ ssize_t buffer_grow(struct buffer *data, const void *src, size_t n)
 		w_log(NULL, _E("Failed to allocate data: %m"));
 	}
 	else {
-		W_DBG(NOTICE, NULL, "  reallocating buffer { %p, %zu, %zu } -> { %p, %zu, %zu }",
+		W_DBG(NOTICE, NULL, "  reallocating buffer { %p %zu/%zu } -> { %p %zu/%zu }",
 		      data->ptr, data->len, data->size, ptr, data->len + (_NULL(src) ? 0 : n), data->size + size);
 
 		if (_NULL(src)) {
