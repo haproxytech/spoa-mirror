@@ -349,9 +349,25 @@ static void worker_stop_ev(int revents __maybe_unused, void *base)
  */
 static void worker_stop(struct ev_loop *loop, const char *msg __maybe_unused)
 {
-	int i;
+	static bool_t flag_stop = 0;
+	int           i;
 
 	DBG_FUNC(NULL, "%p, \"%s\"", loop, msg);
+
+	/*
+	 * In case HAProxy is used in master-worker mode, it is possible that
+	 * it sends a SIGINT signal several times in a row.  Also, it may
+	 * happen that the program runs out of time and immediately after
+	 * that the program receives a SIGINT signal.  To disable this, the
+	 * variable flag_stop is used.
+	 */
+	if (flag_stop) {
+		W_DBG(WORKER, NULL, "  Server stopping already in progress, canceled: %s", msg);
+
+		return;
+	}
+
+	flag_stop = 1;
 
 	W_DBG(WORKER, NULL, "  Stopping the server, %s", msg);
 
