@@ -245,6 +245,7 @@ int spoa_msg_test(struct spoe_frame *frame, const char **buf, const char *end)
  *   frame -
  *   buf   -
  *   end   -
+ *   hdrs  -
  *
  * DESCRIPTION
  *   -
@@ -252,25 +253,19 @@ int spoa_msg_test(struct spoe_frame *frame, const char **buf, const char *end)
  * RETURN VALUE
  *   -
  */
-static struct list *spoa_msg_arg_hdrs(struct spoe_frame *frame, const char *buf, const char *end)
+static int spoa_msg_arg_hdrs(struct spoe_frame *frame, const char *buf, const char *end, struct list *hdrs)
 {
 	struct buffer *hdr = NULL, *hdr_back;
-	struct list   *retptr = NULL;
 	const char    *str;
 	uint64_t       len;
-	int            i, rc;
+	int            i, retval = FUNC_RET_ERROR;
 
-	DBG_FUNC(FW_PTR, "%p, %p, %p", frame, buf, end);
-
-	if (_NULL(retptr = calloc(1, sizeof(*retptr))))
-		return retptr;
-
-	LIST_INIT(retptr);
+	DBG_FUNC(FW_PTR, "%p, %p, %p, %p", frame, buf, end, hdrs);
 
 	/* Build the HTTP headers. */
 	for (i = 0; buf < end; i++) {
-		rc = spoe_decode(frame, &buf, end, SPOE_DEC_STR0, &str, &len, SPOE_DEC_END);
-		if (_ERROR(rc))
+		retval = spoe_decode(frame, &buf, end, SPOE_DEC_STR0, &str, &len, SPOE_DEC_END);
+		if (_ERROR(retval))
 			break;
 
 		F_DBG(SPOA, frame, "str[%d]: <%.*s>", i, (int)len, str);
@@ -278,22 +273,22 @@ static struct list *spoa_msg_arg_hdrs(struct spoe_frame *frame, const char *buf,
 		if (i & 1) {
 			if (_NULL(str)) {
 				/* HTTP header has no value. */
-				if (_ERROR(rc = buffer_grow(hdr, ";\0", 2)))
+				if (_ERROR(retval = buffer_grow(hdr, ";\0", 2)))
 					break;
 			}
-			else if (_ERROR(rc = buffer_grow_va(hdr, ": ", 2, str, len, "\0", 1, NULL))) {
+			else if (_ERROR(retval = buffer_grow_va(hdr, ": ", 2, str, len, "\0", 1, NULL))) {
 				break;
 			}
 
 			F_DBG(SPOA, frame, "header[%d]: <%.*s>", i / 2, (int)hdr->len, hdr->ptr);
-			LIST_ADDQ(retptr, &(hdr->list));
+			LIST_ADDQ(hdrs, &(hdr->list));
 		}
 		else if (_NULL(str)) {
 			if (buf != end) {
 				/* HTTP header has no name. */
 				f_log(frame, _E("HTTP header defined without a name"));
 
-				rc = FUNC_RET_ERROR;
+				retval = FUNC_RET_ERROR;
 			}
 
 			break;
@@ -304,16 +299,18 @@ static struct list *spoa_msg_arg_hdrs(struct spoe_frame *frame, const char *buf,
 	}
 
 	/* In the case of a fault, the allocated memory is released. */
-	if (_ERROR(rc) || _NULL(hdr)) {
+	if (_ERROR(retval) || _NULL(hdr)) {
 		buffer_ptr_free(&hdr);
 
-		list_for_each_entry_safe(hdr, hdr_back, retptr, list)
+		list_for_each_entry_safe(hdr, hdr_back, hdrs, list) {
+			LIST_DEL(&(hdr->list));
 			buffer_ptr_free(&hdr);
+		}
 
-		PTR_FREE(retptr);
+		retval = FUNC_RET_ERROR;
 	}
 
-	return retptr;
+	return retval;
 }
 
 
@@ -349,6 +346,7 @@ int spoa_msg_mirror(struct spoe_frame *frame, const char **buf, const char *end)
 
 		return retval;
 	}
+	LIST_INIT(&(mir->hdrs));
 
 	retval = spoe_decode(frame, &ptr, end, SPOE_DEC_UINT8, &nbargs, SPOE_DEC_END);
 	if (_nERROR(retval))
@@ -386,13 +384,13 @@ int spoa_msg_mirror(struct spoe_frame *frame, const char **buf, const char *end)
 			F_DBG(SPOA, frame, "mirror[%d] name='%.*s' type=%hhu: <%s> <%s>", i, (int)len, str, type, str_hex(data.chk.ptr, data.chk.len), str_ctrl(data.chk.ptr, data.chk.len));
 
 			if ((len == STR_SIZE(SPOE_MSG_ARG_HDRS)) && (memcmp(str, STR_ADDRSIZE(SPOE_MSG_ARG_HDRS)) == 0)) {
-				if (_nNULL(mir->hdrs)) {
+				if (!LIST_ISEMPTY(&(mir->hdrs))) {
 					f_log(frame, _E("arg[%d] '%.*s': Duplicated argument"), i, (int)len, str);
 
 					retval = FUNC_RET_ERROR;
 				}
-				else if (_NULL(mir->hdrs = spoa_msg_arg_hdrs(frame, data.chk.ptr, data.chk.ptr + data.chk.len - 1)))
-					retval = FUNC_RET_ERROR;
+				else
+					retval = spoa_msg_arg_hdrs(frame, data.chk.ptr, data.chk.ptr + data.chk.len - 1, &(mir->hdrs));
 			}
 			else if ((len == STR_SIZE(SPOE_MSG_ARG_BODY)) && (memcmp(str, STR_ADDRSIZE(SPOE_MSG_ARG_BODY)) == 0)) {
 				if (_NULL(spoa_msg_arg_dup(frame, i, str, len, &data, &(mir->body), &(mir->body_size), "allocate memory for body")))
@@ -424,7 +422,7 @@ int spoa_msg_mirror(struct spoe_frame *frame, const char **buf, const char *end)
 			f_log(frame, _E("HTTP request method not set"));
 		else if (_NULL(mir->version))
 			f_log(frame, _E("HTTP version not set"));
-		else if (_NULL(mir->hdrs))
+		else if (LIST_ISEMPTY(&(mir->hdrs)))
 			f_log(frame, _E("HTTP headers not set"));
 		else if (_NULL(mir->url = malloc(url_len)))
 			f_log(frame, _E("Failed to allocate memory"));
@@ -488,7 +486,7 @@ void mir_ptr_free(struct mirror **data)
 	if (_NULL(data) || _NULL(*data))
 		return;
 
-	W_DBG(NOTICE, NULL, "  freeing mirror { \"%s\" \"%s\" \"%s\" %d \"%s\" %p %p %zu/%zu }", (*data)->url, (*data)->path, (*data)->method, (*data)->request_method, (*data)->version, (*data)->hdrs, (*data)->body, (*data)->body_head, (*data)->body_size);
+	W_DBG(NOTICE, NULL, "  freeing mirror { \"%s\" \"%s\" \"%s\" %d \"%s\" { %p %p } %p %zu/%zu }", (*data)->url, (*data)->path, (*data)->method, (*data)->request_method, (*data)->version, (*data)->hdrs.p, (*data)->hdrs.n, (*data)->body, (*data)->body_head, (*data)->body_size);
 
 	PTR_FREE((*data)->out_address);
 	PTR_FREE((*data)->url);
@@ -496,10 +494,11 @@ void mir_ptr_free(struct mirror **data)
 	PTR_FREE((*data)->method);
 	PTR_FREE((*data)->version);
 
-	list_for_each_entry_safe(hdr, hdr_back, (*data)->hdrs, list)
+	list_for_each_entry_safe(hdr, hdr_back, &((*data)->hdrs), list) {
+		LIST_DEL(&(hdr->list));
 		buffer_ptr_free(&hdr);
+	}
 
-	PTR_FREE((*data)->hdrs);
 	PTR_FREE((*data)->body);
 	PTR_FREE(*data);
 }

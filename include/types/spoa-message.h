@@ -41,7 +41,7 @@ struct mirror {
 	char        *method;         /* */
 	int          request_method; /* */
 	char        *version;        /* */
-	struct list *hdrs;           /* */
+	struct list  hdrs;           /* */
 	char        *body;           /* */
 	size_t       body_head;      /* */
 	size_t       body_size;      /* */

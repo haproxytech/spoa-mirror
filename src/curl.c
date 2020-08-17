@@ -475,7 +475,7 @@ static CURLcode mir_curl_set_headers(struct curl_con *con, const struct mirror *
 	if (_NULL(con) || _NULL(mir))
 		return retval;
 
-	list_for_each_entry_safe(hdr, hdr_back, mir->hdrs, list) {
+	list_for_each_entry_safe(hdr, hdr_back, &(mir->hdrs), list) {
 		slist = curl_slist_append(con->hdrs, (const char *)hdr->ptr);
 		if (_NULL(slist)) {
 			retval = CURLE_OUT_OF_MEMORY;
@@ -930,7 +930,7 @@ int mir_curl_add(struct curl_data *curl, struct mirror *mir)
 	if (_NULL(curl) || _NULL(mir))
 		return retval;
 
-	CURL_DBG("Adding mirror { \"%s\" \"%s\" \"%s\" %d \"%s\" %p %p %zu/%zu }", mir->url, mir->path, mir->method, mir->request_method, mir->version, mir->hdrs, mir->body, mir->body_head, mir->body_size);
+	CURL_DBG("Adding mirror { \"%s\" \"%s\" \"%s\" %d \"%s\" { %p %p } %p %zu/%zu }", mir->url, mir->path, mir->method, mir->request_method, mir->version, mir->hdrs.p, mir->hdrs.n, mir->body, mir->body_head, mir->body_size);
 
 	con_timeout_ms = CLAMP_VALUE(con_timeout_ms, CURL_CON_TMOUT_MIN, CURL_CON_TMOUT_MAX);
 	timeout_ms     = CLAMP_VALUE(timeout_ms, CURL_TMOUT_MIN, CURL_TMOUT_MAX);
