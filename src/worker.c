@@ -386,7 +386,7 @@ static void worker_stop(struct ev_loop *loop, const char *msg __maybe_unused)
 
 /***
  * NAME
- *   worker_sigint_cb -
+ *   worker_signal_stop_cb -
  *
  * ARGUMENTS
  *   loop    -
@@ -399,12 +399,49 @@ static void worker_stop(struct ev_loop *loop, const char *msg __maybe_unused)
  * RETURN VALUE
  *   This function does not return a value.
  */
-static void worker_sigint_cb(struct ev_loop *loop, struct ev_signal *ev __maybe_unused, int revents __maybe_unused)
+static void worker_signal_stop_cb(struct ev_loop *loop, struct ev_signal *ev, int revents __maybe_unused)
 {
+	char        buffer[BUFSIZ];
+	const char *sig_name;
+
 	DBG_FUNC(NULL, "%p, %p, 0x%08x", loop, ev, revents);
 
-	worker_stop(loop, "SIGINT signal received");
+	if (_NULL(sig_name = strsignal(ev->signum)))
+		sig_name = "Unknown signal";
+	(void)snprintf(buffer, sizeof(buffer), "signal received - %s (%d)", sig_name, ev->signum);
+
+	worker_stop(loop, buffer);
 }
+
+
+/***
+ * NAME
+ *   worker_signal_ignore_cb -
+ *
+ * ARGUMENTS
+ *   loop    -
+ *   ev      -
+ *   revents -
+ *
+ * DESCRIPTION
+ *   -
+ *
+ * RETURN VALUE
+ *   This function does not return a value.
+ */
+static void worker_signal_ignore_cb(struct ev_loop *loop __maybe_unused, struct ev_signal *ev, int revents __maybe_unused)
+{
+	const char *sig_name;
+
+	DBG_FUNC(NULL, "%p, %p, 0x%08x", loop, ev, revents);
+
+	if (_NULL(sig_name = strsignal(ev->signum)))
+		sig_name = "Unknown signal";
+
+	W_DBG(WORKER, NULL, "signal ignored - %s received (%d)", sig_name, ev->signum);
+}
+
+
 
 
 /***
@@ -515,11 +552,12 @@ static void worker_accept_cb(struct ev_loop *loop __maybe_unused, struct ev_io *
  *   worker_run_exit -
  *
  * ARGUMENTS
- *   fd        -
- *   ev_base   -
- *   ev_sigint -
- *   ev_accept -
- *   retval    -
+ *   fd         -
+ *   ev_base    -
+ *   ev_signals -
+ *   nr_signals -
+ *   ev_accept  -
+ *   retval     -
  *
  * DESCRIPTION
  *   -
@@ -527,15 +565,18 @@ static void worker_accept_cb(struct ev_loop *loop __maybe_unused, struct ev_io *
  * RETURN VALUE
  *   -
  */
-static int worker_run_exit(int fd, struct ev_loop *ev_base, struct ev_signal *ev_sigint, struct ev_io *ev_accept, int retval)
+static int worker_run_exit(int fd, struct ev_loop *ev_base, struct worker_signal *ev_signals, int nr_signals, struct ev_io *ev_accept, int retval)
 {
-	DBG_FUNC(NULL, "%d, %p, %p, %p, %d", fd, ev_base, ev_sigint, ev_accept, retval);
+	int i;
+
+	DBG_FUNC(NULL, "%d, %p, %p, %d, %p, %d", fd, ev_base, ev_signals, nr_signals, ev_accept, retval);
 
 	if (ev_is_active(ev_accept) || ev_is_pending(ev_accept))
 		ev_io_stop(ev_base, ev_accept);
 
-	if (ev_is_active(ev_sigint) || ev_is_pending(ev_sigint))
-		ev_signal_stop(ev_base, ev_sigint);
+	for (i = 0; i < nr_signals; i++)
+		if (ev_is_active(&(ev_signals[i].signal)) || ev_is_pending(&(ev_signals[i].signal)))
+			ev_signal_stop(ev_base, &(ev_signals[i].signal));
 
 	if (_nNULL(ev_base) && !ev_is_default_loop(ev_base))
 		ev_loop_destroy(ev_base);
@@ -562,11 +603,18 @@ static int worker_run_exit(int fd, struct ev_loop *ev_base, struct ev_signal *ev
  */
 int worker_run(void)
 {
-	struct ev_timer   ev_runtime;
-	struct ev_loop   *ev_base;
-	struct ev_io      ev_accept;
-	struct ev_signal  ev_sigint;
-	int               rc, i, fd = -1;
+	struct worker_signal ev_signals[] = {
+		{ .signum =  SIGHUP, .func = worker_signal_stop_cb   },
+		{ .signum =  SIGINT, .func = worker_signal_stop_cb   },
+		{ .signum = SIGPIPE, .func = worker_signal_ignore_cb },
+		{ .signum = SIGTERM, .func = worker_signal_stop_cb   },
+		{ .signum = SIGUSR1, .func = worker_signal_stop_cb   },
+		{ .signum = SIGUSR2, .func = worker_signal_ignore_cb },
+	};
+	struct ev_timer  ev_runtime;
+	struct ev_loop  *ev_base;
+	struct ev_io     ev_accept;
+	int              rc, i, fd = -1;
 
 	DBG_FUNC(NULL, "");
 
@@ -576,7 +624,8 @@ int worker_run(void)
 		return EX_SOFTWARE;
 	}
 
-	(void)memset(&ev_sigint, 0, sizeof(ev_sigint));
+	for (i = 0; i < TABLESIZE(ev_signals); i++)
+		(void)memset(&(ev_signals[i].signal), 0, sizeof(ev_signals[0].signal));
 	(void)memset(&ev_accept, 0, sizeof(ev_accept));
 
 	ev_base = ev_default_loop(cfg.ev_backend);
@@ -588,26 +637,24 @@ int worker_run(void)
 
 	W_DBG(WORKER, NULL, "  libev: using backend '%s'", ev_backend_type(ev_base));
 
-	(void)signal(SIGPIPE, SIG_IGN);
-
 	fd = create_server_socket();
 	if (_ERROR(fd)) {
 		w_log(NULL, _F("Failed to create server socket"));
 
-		return worker_run_exit(fd, ev_base, &ev_sigint, &ev_accept, EX_SOFTWARE);
+		return worker_run_exit(fd, ev_base, ev_signals, TABLESIZE(ev_signals), &ev_accept, EX_SOFTWARE);
 	}
 
 	if (_ERROR(socket_set_nonblocking(fd))) {
 		w_log(NULL, _F("Failed to set client socket to non-blocking: %m"));
 
-		return worker_run_exit(fd, ev_base, &ev_sigint, &ev_accept, EX_SOFTWARE);
+		return worker_run_exit(fd, ev_base, ev_signals, TABLESIZE(ev_signals), &ev_accept, EX_SOFTWARE);
 	}
 
 	prg.workers = calloc(cfg.num_workers, sizeof(*(prg.workers)));
 	if (_NULL(prg.workers)) {
 		w_log(NULL, _F("Failed to allocate memory for workers: %m"));
 
-		return worker_run_exit(fd, ev_base, &ev_sigint, &ev_accept, EX_SOFTWARE);
+		return worker_run_exit(fd, ev_base, ev_signals, TABLESIZE(ev_signals), &ev_accept, EX_SOFTWARE);
 	}
 
 	for (i = 0; i < cfg.num_workers; i++) {
@@ -623,8 +670,10 @@ int worker_run(void)
 	ev_io_init(&ev_accept, worker_accept_cb, fd, EV_READ);
 	ev_io_start(ev_base, &ev_accept);
 
-	ev_signal_init(&ev_sigint, worker_sigint_cb, SIGINT);
-	ev_signal_start(ev_base, &ev_sigint);
+	for (i = 0; i < TABLESIZE(ev_signals); i++) {
+		ev_signal_init(&(ev_signals[i].signal), ev_signals[i].func, ev_signals[i].signum);
+		ev_signal_start(ev_base, &(ev_signals[i].signal));
+	}
 
 	if (cfg.runtime_us > 0) {
 		ev_timer_init(&ev_runtime, worker_runtime_cb, cfg.runtime_us / 1e6, 0.0);
@@ -652,7 +701,7 @@ int worker_run(void)
 		W_DBG(WORKER, NULL, "  Worker %02d: terminated (%d)", w->id, rc);
 	}
 
-	return worker_run_exit(fd, ev_base, &ev_sigint, &ev_accept, EX_OK);
+	return worker_run_exit(fd, ev_base, ev_signals, TABLESIZE(ev_signals), &ev_accept, EX_OK);
 }
 
 /*

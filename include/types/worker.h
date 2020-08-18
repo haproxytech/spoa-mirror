@@ -41,6 +41,12 @@ struct worker {
 #endif
 };
 
+struct worker_signal {
+	struct ev_signal signal;
+	int              signum;
+	void             (*func)(struct ev_loop *, struct ev_signal *, int);
+};
+
 #endif /* _TYPES_WORKER_H */
 
 /*
