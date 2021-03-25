@@ -783,6 +783,32 @@ static CURLcode mir_curl_add_post(struct curl_con *con, const struct mirror *mir
 	return retval;
 }
 
+static CURLcode mir_curl_add_put(struct curl_con *con, const struct mirror *mir)
+{
+	CURLcode retval = CURLE_BAD_FUNCTION_ARGUMENT;
+
+	DBG_FUNC(NULL, "%p, %p", con, mir);
+
+	if (_NULL(con) || _NULL(mir))
+		return retval;
+
+	if (mir->request_method != CURL_HTTP_METHOD_PUT)
+		retval = CURLE_OK;
+	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_HTTP_CONTENT_DECODING, 0L)) != CURLE_OK)
+		CURL_ERR_EASY("Failed to set HTTP content decoding", retval);
+	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_HTTP_TRANSFER_DECODING, 0L)) != CURLE_OK)
+		CURL_ERR_EASY("Failed to set HTTP transfer decoding", retval);
+	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_READFUNCTION, mir_curl_read_cb)) != CURLE_OK)
+		CURL_ERR_EASY("Failed to set read callback function", retval);
+	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_UPLOAD, 1L)) != CURLE_OK)
+		CURL_ERR_EASY("Failed to init HTTP PUT data", retval);
+	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_READDATA, con)) != CURLE_OK)
+		CURL_ERR_EASY("Failed to set read callback function data", retval);
+	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_INFILESIZE_LARGE, (curl_off_t)mir->body_size)) != CURLE_OK)
+		CURL_ERR_EASY("Failed to set HTTP PUT data size", retval);
+
+	return retval;
+}
 
 /***
  * NAME
@@ -979,6 +1005,8 @@ int mir_curl_add(struct curl_data *curl, struct mirror *mir)
 		CURL_ERR_EASY("Failed to set read timeout", rc);
 	else if ((rc = mir_curl_add_keepalive(con, 1, CURL_KEEPIDLE_TIME, CURL_KEEPINTVL_TIME)) != CURLE_OK)
 		/* Do nothing. */;
+	else if ((rc = mir_curl_add_put(con, mir)) != CURLE_OK)
+		CURL_ERR_EASY("Failed to add PUT support", rc);
 	else if ((rc = mir_curl_add_post(con, mir)) == CURLE_OK) {
 		CURL_DBG("Adding easy %p to multi %p (%s)", con->easy, curl->multi, mir->url);
 
