@@ -1,5 +1,6 @@
 /***
  * Copyright 2018-2020 HAProxy Technologies
+ * Copyright 2021 Verizon Media, Pierre Belanger
  *
  * This file is part of spoa-mirror.
  *
@@ -979,6 +980,9 @@ int mir_curl_add(struct curl_data *curl, struct mirror *mir)
 		CURL_ERR_EASY("Failed to set read timeout", rc);
 	else if ((rc = mir_curl_add_keepalive(con, 1, CURL_KEEPIDLE_TIME, CURL_KEEPINTVL_TIME)) != CURLE_OK)
 		/* Do nothing. */;
+	else if ((rc = curl_easy_setopt(con->easy, CURLOPT_SSLCERT, cfg.client_certfile)) != CURLE_OK)
+		CURL_ERR_EASY("Failed to set client_certfile", rc);
+
 	else if ((rc = mir_curl_add_post(con, mir)) == CURLE_OK) {
 		CURL_DBG("Adding easy %p to multi %p (%s)", con->easy, curl->multi, mir->url);
 

@@ -1,5 +1,6 @@
 /***
  * Copyright 2018-2020 HAProxy Technologies
+ * Copyright 2021 Verizon Media, Pierre Belanger
  *
  * This file is part of spoa-mirror.
  *
@@ -74,6 +75,7 @@ struct config_data {
 	const char   *pidfile;
 	int           pidfile_fd;
 	uint          ev_backend;
+	const char   *client_certfile;
 #ifdef HAVE_LIBCURL
 	char         *mir_url;
 	const char   *mir_address;
