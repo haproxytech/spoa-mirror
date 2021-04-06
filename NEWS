@@ -1,0 +1,9 @@
+2021-04-06
+
+    - added option "-C --client-certfile=FILE"
+
+      This option allows to specify a PEM file to use as client certificate
+      when connecting to a mirror-url over https.
+
+      Ex. : spoa-mirror --client-certfile=/path/ssl/clientcert.pem \
+                        --mirror-url https://vip_sslclient_yourdomain.com/ ...

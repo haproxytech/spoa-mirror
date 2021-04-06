@@ -92,6 +92,7 @@ Options are:
   -B, --libev-backend=TYPE        Specify the libev backend type (default: AUTO).
   -b, --connection-backlog=VALUE  Specify the connection backlog size (default: 10).
   -c, --capability=NAME           Enable the support of the specified capability.
+  -C, --client-certfile=FILE      Specifies a PEM file to use as client certificate.
   -D, --daemonize                 Run this program as a daemon.
   -F, --pidfile=FILE              Specifies a file to write the process-id to.
   -h, --help                      Show this text.

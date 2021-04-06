@@ -1,5 +1,6 @@
 /***
  * Copyright 2018-2020 HAProxy Technologies
+ * Copyright 2021 Verizon Media, Pierre Belanger
  *
  * This file is part of spoa-mirror.
  *
@@ -64,6 +65,7 @@ static void usage(const char *program_name, bool_t flag_verbose)
 		(void)printf("  -B, --libev-backend=TYPE        Specify the libev backend type (default: AUTO).\n");
 		(void)printf("  -b, --connection-backlog=VALUE  Specify the connection backlog size (default: %d).\n", DEFAULT_CONNECTION_BACKLOG);
 		(void)printf("  -c, --capability=NAME           Enable the support of the specified capability.\n");
+		(void)printf("  -C, --client-certfile=FILE      Specifies a PEM file to use as client certificate.\n");
 		(void)printf("  -D, --daemonize                 Run this program as a daemon.\n");
 #ifdef DEBUG
 		(void)printf("  -d, --debug=LEVEL               Enable and specify the debug mode level (default: %d).\n", DEFAULT_DEBUG_LEVEL);
@@ -348,6 +350,7 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 		{ "libev-backend",      required_argument, NULL, 'B' },
 		{ "connection-backlog", required_argument, NULL, 'b' },
 		{ "capability",         required_argument, NULL, 'c' },
+		{ "client-certfile",    required_argument, NULL, 'C' },
 		{ "daemonize",          no_argument,       NULL, 'D' },
 		{ "debug",              required_argument, NULL, 'd' },
 		{ "pidfile",            required_argument, NULL, 'F' },
@@ -394,6 +397,8 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 			cfg.connection_backlog = atoi(optarg);
 		else if (c == 'c')
 			flag_error |= _OK(getopt_set_capability(optarg)) ? 0 : 1;
+		else if (c == 'C')
+			cfg.client_certfile = optarg;
 		else if (c == 'D')
 			cfg.opt_flags |= FLAG_OPT_DAEMONIZE;
 #ifdef DEBUG
