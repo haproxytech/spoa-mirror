@@ -168,6 +168,9 @@ configuration file:
 HAProxy should be used in SSL termination mode if HTTPS is used in the HAProxy
 frontend part.
 
-HTTP methods that certainly work are GET, HEAD and POST.  Other methods can be
-added if necessary.
+HTTP methods that certainly work are GET, HEAD, POST and PUT.  Other methods
+can be added if necessary.  In order for the HTTP PUT method to work properly,
+it is necessary to add the 'option http-buffer-request' to the HAProxy
+configuration, because otherwise the contents of the HTTP body will not be
+transferred.
 
