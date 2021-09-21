@@ -96,6 +96,7 @@ Options are:
   -F, --pidfile=FILE              Specifies a file to write the process-id to.
   -h, --help                      Show this text.
   -i, --monitor-interval=TIME     Set the monitor interval (default: 5.00s).
+  -L, --access-log=MODE           Specify the mode of access logging (default: "ALL").
   -l, --logfile=[MODE:]FILE       Log all messages to logfile (default: stdout/stderr).
   -m, --max-frame-size=VALUE      Specify the maximum frame size (default: 16384 bytes).
   -n, --num-workers=VALUE         Specify the number of workers (default: 10).
@@ -118,6 +119,8 @@ for the mode, then line buffering is used when writing to the log file.
 
 The time delay/interval is specified in milliseconds by default, but can be
 in any other unit if the number is suffixed by a unit (us, ms, s, m, h, d).
+
+Access logging modes are 'NONE', 'ERROR', 'SUCCESS', 'ALL'.
 
 Copyright 2018-2020 HAProxy Technologies
 SPDX-License-Identifier: GPL-2.0-or-later

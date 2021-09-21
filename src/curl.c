@@ -180,11 +180,12 @@ static void mir_curl_check_multi_info(struct curl_data *curl)
 			if ((rc = curl_easy_getinfo(msg->easy_handle, CURL_v075500(CURLINFO_SIZE_DOWNLOAD_T, CURLINFO_SIZE_DOWNLOAD), &size_download)) != CURLE_OK)
 				CURL_ERR_EASY("Failed to get number of downloaded bytes", rc);
 
-			w_log(NULL, "\"%s %s %s\" %ld " CURL_v075500("%ld/%ld", "%.0f/%.0f") " %.3f %s",
-			      con->mir->method, url, mir_curl_get_http_version(version),
-			      response_code, size_upload, size_download,
-			      CURL_v076100(total_time / 1000.0, total_time * 1000.0),
-			      (msg->data.result != CURLE_OK) ? con->error : "ok");
+			if (msg->data.result == CURLE_OK ? (cfg.access_log_mode & 1) : (cfg.access_log_mode & 2))
+				w_log(NULL, "\"%s %s %s\" %ld " CURL_v075500("%ld/%ld", "%.0f/%.0f") " %.3f %s",
+				      con->mir->method, url, mir_curl_get_http_version(version),
+				      response_code, size_upload, size_download,
+				      CURL_v076100(total_time / 1000.0, total_time * 1000.0),
+				      (msg->data.result != CURLE_OK) ? con->error : "ok");
 
 			CURL_DBG("Done: %s => (%d) %s", url, msg->data.result, con->error);
 
