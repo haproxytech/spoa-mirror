@@ -85,6 +85,7 @@ enum DBG_LEVEL_enum {
 #  define F_DBG(...)             while (0)
 #  define W_DBG(...)             while (0)
 #  define DBG_FUNC(...)          while (0)
+#  define DBG_FUNC_END(f, ...)   while (0)
 #  define DBG_RETURN()           return
 #  define DBG_RETURN_EX(a,t,f)   return a
 #  define DBG_RETURN_INT(a)      return a
