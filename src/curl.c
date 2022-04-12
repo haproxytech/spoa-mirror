@@ -125,7 +125,7 @@ static const char *mir_curl_get_http_version(long version)
 		if (http_version[i].value == version)
 			break;
 
-	DBG_RETURN_CPTR(http_version[i].str);
+	return http_version[i].str;
 }
 
 
