@@ -239,6 +239,7 @@ __noreturn static void *worker_thread_exit(struct worker *worker)
 	W_DBG(WORKER, worker, "Worker is stopped");
 
 	DBG_FUNC_END("} = %p", NULL);
+	DBG_FUNC_END("} = %p", NULL);
 
 	pthread_exit(NULL);
 }
