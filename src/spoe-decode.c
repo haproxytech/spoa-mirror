@@ -342,7 +342,7 @@ static int spoe_vdecode(struct spoe_frame *frame, const char **buf, const char *
 	if (_ERROR(retval) && _nNULL(FC_PTR) && (FC_PTR->status_code == SPOE_FRM_ERR_NONE))
 		FC_PTR->status_code = SPOE_FRM_ERR_INVALID;
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -458,7 +458,7 @@ static int spoe_decode_kv_item(struct spoe_frame *frame, const char **buf, const
 	if (_ERROR(retval))
 		f_log(frame, _E("Failed to decode K/V item"));
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -493,7 +493,7 @@ int spoe_decode_kv(struct spoe_frame *frame, const char **buf, const char *end, 
 		if (_ERROR(retval) || _NULL(str)) {
 			FC_PTR->status_code = SPOE_FRM_ERR_INVALID;
 
-			return FUNC_RET_ERROR;
+			DBG_RETURN_INT(FUNC_RET_ERROR);
 		}
 
 		F_DBG(SPOA, frame, "K/V item: key=%.*s", (int)len, str);
@@ -520,14 +520,14 @@ int spoe_decode_kv(struct spoe_frame *frame, const char **buf, const char *end, 
 			if (_ERROR(spoe_skip_data(&ptr, end))) {
 				FC_PTR->status_code = SPOE_FRM_ERR_INVALID;
 
-				return FUNC_RET_ERROR;
+				DBG_RETURN_INT(FUNC_RET_ERROR);
 			}
 		}
 	}
 
 	SPOE_BUFFER_ADVANCE(retval);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -571,7 +571,7 @@ int spoe_decode_skip_msg(struct spoe_frame *frame, const char **buf, const char 
 
 	SPOE_BUFFER_ADVANCE(retval);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -618,9 +618,9 @@ int spoe_decode_frame(const char *msg, struct spoe_frame *frame, uint8_t spoe_ty
 	      msg, stype, flags, stream_id, frame_id);
 
 	if (_ERROR(retval))
-		return retval;
+		DBG_RETURN_INT(retval);
 	else if (stype != spoe_type)
-		return spoe_retval;
+		DBG_RETURN_INT(spoe_retval);
 
 	frame->flags  = ntohl(flags);
 	frame->offset = retval;
@@ -640,7 +640,7 @@ int spoe_decode_frame(const char *msg, struct spoe_frame *frame, uint8_t spoe_ty
 		    || (frame->frame_id  != frame_id)) {
 			FC_PTR->status_code = SPOE_FRM_ERR_INTERLACED_FRAMES;
 
-			return FUNC_RET_ERROR;
+			DBG_RETURN_INT(FUNC_RET_ERROR);
 		}
 	}
 	else if (TEST_OR2(stype, SPOE_FRM_T_HAPROXY_DISCON, SPOE_FRM_T_HAPROXY_HELLO)) {
@@ -648,14 +648,14 @@ int spoe_decode_frame(const char *msg, struct spoe_frame *frame, uint8_t spoe_ty
 		if (!(frame->flags & SPOE_FRM_FL_FIN)) {
 			FC_PTR->status_code = SPOE_FRM_ERR_FRAG_NOT_SUPPORTED;
 
-			return FUNC_RET_ERROR;
+			DBG_RETURN_INT(FUNC_RET_ERROR);
 		}
 
 		/* stream-id and frame-id must be cleared. */
 		if ((stream_id != 0) || (frame_id != 0)) {
 			FC_PTR->status_code = SPOE_FRM_ERR_INVALID;
 
-			return FUNC_RET_ERROR;
+			DBG_RETURN_INT(FUNC_RET_ERROR);
 		}
 	}
 
@@ -675,7 +675,7 @@ int spoe_decode_frame(const char *msg, struct spoe_frame *frame, uint8_t spoe_ty
 	else
 		f_log(frame, _E("--> %s Failed to decode frame"), msg);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 /*

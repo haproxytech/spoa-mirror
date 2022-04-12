@@ -53,7 +53,7 @@ const char *ev_backend_name(uint type)
 			break;
 		}
 
-	return retptr;
+	DBG_RETURN_CPTR(retptr);
 }
 
 
@@ -79,7 +79,7 @@ const char *ev_backend_type(struct ev_loop *loop)
 	if (_nNULL(loop))
 		retptr = ev_backend_name(ev_backend(loop));
 
-	return retptr;
+	DBG_RETURN_CPTR(retptr);
 }
 
 
@@ -115,7 +115,7 @@ const char *ev_backends_supported(void)
 			(void)strncat(retbuf, ev_backend_name(i), SIZEOF_1(retbuf));
 		}
 
-	return retbuf;
+	DBG_RETURN_CPTR(retbuf);
 }
 
 /*

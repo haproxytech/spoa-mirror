@@ -23,7 +23,7 @@
 #define CURL_STR              "cURL: "
 #define CURL_ERR_EASY(a,b)    w_log(NULL, _E(CURL_STR a ": %s (%u)"), curl_easy_strerror(b), (b))
 #define CURL_ERR_MULTI(a,b)   w_log(NULL, _E(CURL_STR a ": %s (%d)"), curl_multi_strerror(b), (b))
-#define CURL_DBG(a, ...)      W_DBG(CURL, NULL, "  " CURL_STR a, ##__VA_ARGS__)
+#define CURL_DBG(a, ...)      W_DBG(CURL, NULL, CURL_STR a, ##__VA_ARGS__)
 
 /* Time-out connect operations after this amount of milliseconds. */
 #define CURL_CON_TMOUT        20000

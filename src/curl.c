@@ -45,7 +45,7 @@ static int mir_curl_debug_cb(CURL *handle, curl_infotype type, char *data, size_
 
 	CURL_DBG("[%p]: %u <%s>", handle, type, str_ctrl(data, size));
 
-	return CURLE_OK;
+	DBG_RETURN_INT(CURLE_OK);
 }
 
 #endif /* DEBUG */
@@ -69,7 +69,7 @@ static void mir_curl_handle_close(struct curl_con *con)
 	DBG_FUNC(NULL, "%p", con);
 
 	if (_NULL(con))
-		return;
+		DBG_RETURN();
 
 	CURL_DBG("Closing handle { %p %p \"%s\" %p }", con->easy, con->hdrs, con->error, con->curl);
 
@@ -85,6 +85,8 @@ static void mir_curl_handle_close(struct curl_con *con)
 	mir_ptr_free(&(con->mir));
 
 	PTR_FREE(con);
+
+	DBG_RETURN();
 }
 
 
@@ -123,7 +125,7 @@ static const char *mir_curl_get_http_version(long version)
 		if (http_version[i].value == version)
 			break;
 
-	return http_version[i].str;
+	DBG_RETURN_CPTR(http_version[i].str);
 }
 
 
@@ -191,6 +193,8 @@ static void mir_curl_check_multi_info(struct curl_data *curl)
 			mir_curl_handle_close(con);
 		}
 	}
+
+	DBG_RETURN();
 }
 
 
@@ -231,6 +235,8 @@ static void mir_curl_ev_socket_cb(struct ev_loop *loop __maybe_unused, struct ev
 			ev_async_send(curl->ev_base, curl->ev_async);
 		}
 	}
+
+	DBG_RETURN();
 }
 
 
@@ -273,7 +279,7 @@ static int mir_curl_socket_set(struct curl_sock *socket, CURL *easy, curl_socket
 	ev_io_start(curl->ev_base, &(socket->ev_io));
 	ev_async_send(curl->ev_base, curl->ev_async);
 
-	return 0;
+	DBG_RETURN_INT(0);
 }
 
 
@@ -313,7 +319,7 @@ static struct curl_sock *mir_curl_socket_add(CURL *easy, curl_socket_t s, int wh
 			PTR_FREE(retptr);
 	}
 
-	return retptr;
+	DBG_RETURN_PTR(retptr);
 }
 
 
@@ -336,7 +342,7 @@ static int mir_curl_socket_remove(struct curl_sock *socket, struct curl_data *cu
 	DBG_FUNC(NULL, "%p, %p", socket, curl);
 
 	if (_NULL(socket))
-		return 0;
+		DBG_RETURN_INT(0);
 
 	if (ev_is_active(&(socket->ev_io)) || ev_is_pending(&(socket->ev_io)))
 		ev_io_stop(curl->ev_base, &(socket->ev_io));
@@ -344,7 +350,7 @@ static int mir_curl_socket_remove(struct curl_sock *socket, struct curl_data *cu
 
 	PTR_FREE(socket);
 
-	return 0;
+	DBG_RETURN_INT(0);
 }
 
 
@@ -380,7 +386,7 @@ static int mir_curl_socket_cb(CURL *easy, curl_socket_t s, int what, void *userp
 	else if (_NULL(socket = mir_curl_socket_add(easy, s, what, curl)))
 		retval = -1;
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -410,6 +416,8 @@ static void mir_curl_ev_timer_cb(struct ev_loop *loop __maybe_unused, struct ev_
 		CURL_ERR_MULTI("Failed data transfer", rcm);
 
 	mir_curl_check_multi_info(curl);
+
+	DBG_RETURN();
 }
 
 
@@ -446,7 +454,7 @@ static int mir_curl_timer_cb(CURLM *multi __maybe_unused, long timeout_ms, void 
 
 	ev_async_send(curl->ev_base, curl->ev_async);
 
-	return CURLM_OK;
+	DBG_RETURN_INT(CURLM_OK);
 }
 
 
@@ -473,12 +481,12 @@ static CURLcode mir_curl_set_headers(struct curl_con *con, const struct mirror *
 	DBG_FUNC(NULL, "%p, %p", con, mir);
 
 	if (_NULL(con) || _NULL(mir))
-		return retval;
+		DBG_RETURN_INT(retval);
 
 	list_for_each_entry_safe(hdr, hdr_back, &(mir->hdrs), list) {
 		slist = curl_slist_append(con->hdrs, (const char *)hdr->ptr);
 		if (_NULL(slist)) {
-			retval = CURLE_OUT_OF_MEMORY;
+			DBG_RETURN_INT(CURLE_OUT_OF_MEMORY);
 
 			break;
 		}
@@ -493,7 +501,7 @@ static CURLcode mir_curl_set_headers(struct curl_con *con, const struct mirror *
 		if ((retval = curl_easy_setopt(con->easy, CURLOPT_HTTPHEADER, con->hdrs)) != CURLE_OK)
 			CURL_ERR_EASY("Failed to set HTTP headers", retval);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -523,7 +531,7 @@ int mir_curl_init(struct ev_loop *loop, struct ev_async *ev, struct curl_data *c
 	DBG_FUNC(NULL, "%p, %p", loop, curl);
 
 	if (_NULL(loop) || _NULL(curl))
-		return retval;
+		DBG_RETURN_INT(retval);
 
 	(void)memset(curl, 0, sizeof(*curl));
 
@@ -549,12 +557,12 @@ int mir_curl_init(struct ev_loop *loop, struct ev_async *ev, struct curl_data *c
 	else if ((rcm = curl_multi_setopt(curl->multi, CURLMOPT_TIMERDATA, curl)) != CURLM_OK)
 		CURL_ERR_MULTI("Failed to set timer callback function data", rcm);
 	else
-		retval = FUNC_RET_OK;
+		DBG_RETURN_INT(FUNC_RET_OK);
 
 	if (_ERROR(retval))
 		mir_curl_close(curl);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -576,7 +584,7 @@ void mir_curl_close(struct curl_data *curl)
 	DBG_FUNC(NULL, "%p", curl);
 
 	if (_NULL(curl))
-		return;
+		DBG_RETURN();
 
 	if (_nNULL(curl->multi))
 		(void)curl_multi_cleanup(curl->multi);
@@ -590,6 +598,8 @@ void mir_curl_close(struct curl_data *curl)
 #endif
 
 	(void)memset(curl, 0, sizeof(*curl));
+
+	DBG_RETURN();
 }
 
 
@@ -617,7 +627,7 @@ static size_t mir_curl_read_cb(void *buffer __maybe_unused, size_t size, size_t 
 	DBG_FUNC(NULL, "%p, %zu, %zu, %p", buffer, size, nitems, instream);
 
 	if (_NULL(con) || _NULL(con->mir) || _NULL(con->mir->body)) {
-		return retval;
+		DBG_RETURN_SIZE(retval);
 	}
 	else if (con->mir->body_head < con->mir->body_size) {
 		retval = MIN(size * nitems, con->mir->body_size - con->mir->body_head);
@@ -628,7 +638,7 @@ static size_t mir_curl_read_cb(void *buffer __maybe_unused, size_t size, size_t 
 		con->mir->body_head += retval;
 	}
 
-	return retval;
+	DBG_RETURN_SIZE(retval);
 }
 
 
@@ -654,7 +664,7 @@ static size_t mir_curl_write_cb(void *buffer __maybe_unused, size_t size, size_t
 
 	DBG_FUNC(NULL, "%p, %zu, %zu, %p", buffer, size, nitems, outstream);
 
-	return retval;
+	DBG_RETURN_SIZE(retval);
 }
 
 
@@ -685,7 +695,7 @@ static int mir_curl_xferinfo_cb(void *clientp, curl_off_t dltotal __maybe_unused
 
 	CURL_DBG("Progress: %s (%"PRId64"/%"PRId64" %"PRId64"/%"PRId64")", con->mir->url, dlnow, dltotal, ulnow, ultotal);
 
-	return 0;
+	DBG_RETURN_INT(0);
 }
 
 #else
@@ -698,7 +708,7 @@ static int mir_curl_xferinfo_cb(void *clientp, double dltotal __maybe_unused, do
 
 	CURL_DBG("Progress: %s (%.0f/%.0f %.0f/%.0f)", con->mir->url, dlnow, dltotal, ulnow, ultotal);
 
-	return 0;
+	DBG_RETURN_INT(0);
 }
 
 #endif /* CURL_AT_LEAST_VERSION(7, 32, 0) */
@@ -727,7 +737,7 @@ static CURLcode mir_curl_add_keepalive(struct curl_con *con, bool_t flag_alive, 
 	DBG_FUNC(NULL, "%p, %hhu, %ld, %ld", con, flag_alive, idle, intvl);
 
 	if (_NULL(con))
-		return retval;
+		DBG_RETURN_INT(retval);
 
 	if ((retval = curl_easy_setopt(con->easy, CURLOPT_TCP_KEEPALIVE, (long)flag_alive)) != CURLE_OK)
 		CURL_ERR_EASY("Failed to set TCP keepalive", retval);
@@ -738,7 +748,7 @@ static CURLcode mir_curl_add_keepalive(struct curl_con *con, bool_t flag_alive, 
 	else if ((intvl >= 0) && (retval = curl_easy_setopt(con->easy, CURLOPT_TCP_KEEPINTVL, intvl)) != CURLE_OK)
 		CURL_ERR_EASY("Failed to set TCP keepintvl", retval);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -763,7 +773,7 @@ static CURLcode mir_curl_add_post(struct curl_con *con, const struct mirror *mir
 	DBG_FUNC(NULL, "%p, %p", con, mir);
 
 	if (_NULL(con) || _NULL(mir))
-		return retval;
+		DBG_RETURN_INT(retval);
 
 	if (mir->request_method != CURL_HTTP_METHOD_POST)
 		retval = CURLE_OK;
@@ -780,7 +790,7 @@ static CURLcode mir_curl_add_post(struct curl_con *con, const struct mirror *mir
 	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_READDATA, con)) != CURLE_OK)
 		CURL_ERR_EASY("Failed to set read callback function data", retval);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -805,7 +815,7 @@ static CURLcode mir_curl_add_put(struct curl_con *con, const struct mirror *mir)
 	DBG_FUNC(NULL, "%p, %p", con, mir);
 
 	if (_NULL(con) || _NULL(mir))
-		return retval;
+		DBG_RETURN_INT(retval);
 
 	if (mir->request_method != CURL_HTTP_METHOD_PUT)
 		retval = CURLE_OK;
@@ -824,7 +834,7 @@ static CURLcode mir_curl_add_put(struct curl_con *con, const struct mirror *mir)
 	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_INFILESIZE_LARGE, (curl_off_t)mir->body_size)) != CURLE_OK)
 		CURL_ERR_EASY("Failed to set HTTP PUT data size", retval);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -849,7 +859,7 @@ static CURLcode mir_curl_add_out(struct curl_con *con, const struct mirror *mir)
 	DBG_FUNC(NULL, "%p, %p", con, mir);
 
 	if (_NULL(con) || _NULL(mir))
-		return retval;
+		DBG_RETURN_INT(retval);
 
 	if (_nNULL(mir->out_address))
 		if ((retval = curl_easy_setopt(con->easy, CURLOPT_INTERFACE, mir->out_address)) != CURLE_OK)
@@ -864,7 +874,7 @@ static CURLcode mir_curl_add_out(struct curl_con *con, const struct mirror *mir)
 	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_LOCALPORTRANGE, (long)mir->out_port[1])) != CURLE_OK)
 		CURL_ERR_EASY("Failed to set outgoing connections port range", retval);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -889,7 +899,7 @@ static CURLcode mir_curl_add_cert(struct curl_con *con, const struct mirror *mir
 	DBG_FUNC(NULL, "%p, %p", con, mir);
 
 	if (_NULL(con) || _NULL(mir))
-		return retval;
+		DBG_RETURN_INT(retval);
 
 	if (strncasecmp(mir->url, STR_ADDRSIZE(STR_HTTPS_PFX)) != 0) {
 		retval = CURLE_OK;
@@ -902,7 +912,7 @@ static CURLcode mir_curl_add_cert(struct curl_con *con, const struct mirror *mir
 			CURL_ERR_EASY("Failed to disable SSL host verification", retval);
 	}
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -927,7 +937,7 @@ static CURLcode mir_curl_add_url(struct curl_con *con, const struct mirror *mir)
 	DBG_FUNC(NULL, "%p, %p", con, mir);
 
 	if (_NULL(con) || _NULL(mir))
-		return retval;
+		DBG_RETURN_INT(retval);
 
 #if CURL_AT_LEAST_VERSION(7, 33, 0)
 	if (_NULL(mir->version) || (strcasecmp(mir->version, "2.0") != 0))
@@ -943,7 +953,7 @@ static CURLcode mir_curl_add_url(struct curl_con *con, const struct mirror *mir)
 	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_URL, mir->url)) != CURLE_OK)
 		CURL_ERR_EASY("Failed to set URL", retval);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -972,7 +982,7 @@ int mir_curl_add(struct curl_data *curl, struct mirror *mir)
 	DBG_FUNC(NULL, "%p, %p", curl, mir);
 
 	if (_NULL(curl) || _NULL(mir))
-		return retval;
+		DBG_RETURN_INT(retval);
 
 	CURL_DBG("Adding mirror { \"%s\" \"%s\" \"%s\" %d \"%s\" { %p %p } %p %zu/%zu }", mir->url, mir->path, mir->method, mir->request_method, mir->version, mir->hdrs.p, mir->hdrs.n, mir->body, mir->body_head, mir->body_size);
 
@@ -1040,7 +1050,7 @@ int mir_curl_add(struct curl_data *curl, struct mirror *mir)
 	if (_ERROR(retval))
 		mir_curl_handle_close(con);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 /*

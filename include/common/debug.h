@@ -40,6 +40,7 @@ enum DBG_LEVEL_enum {
 };
 
 #  define IFDEF_DBG(a, b)        a
+#  define DBG_INDENT_STEP        2
 #  define DBG_PARM(a, ...)       a, ##__VA_ARGS__
 #  define C_DBG(l,C,f, ...)                                 \
 	do {                                                \
@@ -56,11 +57,27 @@ enum DBG_LEVEL_enum {
 		if (cfg.debug_level & (1 << DBG_LEVEL_##l)) \
 			w_log((W), f, ##__VA_ARGS__);       \
 	} while (0)
-#  define DBG_FUNC(W,f, ...)                                                    \
-	do {                                                                    \
-		if (cfg.debug_level & (1 << DBG_LEVEL_ENABLED))                 \
-			W_DBG(FUNC, (W), "%s(" f ")", __func__, ##__VA_ARGS__); \
+#  define DBG_FUNC(W,f, ...)                                                      \
+	do {                                                                      \
+		if (cfg.debug_level & (1 << DBG_LEVEL_ENABLED))                   \
+			W_DBG(FUNC, (W), "%s(" f ") {", __func__, ##__VA_ARGS__); \
+		dbg_w_ptr   = (W);                                                \
+		dbg_indent += DBG_INDENT_STEP;                                    \
 	} while (0)
+#  define DBG_FUNC_END(f, ...)                                    \
+	do {                                                      \
+		dbg_indent -= DBG_INDENT_STEP;                    \
+		if (cfg.debug_level & (1 << DBG_LEVEL_ENABLED))   \
+			W_DBG(FUNC, dbg_w_ptr, f, ##__VA_ARGS__); \
+	} while (0)
+#  define DBG_RETURN()           do { DBG_FUNC_END("}"); return; } while (0)
+#  define DBG_RETURN_EX(a,t,f)   do { t _r = (a); DBG_FUNC_END("} = " f, _r); return _r; } while (0)
+#  define DBG_RETURN_INT(a)      DBG_RETURN_EX((a), int, "%d")
+#  define DBG_RETURN_U64(a)      DBG_RETURN_EX((a), uint64_t, "%lu")
+#  define DBG_RETURN_SIZE(a)     DBG_RETURN_EX((a), size_t, "%ld")
+#  define DBG_RETURN_SSIZE(a)    DBG_RETURN_EX((a), ssize_t, "%lu")
+#  define DBG_RETURN_PTR(a)      DBG_RETURN_EX((a), void *, "%p")
+#  define DBG_RETURN_CPTR(a)     DBG_RETURN_EX((a), const void *, "%p")
 #else
 #  define IFDEF_DBG(a, b)        b
 #  define DBG_PARM(...)
@@ -68,6 +85,14 @@ enum DBG_LEVEL_enum {
 #  define F_DBG(...)             while (0)
 #  define W_DBG(...)             while (0)
 #  define DBG_FUNC(...)          while (0)
+#  define DBG_RETURN()           return
+#  define DBG_RETURN_EX(a,t,f)   return a
+#  define DBG_RETURN_INT(a)      return a
+#  define DBG_RETURN_U64(a)      return a
+#  define DBG_RETURN_SIZE(a)     return a
+#  define DBG_RETURN_SSIZE(a)    return a
+#  define DBG_RETURN_PTR(a)      return a
+#  define DBG_RETURN_CPTR(a)     return a
 #endif /* DEBUG */
 
 #endif /* _COMMON_DEBUG_H */

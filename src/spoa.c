@@ -58,7 +58,7 @@ int acc_payload(struct spoe_frame *frame)
 		retval = 1;
 	}
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -82,7 +82,7 @@ static void release_frame(struct spoe_frame *frame)
 	DBG_FUNC(STRUCT_ELEM_SAFE(frame, worker, NULL), "%p", frame);
 
 	if (_NULL(frame))
-		return;
+		DBG_RETURN();
 
 	if (ev_is_active(&(frame->ev_process_frame)) || ev_is_pending(&(frame->ev_process_frame))) {
 		ev_timer_stop(FW_PTR->ev_base, &(frame->ev_process_frame));
@@ -94,6 +94,8 @@ static void release_frame(struct spoe_frame *frame)
 	buffer_free(&(frame->frag));
 	(void)memset(frame, 0, sizeof(*frame) + cfg.max_frame_size + SPOA_FRM_LEN);
 	LIST_ADDQ(&(w->frames), &(frame->list));
+
+	DBG_RETURN();
 }
 
 
@@ -118,13 +120,13 @@ static void unuse_spoe_engine(struct client *client)
 	DBG_FUNC(CW_PTR, "%p", client);
 
 	if (_NULL(client) || _NULL(client->engine))
-		return;
+		DBG_RETURN();
 
 	engine = client->engine;
 	client->engine = NULL;
 	LIST_DEL(&(client->by_engine));
 	if (!LIST_ISEMPTY(&(engine->clients)))
-		return;
+		DBG_RETURN();
 
 	C_DBG(SPOA, client, "Remove SPOE engine '%s'", engine->id);
 	LIST_DEL(&(engine->list));
@@ -135,6 +137,8 @@ static void unuse_spoe_engine(struct client *client)
 		release_frame(f);
 	PTR_FREE(engine->id);
 	PTR_FREE(engine);
+
+	DBG_RETURN();
 }
 
 
@@ -159,7 +163,7 @@ void release_client(struct client *client)
 	DBG_FUNC(CW_PTR, "%p", client);
 
 	if (_NULL(client))
-		return;
+		DBG_RETURN();
 
 	C_DBG(SPOA, client, "Release client");
 
@@ -189,6 +193,8 @@ void release_client(struct client *client)
 
 	FD_CLOSE(client->fd);
 	PTR_FREE(client);
+
+	DBG_RETURN();
 }
 
 
@@ -210,7 +216,7 @@ static void reset_frame(struct spoe_frame *frame)
 	DBG_FUNC(FW_PTR, "%p", frame);
 
 	if (_NULL(frame))
-		return;
+		DBG_RETURN();
 
 	buffer_free(&(frame->frag));
 
@@ -221,6 +227,8 @@ static void reset_frame(struct spoe_frame *frame)
 	frame->fragmented = false;
 	SPOE_FRAME_BUFFER_SET(frame, frame->data, 0, 0, 0);
 	LIST_INIT(&(frame->list));
+
+	DBG_RETURN();
 }
 
 
@@ -294,6 +302,8 @@ static void write_frame(struct client *client, struct spoe_frame *frame)
 
 	if (flag_ev_async_send)
 		ev_async_send(FW_PTR->ev_base, &(FW_PTR->ev_async));
+
+	DBG_RETURN();
 }
 
 
@@ -361,6 +371,8 @@ static void process_frame_cb(struct ev_loop *loop __maybe_unused, struct ev_time
 		spoa_msg_iprep_action(frame, &buf, ip_score);
 
 	write_frame(NULL, frame);
+
+	DBG_RETURN();
 }
 
 
@@ -384,13 +396,13 @@ static struct spoe_frame *acquire_incoming_frame(struct client *client)
 	DBG_FUNC(CW_PTR, "%p", client);
 
 	if (_nNULL(client->incoming_frame))
-		return client->incoming_frame;
+		DBG_RETURN_PTR(client->incoming_frame);
 
 	if (LIST_ISEMPTY(&(CW_PTR->frames))) {
 		if (_NULL(frame = calloc(1, sizeof(*frame) + cfg.max_frame_size + SPOA_FRM_LEN))) {
 			c_log(client, _E("Failed to allocate new frame: %m"));
 
-			return NULL;
+			DBG_RETURN_PTR(NULL);
 		}
 	} else {
 		frame = LIST_NEXT(&(CW_PTR->frames), typeof(frame), list);
@@ -406,7 +418,7 @@ static struct spoe_frame *acquire_incoming_frame(struct client *client)
 
 	client->incoming_frame = frame;
 
-	return frame;
+	DBG_RETURN_PTR(frame);
 }
 
 
@@ -443,7 +455,7 @@ static struct spoe_frame *acquire_outgoing_frame(struct client *client)
 		client->outgoing_frame = frame;
 	}
 
-	return frame;
+	DBG_RETURN_PTR(frame);
 }
 
 
@@ -478,6 +490,8 @@ static void process_incoming_frame(struct spoe_frame *frame)
 	}
 
 	ev_async_send(FW_PTR->ev_base, &(FW_PTR->ev_async));
+
+	DBG_RETURN();
 }
 
 
@@ -501,7 +515,7 @@ static ssize_t frame_recv(struct spoe_frame *frame)
 	DBG_FUNC(FW_PTR, "%p", frame);
 
 	if (_NULL(frame))
-		return retval;
+		DBG_RETURN_SSIZE(retval);
 
 	C_DBG(SPOA, FC_PTR, "--> Receiving data");
 
@@ -517,7 +531,7 @@ static ssize_t frame_recv(struct spoe_frame *frame)
 			frame->len  = ntohl(*(uint32_t *)frame->buf);
 			frame->buf += SPOA_FRM_LEN;
 		} else {
-			return (retval > 0) ? 0 : retval;
+			DBG_RETURN_SSIZE((retval > 0) ? 0 : retval);
 		}
 	}
 
@@ -532,7 +546,7 @@ static ssize_t frame_recv(struct spoe_frame *frame)
 	else
 		retval = (retval > 0) ? 0 : retval;
 
-	return retval;
+	DBG_RETURN_SSIZE(retval);
 }
 
 
@@ -565,7 +579,7 @@ void read_frame_cb(struct ev_loop *loop __maybe_unused, ev_io *ev, int revents _
 		if (_ERROR(n))
 			release_client(client);
 
-		return;
+		DBG_RETURN();
 	}
 
 	if (client->state == SPOA_ST_CONNECTING) {
@@ -602,17 +616,17 @@ void read_frame_cb(struct ev_loop *loop __maybe_unused, ev_io *ev, int revents _
 
 			reset_frame(f);
 
-			return;
+			DBG_RETURN();
 		}
 		else if (n == 1) {
-			return;
+			DBG_RETURN();
 		}
 		else {
 			/* Process frame. */
 			process_incoming_frame(f);
 			client->incoming_frame = NULL;
 
-			return;
+			DBG_RETURN();
 		}
 	}
 	else if (client->state == SPOA_ST_DISCONNECTING) {
@@ -632,12 +646,14 @@ void read_frame_cb(struct ev_loop *loop __maybe_unused, ev_io *ev, int revents _
 
 		release_client(client);
 
-		return;
+		DBG_RETURN();
 	}
 
   write_frame:
 	write_frame(client, f);
 	client->incoming_frame = NULL;
+
+	DBG_RETURN();
 }
 
 
@@ -672,7 +688,7 @@ static ssize_t frame_send(const struct client *client, struct spoe_frame *frame)
 		if (retval == SPOA_FRM_LEN)
 			frame->buf += SPOA_FRM_LEN;
 		else
-			return (retval > 0) ? 0 : retval;
+			DBG_RETURN_SSIZE((retval > 0) ? 0 : retval);
 	}
 
 	/*
@@ -686,7 +702,7 @@ static ssize_t frame_send(const struct client *client, struct spoe_frame *frame)
 	else
 		retval = (retval > 0) ? 0 : retval;
 
-	return retval;
+	DBG_RETURN_SSIZE(retval);
 }
 
 
@@ -717,7 +733,7 @@ void write_frame_cb(struct ev_loop *loop __maybe_unused, ev_io *ev, int revents 
 		ev_io_stop(CW_PTR->ev_base, &(client->ev_frame_wr));
 		ev_async_send(CW_PTR->ev_base, &(CW_PTR->ev_async));
 
-		return;
+		DBG_RETURN();
 	}
 
 	n = frame_send(client, f);
@@ -725,7 +741,7 @@ void write_frame_cb(struct ev_loop *loop __maybe_unused, ev_io *ev, int revents 
 		if (_ERROR(n))
 			release_client(client);
 
-		return;
+		DBG_RETURN();
 	}
 
 	if (client->state == SPOA_ST_CONNECTING) {
@@ -734,7 +750,7 @@ void write_frame_cb(struct ev_loop *loop __maybe_unused, ev_io *ev, int revents 
 
 			release_client(client);
 
-			return;
+			DBG_RETURN();
 		}
 
 		client->state = SPOA_ST_PROCESSING;
@@ -745,7 +761,7 @@ void write_frame_cb(struct ev_loop *loop __maybe_unused, ev_io *ev, int revents 
 	else if (client->state == SPOA_ST_DISCONNECTING) {
 		release_client(client);
 
-		return;
+		DBG_RETURN();
 	}
 
 	release_frame(f);
@@ -756,6 +772,8 @@ void write_frame_cb(struct ev_loop *loop __maybe_unused, ev_io *ev, int revents 
 		ev_io_start(CW_PTR->ev_base, &(client->ev_frame_rd));
 		ev_async_send(CW_PTR->ev_base, &(CW_PTR->ev_async));
 	}
+
+	DBG_RETURN();
 }
 
 /*

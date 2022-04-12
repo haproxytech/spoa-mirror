@@ -92,6 +92,11 @@ struct program_data {
 extern struct config_data  cfg;
 extern struct program_data prg;
 
+#ifdef DEBUG
+extern __THR const void *dbg_w_ptr;
+extern __THR int         dbg_indent;
+#endif
+
 #endif /* _TYPES_MAIN_H */
 
 /*

@@ -193,7 +193,7 @@ static int spoe_vencode(struct spoe_frame *frame, char **buf, int type, va_list 
 
 	SPOE_BUFFER_ADVANCE(retval);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -278,7 +278,7 @@ int spoe_encode_frame(const char *msg, struct spoe_frame *frame, uint8_t spoa_ty
 	else
 		f_log(frame, _E("<-- %s Failed to encode frame"), msg);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 /*

@@ -37,6 +37,11 @@ struct config_data cfg = {
 };
 struct program_data prg;
 
+#ifdef DEBUG
+__THR const void *dbg_w_ptr  = NULL;
+__THR int         dbg_indent = 0;
+#endif
+
 
 /***
  * NAME
@@ -136,7 +141,7 @@ static int getopt_set_capability(const char *name)
 		retval = FUNC_RET_ERROR;
 	}
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -177,7 +182,7 @@ static int getopt_set_ev_backend(const char *type)
 		retval = FUNC_RET_ERROR;
 	}
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -207,7 +212,7 @@ static int getopt_set_debug_level(const char *value, uint32_t *debug_level, int 
 	DBG_FUNC(NULL, "\"%s\", %p, %d, %d", value, debug_level, val_min, val_max);
 
 	if (TEST_OR2(NULL, value, debug_level))
-		return retval;
+		DBG_RETURN_INT(retval);
 
 	if (*value == '\0') {
 		(void)fprintf(stderr, "ERROR: debug level not defined\n");
@@ -221,7 +226,7 @@ static int getopt_set_debug_level(const char *value, uint32_t *debug_level, int 
 		(void)fprintf(stderr, "ERROR: invalid debug level (allowed range [%d, %d]): '%s'\n", val_min, val_max, value);
 	}
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 #endif /* DEBUG */
@@ -251,7 +256,7 @@ static int getopt_set_time(const char *delay, uint64_t *time_us, uint64_t val_mi
 	DBG_FUNC(NULL, "\"%s\", %p, %"PRIu64", %"PRIu64, delay, time_us, val_min, val_max);
 
 	if (TEST_OR2(NULL, delay, time_us))
-		return retval;
+		DBG_RETURN_INT(retval);
 
 	if (*delay != '\0') {
 		delay_us = parse_delay_us(delay, val_min, val_max);
@@ -268,7 +273,7 @@ static int getopt_set_time(const char *delay, uint64_t *time_us, uint64_t val_mi
 		(void)fprintf(stderr, "ERROR: time not defined\n");
 	}
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -295,7 +300,7 @@ static int getopt_set_ports(const char *ports, int *range)
 	DBG_FUNC(NULL, "\"%s\", %p", ports, range);
 
 	if (TEST_OR2(NULL, ports, range))
-		return retval;
+		DBG_RETURN_INT(retval);
 
 	if (*ports != '\0') {
 		if (!str_toll(ports, &endptr, 0, 10, value, 0, 65535))
@@ -319,10 +324,10 @@ static int getopt_set_ports(const char *ports, int *range)
 		range[0] = value[0];
 		range[1] = (value[1] > 0) ? (value[1] - value[0] + 1) : 1;
 
-		W_DBG(NOTICE, NULL, "  port range set to { %d, %d }", range[0], range[1]);
+		W_DBG(NOTICE, NULL, "port range set to { %d, %d }", range[0], range[1]);
 	}
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -462,7 +467,7 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 	}
 
 	if (flag_error || (cfg.opt_flags & (FLAG_OPT_HELP | FLAG_OPT_VERSION)))
-		return flag_error ? EX_USAGE : EX_OK;
+		DBG_RETURN_INT(flag_error ? EX_USAGE : EX_OK);
 
 #ifdef HAVE_LIBCURL
 	if (_nNULL(mir_url) && _NULL(cfg.mir_url = parse_url(mir_url))) {
@@ -516,7 +521,7 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 	if (cfg.logfile_in_use)
 		logfile_mark("stop ");
 
-	return flag_error ? EX_USAGE : retval;
+	DBG_RETURN_INT(flag_error ? EX_USAGE : retval);
 }
 
 /*

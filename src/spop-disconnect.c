@@ -47,7 +47,7 @@ static int check_discon_status_code_cb(struct spoe_frame *frame __maybe_unused, 
 	F_DBG(SPOA, frame, "--> HAPROXY-DISCONNECT status code: %d (%s)", (int)status, spoe_frm_err_reasons(status));
 #endif
 
-	return FUNC_RET_OK;
+	DBG_RETURN_INT(FUNC_RET_OK);
 }
 
 
@@ -79,7 +79,7 @@ static int check_discon_message_cb(struct spoe_frame *frame __maybe_unused, void
 	F_DBG(SPOA, frame, "--> HAPROXY-DISCONNECT message: %.*s", (int)len, str);
 #endif
 
-	return FUNC_RET_OK;
+	DBG_RETURN_INT(FUNC_RET_OK);
 }
 
 
@@ -108,7 +108,7 @@ int handle_hadiscon(struct spoe_frame *frame)
 	/* Check frame type: we really want a DISCONNECT frame */
 	retval = spoe_decode_frame("HAPROXY-DISCONNECT", frame, SPOE_FRM_T_HAPROXY_DISCON, FUNC_RET_ERROR, SPOE_DEC_END);
 	if (_ERROR(retval))
-		return retval;
+		DBG_RETURN_INT(retval);
 
 	buf = frame->buf + frame->offset;
 	end = frame->buf + frame->len;
@@ -121,7 +121,7 @@ int handle_hadiscon(struct spoe_frame *frame)
 	if (_nERROR(retval))
 		retval = buf - frame->buf;
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -165,7 +165,7 @@ int prepare_agentdicon(struct spoe_frame *frame)
 	F_DBG(SPOA, frame, "<-- AGENT-DISCONNECT status code: %u", FC_PTR->status_code);
 	F_DBG(SPOA, frame, "<-- AGENT-DISCONNECT message: %s", reason);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 /*

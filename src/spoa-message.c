@@ -51,7 +51,7 @@ static void *spoa_msg_arg_dup(const struct spoe_frame *frame, int i, const char 
 	else if (_nNULL(len))
 		*len = data->chk.len;
 
-	return *ptr;
+	DBG_RETURN_PTR(*ptr);
 }
 
 
@@ -91,7 +91,7 @@ int spoa_msg_iprep(struct spoe_frame *frame, const char **buf, const char *end, 
 		retval = FUNC_RET_ERROR;
 	}
 	else if (nbargs != 1) {
-		return 0;
+		DBG_RETURN_INT(0);
 	}
 	else if (type == SPOE_DATA_T_IPV4) {
 		if (_nNULL(inet_ntop(AF_INET, &(data.ipv4), addr, INET_ADDRSTRLEN)))
@@ -106,14 +106,14 @@ int spoa_msg_iprep(struct spoe_frame *frame, const char **buf, const char *end, 
 		F_DBG(SPOA, frame, "IPv6 score for %.*s is %d", INET6_ADDRSTRLEN, addr, retval);
 	}
 	else {
-		return 0;
+		DBG_RETURN_INT(0);
 	}
 
 	*ip_score = retval;
 
 	SPOE_BUFFER_ADVANCE(retval);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -146,6 +146,8 @@ void spoa_msg_iprep_action(struct spoe_frame *frame, char **buf, int ip_score)
 	                  SPOE_ENC_UINT8, SPOE_DATA_T_UINT32, /* Arg 3: variable type */
 	                  SPOE_ENC_VARINT, ip_score,          /*        variable value */
 	                  SPOE_ENC_END);
+
+	DBG_RETURN();
 }
 
 
@@ -233,7 +235,7 @@ int spoa_msg_test(struct spoe_frame *frame, const char **buf, const char *end)
 
 	SPOE_BUFFER_ADVANCE(retval);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -310,7 +312,7 @@ static int spoa_msg_arg_hdrs(struct spoe_frame *frame, const char *buf, const ch
 		retval = FUNC_RET_ERROR;
 	}
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -344,7 +346,7 @@ int spoa_msg_mirror(struct spoe_frame *frame, const char **buf, const char *end)
 	if (_NULL(mir = calloc(1, sizeof(*mir)))) {
 		f_log(frame, _E("Failed to allocate memory"));
 
-		return retval;
+		DBG_RETURN_INT(retval);
 	}
 	LIST_INIT(&(mir->hdrs));
 
@@ -460,7 +462,7 @@ int spoa_msg_mirror(struct spoe_frame *frame, const char **buf, const char *end)
 
 	SPOE_BUFFER_ADVANCE(retval);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -484,9 +486,9 @@ void mir_ptr_free(struct mirror **data)
 	DBG_FUNC(NULL, "%p:%p", DPTR_ARGS(data));
 
 	if (_NULL(data) || _NULL(*data))
-		return;
+		DBG_RETURN();
 
-	W_DBG(NOTICE, NULL, "  freeing mirror { \"%s\" \"%s\" \"%s\" %d \"%s\" { %p %p } %p %zu/%zu }", (*data)->url, (*data)->path, (*data)->method, (*data)->request_method, (*data)->version, (*data)->hdrs.p, (*data)->hdrs.n, (*data)->body, (*data)->body_head, (*data)->body_size);
+	W_DBG(NOTICE, NULL, "freeing mirror { \"%s\" \"%s\" \"%s\" %d \"%s\" { %p %p } %p %zu/%zu }", (*data)->url, (*data)->path, (*data)->method, (*data)->request_method, (*data)->version, (*data)->hdrs.p, (*data)->hdrs.n, (*data)->body, (*data)->body_head, (*data)->body_size);
 
 	PTR_FREE((*data)->out_address);
 	PTR_FREE((*data)->url);
@@ -501,6 +503,8 @@ void mir_ptr_free(struct mirror **data)
 
 	PTR_FREE((*data)->body);
 	PTR_FREE(*data);
+
+	DBG_RETURN();
 }
 
 /*

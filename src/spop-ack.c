@@ -49,7 +49,7 @@ int prepare_agentack(struct spoe_frame *frame)
 	                           SPOE_ENC_VARINT, frame->frame_id,
 	                           SPOE_ENC_END);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 /*

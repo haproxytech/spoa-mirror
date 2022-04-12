@@ -31,6 +31,14 @@
 #  define LOG_RUNTIME(a,b)   ((b) / 1000000.0)
 #endif
 
+#ifdef DEBUG
+#  define LOG_FMT_INDENT     "%.*s"
+#  define LOG_INDENT         dbg_indent, "                                                            >>>",
+#else
+#  define LOG_FMT_INDENT
+#  define LOG_INDENT
+#endif
+
 #define _F(s)                "(F) " s
 #define _E(s)                "(E) " s
 #define _W(s)                "(W) " s

@@ -43,13 +43,13 @@ int handle_hanotify(struct spoe_frame *frame)
 	/* Check frame type.  Retrieve flags, stream-id and frame-id. */
 	rc = spoe_decode_frame("HAPROXY-NOTIFY", frame, SPOE_FRM_T_HAPROXY_NOTIFY, 0, SPOE_DEC_END);
 	if (_ERROR(rc) || (rc == 0))
-		return rc;
+		DBG_RETURN_INT(rc);
 
 	/* Check if fragmentation is supported. */
 	if (!(frame->flags & SPOE_FRM_FL_FIN) && !(cfg.cap_flags & FLAG_CAP_FRAGMENTATION)) {
 		FC_PTR->status_code = SPOE_FRM_ERR_FRAG_NOT_SUPPORTED;
 
-		return FUNC_RET_ERROR;
+		DBG_RETURN_INT(FUNC_RET_ERROR);
 	}
 
 	F_DBG(SPOA, frame, "--> HAPROXY-NOTIFY - %sfragmented frame received"
@@ -57,7 +57,7 @@ int handle_hanotify(struct spoe_frame *frame)
 	      (frame->flags & SPOE_FRM_FL_FIN) ? "un" : "",
 	      frame->frag.len, frame->len, frame->offset);
 
-	return acc_payload(frame);
+	DBG_RETURN_INT(acc_payload(frame));
 }
 
 /*

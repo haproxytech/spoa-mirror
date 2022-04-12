@@ -72,7 +72,7 @@ ssize_t tcp_recv(struct spoe_frame *frame, size_t len, const char *msg)
 	if (_ERROR(retval))
 		c_log(FC_PTR, _E("Failed to receive frame%s: %m"), msg);
 
-	return retval;
+	DBG_RETURN_SSIZE(retval);
 }
 
 
@@ -129,7 +129,7 @@ ssize_t tcp_send(const struct client *client, struct spoe_frame *frame, size_t l
 	if (_ERROR(retval))
 		c_log(client, _E("Failed to send frame%s: %m"), msg);
 
-	return retval;
+	DBG_RETURN_SSIZE(retval);
 }
 
 /*

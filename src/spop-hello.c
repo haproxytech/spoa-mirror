@@ -49,7 +49,7 @@ static int check_proto_version_cb(struct spoe_frame *frame __maybe_unused, void 
 	if (_nNULL(str))
 		F_DBG(SPOA, frame, "--> HAPROXY-HELLO supported versions: %.*s", len, str);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -81,7 +81,7 @@ static int check_max_frame_size_cb(struct spoe_frame *frame, void *arg1, void *a
 
 	F_DBG(SPOA, frame, "--> HAPROXY-HELLO maximum frame size: %"PRIu64, size);
 
-	return FUNC_RET_OK;
+	DBG_RETURN_INT(FUNC_RET_OK);
 }
 
 
@@ -112,7 +112,7 @@ static int check_healthcheck_cb(struct spoe_frame *frame, void *arg1, void *arg2
 
 	F_DBG(SPOA, frame, "--> HAPROXY-HELLO healthcheck: %s", STR_BOOL(frame->hcheck));
 
-	return FUNC_RET_OK;
+	DBG_RETURN_INT(FUNC_RET_OK);
 }
 
 
@@ -149,7 +149,7 @@ static int check_capabilities_cb(struct spoe_frame *frame, void *arg1, void *arg
 	 * argument arg1 which is a NULL pointer.
 	 */
 	if (_NULL(str))
-		return retval;
+		DBG_RETURN_INT(retval);
 
 	while (len > 0) {
 		/* Skip leading spaces. */
@@ -196,7 +196,7 @@ static int check_capabilities_cb(struct spoe_frame *frame, void *arg1, void *arg
 		      FC_PTR->async ? STR_CAP_ASYNC : "",
 		      FC_PTR->fragmentation ? STR_CAP_FRAGMENTATION : "");
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -232,7 +232,7 @@ static int check_engine_id_cb(struct spoe_frame *frame, void *arg1, void *arg2)
 
 	F_DBG(SPOA, frame, "--> HAPROXY-HELLO engine id: %.*s", len, str);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -256,7 +256,7 @@ static void use_spoe_engine(struct client *client)
 	DBG_FUNC(CW_PTR, "%p", client);
 
 	if (_NULL(client->engine_id))
-		return;
+		DBG_RETURN();
 
 	list_for_each_entry(e, &(CW_PTR->engines), list)
 		if (strcmp(e->id, client->engine_id) == 0)
@@ -267,7 +267,7 @@ static void use_spoe_engine(struct client *client)
 
 		c_log(client, _E("--> HAPROXY-HELLO Failed to allocate memory: %m"));
 
-		return;
+		DBG_RETURN();
 	}
 
 	e->id = strdup(client->engine_id);
@@ -281,6 +281,8 @@ static void use_spoe_engine(struct client *client)
 end:
 	client->engine = e;
 	LIST_ADDQ(&(e->clients), &(client->by_engine));
+
+	DBG_RETURN();
 }
 
 
@@ -309,7 +311,7 @@ int handle_hahello(struct spoe_frame *frame)
 	/* Check frame type: we really want a HELLO frame. */
 	retval = spoe_decode_frame("HAPROXY-HELLO", frame, SPOE_FRM_T_HAPROXY_HELLO, FUNC_RET_ERROR, SPOE_DEC_END);
 	if (_ERROR(retval))
-		return retval;
+		DBG_RETURN_INT(retval);
 
 	buf = frame->buf + retval;
 	end = frame->buf + frame->len;
@@ -323,7 +325,7 @@ int handle_hahello(struct spoe_frame *frame)
 	                     SPOE_DEC_STR, "engine-id", 9, check_engine_id_cb,
 	                     SPOE_DEC_END);
 	if (_ERROR(retval))
-		return retval;
+		DBG_RETURN_INT(retval);
 
 	retval = buf - frame->buf;
 
@@ -334,7 +336,7 @@ int handle_hahello(struct spoe_frame *frame)
 	if (FC_PTR->async)
 		use_spoe_engine(FC_PTR);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -394,7 +396,7 @@ int prepare_agenthello(struct spoe_frame *frame)
 	F_DBG(SPOA, frame, "<-- AGENT-HELLO maximum frame size: %u", FC_PTR->max_frame_size);
 	F_DBG(SPOA, frame, "<-- AGENT-HELLO capabilities: %.*s", (int)(ptr - cap), cap);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 /*

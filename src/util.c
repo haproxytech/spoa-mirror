@@ -41,12 +41,12 @@ void *mem_dup(const void *s, size_t size)
 	DBG_FUNC(NULL, "%p, %zu", s, size);
 
 	if (_NULL(retptr = malloc(size + 1)))
-		return retptr;
+		DBG_RETURN_PTR(retptr);
 
 	(void)memcpy(retptr, s, size);
 	((uint8_t *)retptr)[size] = '\0';
 
-	return retptr;
+	DBG_RETURN_PTR(retptr);
 }
 
 
@@ -68,12 +68,14 @@ void buffer_init(struct buffer *data)
 	DBG_FUNC(NULL, "%p", data);
 
 	if (_NULL(data))
-		return;
+		DBG_RETURN();
 
-	W_DBG(NOTICE, NULL, "  initializing buffer { { %p %p } %p %zu/%zu }", data->list.p, data->list.n, data->ptr, data->len, data->size);
+	W_DBG(NOTICE, NULL, "initializing buffer { { %p %p } %p %zu/%zu }", data->list.p, data->list.n, data->ptr, data->len, data->size);
 
 	(void)memset(data, 0, sizeof(*data));
 	LIST_INIT(&(data->list));
+
+	DBG_RETURN();
 }
 
 
@@ -95,9 +97,9 @@ void buffer_free(struct buffer *data)
 	DBG_FUNC(NULL, "%p", data);
 
 	if (_NULL(data))
-		return;
+		DBG_RETURN();
 
-	W_DBG(NOTICE, NULL, "  freeing buffer { { %p %p } %p %zu/%zu }", data->list.p, data->list.n, data->ptr, data->len, data->size);
+	W_DBG(NOTICE, NULL, "freeing buffer { { %p %p } %p %zu/%zu }", data->list.p, data->list.n, data->ptr, data->len, data->size);
 
 	if (_nNULL(data->list.p) && _nNULL(data->list.n))
 		LIST_DEL(&(data->list));
@@ -105,6 +107,8 @@ void buffer_free(struct buffer *data)
 		PTR_FREE(data->ptr);
 	(void)memset(data, 0, sizeof(*data));
 	LIST_INIT(&(data->list));
+
+	DBG_RETURN();
 }
 
 
@@ -152,7 +156,7 @@ struct buffer *buffer_alloc(size_t size, const void *src, ...)
 		va_end(ap);
 	}
 
-	return retptr;
+	DBG_RETURN_PTR(retptr);
 }
 
 
@@ -174,10 +178,12 @@ void buffer_ptr_free(struct buffer **data)
 	DBG_FUNC(NULL, "%p:%p", DPTR_ARGS(data));
 
 	if (_NULL(data) || _NULL(*data))
-		return;
+		DBG_RETURN();
 
 	buffer_free(*data);
 	PTR_FREE(*data);
+
+	DBG_RETURN();
 }
 
 
@@ -205,7 +211,7 @@ ssize_t buffer_grow(struct buffer *data, const void *src, size_t n)
 	DBG_FUNC(NULL, "%p, %p, %zu", data, src, n);
 
 	if (_NULL(data))
-		return retval;
+		DBG_RETURN_SSIZE(retval);
 
 	if (_NULL(data->ptr))
 		buffer_init(data);
@@ -227,7 +233,7 @@ ssize_t buffer_grow(struct buffer *data, const void *src, size_t n)
 		w_log(NULL, _E("Failed to allocate data: %m"));
 	}
 	else {
-		W_DBG(NOTICE, NULL, "  reallocating buffer { %p %zu/%zu } -> { %p %zu/%zu }",
+		W_DBG(NOTICE, NULL, "reallocating buffer { %p %zu/%zu } -> { %p %zu/%zu }",
 		      data->ptr, data->len, data->size, ptr, data->len + (_NULL(src) ? 0 : n), data->size + size);
 
 		if (_NULL(src)) {
@@ -247,7 +253,7 @@ ssize_t buffer_grow(struct buffer *data, const void *src, size_t n)
 		retval = data->len;
 	}
 
-	return retval;
+	DBG_RETURN_SSIZE(retval);
 }
 
 
@@ -274,7 +280,7 @@ ssize_t buffer_grow_va(struct buffer *data, const void *src, size_t n, ...)
 	DBG_FUNC(NULL, "%p, %p, %zu, ...", data, src, n);
 
 	if (_NULL(data))
-		return retval;
+		DBG_RETURN_SSIZE(retval);
 
 	va_start(ap, n);
 	while (_nNULL(src) && (n > 0)) {
@@ -286,7 +292,7 @@ ssize_t buffer_grow_va(struct buffer *data, const void *src, size_t n, ...)
 	}
 	va_end(ap);
 
-	return retval;
+	DBG_RETURN_SSIZE(retval);
 }
 
 
@@ -476,9 +482,9 @@ const char *str_delay(uint64_t delay_us)
 	else if (delay_us > 0)
 		(void)snprintf(BUFFER_ADDRSIZE(retbuf), "%"PRIu64"us", delay_us);
 	else
-		return "0";
+		DBG_RETURN_CPTR("0");
 
-	return BUFFER(retbuf);
+	DBG_RETURN_CPTR(BUFFER(retbuf));
 }
 
 
@@ -536,7 +542,7 @@ int getopt_shortopts(const struct option *longopts, char *shortopts, size_t size
 		errno = EINVAL;
 	}
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -587,7 +593,7 @@ uint64_t parse_delay_us(const char *delay, uint64_t val_min, uint64_t val_max)
 		retval = ULLONG_MAX;
 	}
 
-	return retval;
+	DBG_RETURN_U64(retval);
 }
 
 
@@ -626,7 +632,7 @@ int parse_hostname(const char *hostname)
 
 	freeaddrinfo(res);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -653,7 +659,7 @@ char *parse_url(const char *url)
 	DBG_FUNC(NULL, "\"%s\"", url);
 
 	if (_NULL(url))
-		return retptr;
+		DBG_RETURN_PTR(retptr);
 
 	len = strlen(url);
 
@@ -666,13 +672,13 @@ char *parse_url(const char *url)
 	else {
 		w_log(NULL, _E("Invalid URL scheme '%s'"), url);
 
-		return retptr;
+		DBG_RETURN_PTR(retptr);
 	}
 
 	if (_NULL(retptr = mem_dup(url, len))) {
 		w_log(NULL, _E("Failed to allocate data: %m"));
 
-		return retptr;
+		DBG_RETURN_PTR(retptr);
 	}
 
 	/*
@@ -711,7 +717,7 @@ char *parse_url(const char *url)
 	path = *ptr;
 	*ptr = '\0';
 
-	W_DBG(UTIL, NULL, "  host: \"%s\", port: \"%s\", path: '%c'", host, port, path);
+	W_DBG(UTIL, NULL, "host: \"%s\", port: \"%s\", path: '%c'", host, port, path);
 
 	if (_ERROR(parse_hostname(host))) {
 		w_log(NULL, _E("Invalid hostname '%s'"), host);
@@ -733,10 +739,10 @@ char *parse_url(const char *url)
 		/* Return the first character of the <path>. */
 		*ptr = path;
 
-		W_DBG(UTIL, NULL, "  URL: \"%s\"", retptr);
+		W_DBG(UTIL, NULL, "URL: \"%s\"", retptr);
 	}
 
-	return retptr;
+	DBG_RETURN_PTR(retptr);
 }
 
 
@@ -817,10 +823,11 @@ void c_log(const struct client *client, const char *format, ...)
 	runtime = LOG_RUNTIME(time_elapsed(&(prg.start_time)), time_elapsed(NULL));
 
 	if (_NULL(client) || _NULL(CW_PTR))
-		(void)snprintf(fmt, sizeof(fmt), LOG_FMT "%s\n", thread_id(), runtime, format);
+		(void)snprintf(fmt, sizeof(fmt), LOG_FMT LOG_FMT_INDENT "%s\n",
+		               thread_id(), runtime, LOG_INDENT format);
 	else
-		(void)snprintf(fmt, sizeof(fmt), LOG_FMT "  <%lu:%d> %s\n", CW_PTR->id,
-		               runtime, client->id, client->fd, format);
+		(void)snprintf(fmt, sizeof(fmt), LOG_FMT LOG_FMT_INDENT "<%lu:%d> %s\n",
+		               CW_PTR->id, runtime, LOG_INDENT client->id, client->fd, format);
 
 	va_start(ap, format);
 	(void)vfprintf(stdout, fmt, ap);
@@ -851,11 +858,12 @@ void f_log(const struct spoe_frame *frame, const char *format, ...)
 	runtime = LOG_RUNTIME(time_elapsed(&(prg.start_time)), time_elapsed(NULL));
 
 	if (_NULL(frame) || _NULL(FC_PTR))
-		(void)snprintf(fmt, sizeof(fmt), LOG_FMT "%s\n", thread_id(), runtime, format);
+		(void)snprintf(fmt, sizeof(fmt), LOG_FMT LOG_FMT_INDENT "%s\n",
+		               thread_id(), runtime, LOG_INDENT format);
 	else
-		(void)snprintf(fmt, sizeof(fmt), LOG_FMT "  <%lu> %s\n",
+		(void)snprintf(fmt, sizeof(fmt), LOG_FMT LOG_FMT_INDENT "<%lu> %s\n",
 		               STRUCT_ELEM(FW_PTR, id, thread_id()),
-		               runtime, FC_PTR->id, format);
+		               runtime, LOG_INDENT FC_PTR->id, format);
 
 	va_start(ap, format);
 	(void)vfprintf(stdout, fmt, ap);
@@ -882,10 +890,10 @@ void w_log(const struct worker *worker, const char *format, ...)
 	va_list ap;
 	char    fmt[BUFSIZ];
 
-	(void)snprintf(fmt, sizeof(fmt), LOG_FMT "%s\n",
+	(void)snprintf(fmt, sizeof(fmt), LOG_FMT LOG_FMT_INDENT "%s\n",
 	               STRUCT_ELEM(worker, id, thread_id()),
 		       LOG_RUNTIME(time_elapsed(&(prg.start_time)), time_elapsed(NULL)),
-	               format);
+	               LOG_INDENT format);
 
 	va_start(ap, format);
 	(void)vfprintf(stdout, fmt, ap);
@@ -920,7 +928,7 @@ int socket_set_nonblocking(int fd)
 	else
 		retval = FUNC_RET_OK;
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -983,7 +991,7 @@ int socket_set_keepalive(int socket_fd, int alive, int idle, int intvl, int cnt)
 	if (_nERROR(retval) && IN_RANGE(alive, 0, 1))
 		retval = setsockopt(socket_fd, SOL_SOCKET, SO_KEEPALIVE, &alive, sizeof(alive));
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -1008,15 +1016,15 @@ int rlimit_setnofile(void)
 	DBG_FUNC(NULL, "");
 
 	if (_ERROR(retval = getrlimit(RLIMIT_NOFILE, &nofile)))
-		return retval;
+		DBG_RETURN_INT(retval);
 
 	nofile.rlim_cur = nofile.rlim_max;
 
-	W_DBG(UTIL, NULL, "  setting RLIMIT_NOFILE to %lu", nofile.rlim_cur);
+	W_DBG(UTIL, NULL, "setting RLIMIT_NOFILE to %lu", nofile.rlim_cur);
 
 	retval = setrlimit(RLIMIT_NOFILE, &nofile);
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -1077,7 +1085,7 @@ int logfile(const char *filename)
 		else {
 			(void)fprintf(stderr, "ERROR: invalid logfile mode '%c'\n", filename[0]);
 
-			return retval;
+			DBG_RETURN_INT(retval);
 		}
 
 		filename += 2;
@@ -1108,7 +1116,7 @@ int logfile(const char *filename)
 		logfile_mark("start");
 	}
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -1135,7 +1143,7 @@ int pidfile(const char *filename, int *fd)
 
 	if (_NULL(filename)) {
 		if (*fd < 0)
-			return retval;
+			DBG_RETURN_INT(retval);
 
 		n = snprintf(buffer, sizeof(buffer), "%"PRI_PIDT"\n", getpid());
 		if (IN_RANGE(n, 0, (int)SIZEOF_N(buffer, 1))) {
@@ -1163,7 +1171,7 @@ int pidfile(const char *filename, int *fd)
 		}
 	}
 
-	return retval;
+	DBG_RETURN_INT(retval);
 }
 
 
@@ -1200,13 +1208,13 @@ int daemonize(bool_t flag_chdir, bool_t flag_fdclose, int *fd, size_t n)
 
 	/* Fork, parent terminates, child-1 continues. */
 	if (_ERROR(pidf = fork()))
-		return FUNC_RET_ERROR;
+		DBG_RETURN_INT(FUNC_RET_ERROR);
 	else if (pidf > 0)
 		_exit(0);
 
 	/* Become session leader. */
 	if (_ERROR(setsid()))
-		return FUNC_RET_ERROR;
+		DBG_RETURN_INT(FUNC_RET_ERROR);
 
 #ifdef DEBUG
 	pid[1] = getpid();
@@ -1216,7 +1224,7 @@ int daemonize(bool_t flag_chdir, bool_t flag_fdclose, int *fd, size_t n)
 	(void)signal(SIGCHLD, SIG_IGN);
 	(void)signal(SIGHUP, SIG_IGN);
 	if (_ERROR(pidf = fork()))
-		return FUNC_RET_ERROR;
+		DBG_RETURN_INT(FUNC_RET_ERROR);
 	else if (pidf > 0)
 		_exit(0);
 
@@ -1240,34 +1248,34 @@ int daemonize(bool_t flag_chdir, bool_t flag_fdclose, int *fd, size_t n)
 		else if (_nNULL(fd) && (n > 0)) {
 			for (j = 0; (j < n) && (fd[j] != i); j++);
 			if (j < n) {
-				W_DBG(UTIL, NULL, "  fd %d skipped", i);
+				W_DBG(UTIL, NULL, "fd %d skipped", i);
 
 				continue;
 			}
 		}
 
 		if (_OK(close(i)))
-			W_DBG(UTIL, NULL, "  fd %d closed", i);
+			W_DBG(UTIL, NULL, "fd %d closed", i);
 	}
 
 	if (flag_fdclose) {
 		/* Close off stdin, stdout and stderr. */
 		if (_ERROR(close(STDIN_FILENO)))
-			W_DBG(UTIL, NULL, "  cannot close fd %d: %m", STDIN_FILENO);
+			W_DBG(UTIL, NULL, "cannot close fd %d: %m", STDIN_FILENO);
 		if (_ERROR(close(STDERR_FILENO)))
-			W_DBG(UTIL, NULL, "  cannot close fd %d: %m", STDERR_FILENO);
+			W_DBG(UTIL, NULL, "cannot close fd %d: %m", STDERR_FILENO);
 		if (_ERROR(close(STDOUT_FILENO)))
-			W_DBG(UTIL, NULL, "  cannot close fd %d: %m", STDOUT_FILENO);
+			W_DBG(UTIL, NULL, "cannot close fd %d: %m", STDOUT_FILENO);
 
 		/* Redirect stdin, stdout and stderr to /dev/null. */
 		(void)open("/dev/null", O_RDONLY);
 		(void)open("/dev/null", O_RDWR);
 		(void)open("/dev/null", O_RDWR);
 	} else {
-		W_DBG(UTIL, NULL, "  pids: %"PRI_PIDT" -> %"PRI_PIDT" -> %"PRI_PIDT, VAL_ARRAY3(pid));
+		W_DBG(UTIL, NULL, "pids: %"PRI_PIDT" -> %"PRI_PIDT" -> %"PRI_PIDT, VAL_ARRAY3(pid));
 	}
 
-	return FUNC_RET_OK;
+	DBG_RETURN_INT(FUNC_RET_OK);
 }
 
 /*
