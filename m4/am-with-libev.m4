@@ -26,6 +26,16 @@ AC_DEFUN([AM_WITH_LIBEV], [
 			fi
 		fi
 
+		EV_CPPFLAGS="`PKG_CONFIG_PATH=${PKG_CONFIG_PATH} pkg-config --cflags libev`"
+		EV_LDFLAGS="`PKG_CONFIG_PATH=${PKG_CONFIG_PATH} pkg-config --libs-only-L libev`"
+		EV_LDFLAGS="${EV_LDFLAGS} `PKG_CONFIG_PATH=${PKG_CONFIG_PATH} pkg-config --libs-only-other libev`"
+		EV_LIBS="`PKG_CONFIG_PATH=${PKG_CONFIG_PATH} pkg-config --libs-only-l libev`"
+
+		AM_VARIABLES_STORE
+
+		LDFLAGS="${LDFLAGS} ${EV_LDFLAGS}"
+		CPPFLAGS="${CPPFLAGS} ${EV_CPPFLAGS}"
+
 		AM_VARIABLES_STORE
 
 		LDFLAGS="${LDFLAGS} ${LIBEV_LDFLAGS}"
