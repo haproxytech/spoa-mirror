@@ -161,6 +161,7 @@ AC_DEFUN([AM_PATH_PKGCONFIG], [
 		${_pc_prefix}/lib \
 		${_pc_prefix}/lib/i386-linux-gnu \
 		${_pc_prefix}/lib/x86_64-linux-gnu \
+		${_pc_prefix}/libdata \
 		${_pc_prefix}/amd64 \
 		${_pc_prefix}/lib32 \
 		${_pc_prefix}/lib64 \
