@@ -4,7 +4,7 @@ dnl configure.ac - Miroslav Zagorac <mzagorac@haproxy.com>
 
 AC_PREREQ([2.69])
 AC_COPYRIGHT([Copyright (C) 2018-2020 HAProxy Technologies])
-AC_INIT(m4_esyscmd_s([basename ${PWD}]), m4_esyscmd_s([cat VERSION]), [mzagorac@haproxy.com])
+AC_INIT([m4_esyscmd_s(basename ${PWD})], [m4_esyscmd_s(cat VERSION)], [mzagorac@haproxy.com])
 
 echo "*** configuring for ${PACKAGE_NAME} v${PACKAGE_VERSION} ***"
 

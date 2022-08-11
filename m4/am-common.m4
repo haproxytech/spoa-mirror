@@ -153,9 +153,9 @@ dnl
 dnl
 AC_DEFUN([AM_PATH_PKGCONFIG], [
 	PKG_CONFIG_PATH=
-        _pc_prefix="${ac_default_prefix}"
+	_pc_prefix="${ac_default_prefix}"
 	# ovdje se ne smije zamijeniti $n sa ${n} jer su to argumenti m4 funkcije AM_PATH_PKGCONFIG
-        test "$1" = "yes" -o "$1" = "check" || _pc_prefix="$1"
+	test "$1" = "yes" -o "$1" = "check" || _pc_prefix="$1"
 
 	for _loop_path in \
 		${_pc_prefix}/lib \
