@@ -14,16 +14,26 @@ AC_DEFUN([AM_WITH_LIBEV], [
 		LIBEV_LDFLAGS=
 		LIBEV_LIBS=
 
-		if test -n "${with_libev}" -a "${with_libev}" != "yes" -a "${with_libev}" != "check"; then
-			LIBEV_CPPFLAGS="-I${with_libev}/include"
+		AM_PATH_PKGCONFIG([${with_libev}])
+		if pkg-config --exists libev; then
+			LIBEV_CPPFLAGS="`PKG_CONFIG_PATH=${PKG_CONFIG_PATH} pkg-config --cflags libev`"
+			LIBEV_LDFLAGS="`PKG_CONFIG_PATH=${PKG_CONFIG_PATH} pkg-config --libs-only-L libev`"
+			LIBEV_LDFLAGS="${LIBEV_LDFLAGS} `PKG_CONFIG_PATH=${PKG_CONFIG_PATH} pkg-config --libs-only-other libev`"
+			LIBEV_LIBS="`PKG_CONFIG_PATH=${PKG_CONFIG_PATH} pkg-config --libs-only-l libev`"
+		else
+			if test -d "${with_libev}"; then
+				LIBEV_CPPFLAGS="-I${with_libev}/include"
 
-			if test "${with_libev}" != "/usr"; then
-				if test "`uname`" = "Linux"; then
-					LIBEV_LDFLAGS="-L${with_libev}/lib -Wl,--rpath,${with_libev}/lib"
-				else
-					LIBEV_LDFLAGS="-L${with_libev}/lib -R${with_libev}/lib"
+				if test "${with_libev}" != "/usr"; then
+					if test "`uname`" = "Linux"; then
+						LIBEV_LDFLAGS="-L${with_libev}/lib -Wl,--rpath,${with_libev}/lib"
+					else
+						LIBEV_LDFLAGS="-L${with_libev}/lib -R${with_libev}/lib"
+					fi
 				fi
 			fi
+
+			LIBEV_LIBS="-lev"
 		fi
 
 		AM_VARIABLES_STORE
@@ -35,7 +45,6 @@ AC_DEFUN([AM_WITH_LIBEV], [
 		AC_CHECK_HEADER([ev.h], [], [AC_MSG_ERROR([LIBEV library headers not found])])
 
 		HAVE_LIBEV=yes
-		LIBEV_LIBS="-lev"
 
 		AM_VARIABLES_RESTORE
 
