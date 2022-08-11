@@ -92,7 +92,7 @@ AC_DEFUN([AM_PROG_CC_SET], [
 	for _loop_cflags in ${_var_cflags} $1; do
 		AC_MSG_CHECKING([whether ${CC} accepts ${_loop_cflags}])
 		CFLAGS="${TMP_CFLAGS} ${_loop_cflags}"
-		AC_TRY_COMPILE([], [],
+		AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])],
 			[AC_MSG_RESULT([ yes])
 			SET_CFLAGS="${SET_CFLAGS} ${_loop_cflags}"],
 			[AC_MSG_RESULT([ no])]
@@ -107,8 +107,8 @@ dnl Check whether the C compiler has __DATE__ macro.
 dnl
 AC_DEFUN([AM_CHECK___DATE__], [
 	AC_MSG_CHECKING([whether the C compiler (${CC}) has __DATE__ macro])
-	AC_TRY_COMPILE([],
-		[char *test=__DATE__;],
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([],
+			[char *test=__DATE__;])],
 		[AC_MSG_RESULT([ yes])],
 		[AC_DEFINE_UNQUOTED([__DATE__], ["`date`"], [Define if your C compiled doesn't have __DATE__ macro.])
 		 AC_MSG_RESULT([ no])]
@@ -119,8 +119,8 @@ dnl Check whether the C compiler has __func__ variable.
 dnl
 AC_DEFUN([AM_CHECK___FUNC__], [
 	AC_MSG_CHECKING([whether the C compiler (${CC}) has __func__ variable])
-	AC_TRY_COMPILE([#include <stdio.h>],
-		[printf ("%s", __func__);],
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <stdio.h>],
+			[printf ("%s", __func__);])],
 		[AC_MSG_RESULT([ yes])],
 		[AC_DEFINE_UNQUOTED([__func__], ["__unknown__"], [Define if your C compiler doesn't have __func__ variable.])
 		 AC_MSG_RESULT([ no])]
@@ -131,10 +131,10 @@ dnl Check whether the C compiler defines __STDC__.
 dnl
 AC_DEFUN([AM_CHECK___STDC__], [
 	AC_MSG_CHECKING([whether the C compiler (${CC}) defines __STDC__])
-	AC_TRY_COMPILE([],
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([],
 			[#ifndef __STDC__
 			    test_stdc ();
-			 #endif],
+			 #endif])],
 		[AC_MSG_RESULT([ yes])
 		 AC_DEFINE_UNQUOTED([ANSI_FUNC], [1], [Define if you use an ANSI C compiler.])
 		 stdc_defined="yes"],
@@ -176,8 +176,8 @@ dnl Check whether the C compiler has __attribute__ keyword.
 dnl
 AC_DEFUN([AM_CHECK___ATTRIBUTE__], [
 	AC_MSG_CHECKING([whether the C compiler (${CC}) has __attribute__ keyword])
-	AC_TRY_COMPILE([void t1 () __attribute__ ((noreturn)); void t1 () { return; };],
-		[t1 ();],
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([void t1 () __attribute__ ((noreturn)); void t1 () { return; };],
+			[t1 ();])],
 		[AC_MSG_RESULT([ yes])
 		 AC_DEFINE_UNQUOTED([__ATTRIBUTE__], [1], [Define if your C compiler has __attribute__ keyword.])],
 		[AC_MSG_RESULT([ no])]
