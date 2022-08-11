@@ -37,8 +37,8 @@ AC_DEFUN([AM_VARIABLES_SET], [
 dnl
 dnl
 AC_DEFUN([AM_PROG_CC_SET], [
-	typeset _var_cflags=
-	typeset _loop_cflags=
+	_var_cflags=
+	_loop_cflags=
 
 	AM_VARIABLES_STORE
 
@@ -208,9 +208,9 @@ AC_DEFUN([AM_ENABLE_GPROF], [
 AC_DEFUN([AM_VARIABLE_SET], [
 _am_cache_test ()
 {
-	typeset _c=
+	_am_var_set=
 
-	for _c in ${2}; do test "${_c}" = "${3}" && return 1; done
+	for _am_var_set in ${2}; do test "${_am_var_set}" = "${3}" && return 1; done
 	eval "${1}=\"${2} ${3}\""
 }
 
