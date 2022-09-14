@@ -444,12 +444,20 @@ static int mir_curl_timer_cb(CURLM *multi __maybe_unused, long timeout_ms, void 
 
 	ev_timer_stop(curl->ev_base, &(curl->ev_timer));
 
-	if (timeout_ms > 0) {
+	/***
+	 * If the value of argument timeout_ms is less than 0, then the timer
+	 * should only be stopped; otherwise a timeout is set.
+	 */
+	if (timeout_ms >= 0) {
+		/***
+		 * If timeout is set to 0, we will delay calling the callback
+		 * function mir_curl_ev_timer_cb() by 1 millisecond.
+		 */
+		if (timeout_ms == 0)
+			timeout_ms = 1;
+
 		ev_timer_init(&(curl->ev_timer), mir_curl_ev_timer_cb, timeout_ms / 1000.0, 0.0);
 		ev_timer_start(curl->ev_base, &(curl->ev_timer));
-	}
-	else if (timeout_ms == 0) {
-		(void)mir_curl_ev_timer_cb(curl->ev_base, &(curl->ev_timer), 0);
 	}
 
 	ev_async_send(curl->ev_base, curl->ev_async);
