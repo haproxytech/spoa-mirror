@@ -835,8 +835,10 @@ static CURLcode mir_curl_add_put(struct curl_con *con, const struct mirror *mir)
 		CURL_ERR_EASY("Failed to set read callback function", retval);
 	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_UPLOAD, 1L)) != CURLE_OK)
 		CURL_ERR_EASY("Failed to enable uploading", retval);
+#if !CURL_AT_LEAST_VERSION(7, 12, 1)
 	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_PUT, 1L)) != CURLE_OK)
 		CURL_ERR_EASY("Failed to init HTTP PUT data", retval);
+#endif
 	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_READDATA, con)) != CURLE_OK)
 		CURL_ERR_EASY("Failed to set read callback function data", retval);
 	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_INFILESIZE_LARGE, (curl_off_t)mir->body_size)) != CURLE_OK)
