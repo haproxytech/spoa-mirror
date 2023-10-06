@@ -1,0 +1,56 @@
+Fri Oct  6 23:15:32 CEST 2023
+------------------------------------------------------------------------------
+The program decode-data.c has been added to the 'util' directory for decoding
+data obtained from HAProxy via SPOP.  Can be used in such a way that hexa data
+is copied from the log file created by the spoa-mirror program and used as the
+only argument when calling the decode-data program.
+
+Log file example:
+..
+[ 1][    2.985255]     frame_recv(0x7fae9c00b420) {
+[ 1][    2.985256]       <1:49> --> Receiving data
+[ 1][    2.985257]       tcp_recv(0x7fae9c00b420, 4, " length") {
+[ 1][    2.985263]         <1:49> 4/4/4 byte(s) received frame length
+[ 1][    2.985264]       } = 4
+[ 1][    2.985267]       tcp_recv(0x7fae9c00b420, 129, " data") {
+[ 1][    2.985269]         <1:49> 129/129/129 byte(s) received frame data
+[ 1][    2.985270]       } = 129
+[ 1][    2.985273]       <1:49> New frame of 129 bytes received: <0100000001000012737570706f727465642d76657273696f6e730803322e300e6d61782d6672616d652d73697a6503fcf0060c6361706162696c69746965730810706970656c696e696e672c6173796e6309656e67696e652d6964082463663730346564382d643962312d343533312d393537302d343162396366306166356533> <........supported-versions..2.0.max-frame-size.....capabilities..pipelining,async.engine-id.$cf704ed8-d9b1-4531-9570-41b9cf0af5e3>
+[ 1][    2.985274]     } = 129
+..
+
+% ./decode-data 0100000001000012737570706f727465642d76657273696f6e730803322e300e6d61782d6672616d652d73697a6503fcf0060c6361706162696c69746965730810706970656c696e696e672c6173796e6309656e67696e652d6964082463663730346564382d643962312d343533312d393537302d343162396366306166356533
+0x0000: 0x01 1
+0x0001: 0x00 0
+0x0002: 0x00 0
+0x0003: 0x00 0
+0x0004: 0x01 1
+0x0005: 0x00 0
+0x0006: 0x00 0
+0x0007: 0x12 18
+0x0008: supported-versions
+0x001a: 0x08 8
+0x001b: 0x03 3
+0x001c: 2.0
+0x001f: 0x0e 14
+0x0020: max-frame-size
+0x002e: 0x03 3
+0x002f: 0xfc 252
+0x0030: 0xf0 240
+0x0031: 0x06 6
+0x0032: 0x0c 12
+0x0033: capabilities
+0x003f: 0x08 8
+0x0040: 0x10 16
+0x0041: pipelining,async
+0x0051: 0x09 9
+0x0052: engine-id
+0x005b: 0x08 8
+0x005c: $cf704ed8-d9b1-4531-9570-41b9cf0af5e3
+
+NOTE: the program does not use a real frame data decoder, but only distinguishes
+printable characters (isprint()) which it displays as a string, while everything
+else is displayed as a one-byte value.
+
+The program can be compiled in a very simple way:
+% gcc -Wall -O3 decode-data.c -o decode-data
