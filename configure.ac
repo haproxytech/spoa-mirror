@@ -110,7 +110,7 @@ AC_SUBST([DATE])
 AC_SUBST([PACKAGE_VERSION])
 AC_SUBST([CONFIGURE_OPTIONS])
 
-AC_CONFIG_FILES([Makefile src/Makefile include/common/version.h])
+AC_CONFIG_FILES([Makefile src/Makefile util/Makefile include/common/version.h])
 AC_OUTPUT
 
 AM_SHOW_CONFIG

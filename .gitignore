@@ -8,10 +8,12 @@ config.status
 config/
 configure
 !contrib/spoa_example/Makefile
+decode-data
 spoa-mirror
 stamp-h1
 version.h
 .deps
+.dirstamp
 .source-md5sums
 *.lzma
 *.o
