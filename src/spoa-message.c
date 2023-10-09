@@ -241,7 +241,7 @@ int spoa_msg_test(struct spoe_frame *frame, const char **buf, const char *end)
 
 /***
  * NAME
- *   spoa_msg_arg_hdrs -
+ *   spoa_msg_arg_hdrs_bin -
  *
  * ARGUMENTS
  *   frame -
@@ -255,7 +255,7 @@ int spoa_msg_test(struct spoe_frame *frame, const char **buf, const char *end)
  * RETURN VALUE
  *   -
  */
-static int spoa_msg_arg_hdrs(struct spoe_frame *frame, const char *buf, const char *end, struct list *hdrs)
+static int spoa_msg_arg_hdrs_bin(struct spoe_frame *frame, const char *buf, const char *end, struct list *hdrs)
 {
 	struct buffer *hdr = NULL, *hdr_back;
 	const char    *str;
@@ -392,7 +392,7 @@ int spoa_msg_mirror(struct spoe_frame *frame, const char **buf, const char *end)
 					retval = FUNC_RET_ERROR;
 				}
 				else
-					retval = spoa_msg_arg_hdrs(frame, data.chk.ptr, data.chk.ptr + data.chk.len - 1, &(mir->hdrs));
+					retval = spoa_msg_arg_hdrs_bin(frame, data.chk.ptr, data.chk.ptr + data.chk.len - 1, &(mir->hdrs));
 			}
 			else if ((len == STR_SIZE(SPOE_MSG_ARG_BODY)) && (memcmp(str, STR_ADDRSIZE(SPOE_MSG_ARG_BODY)) == 0)) {
 				if (_NULL(spoa_msg_arg_dup(frame, i, str, len, &data, &(mir->body), &(mir->body_size), "allocate memory for body")))
