@@ -318,6 +318,72 @@ static int spoa_msg_arg_hdrs_bin(struct spoe_frame *frame, const char *buf, cons
 
 /***
  * NAME
+ *   spoa_msg_arg_hdrs -
+ *
+ * ARGUMENTS
+ *   frame -
+ *   buf   -
+ *   end   -
+ *   hdrs  -
+ *
+ * DESCRIPTION
+ *   -
+ *
+ * RETURN VALUE
+ *   -
+ */
+static int spoa_msg_arg_hdrs(struct spoe_frame *frame, const char *buf, const char *end, struct list *hdrs)
+{
+	struct buffer *hdr = NULL, *hdr_back;
+	const char    *ptr;
+	int            i, retval = FUNC_RET_OK;
+
+	DBG_FUNC(FW_PTR, "%p, %p, %p, %p", frame, buf, end, hdrs);
+
+	/* Build the HTTP headers. */
+	for (i = 0; buf < end; i++) {
+		/* Find end of the HTTP header (CRLF). */
+		for (ptr = buf; ptr < end; ptr++)
+			if (TEST_OR2(*ptr, '\r', '\n'))
+				break;
+
+		/*
+		 * Can the HTTP header be empty?
+		 * In that case, this block is skipped.
+		 */
+		if (ptr != buf) {
+			if (_NULL(hdr = buffer_alloc(cfg.max_frame_size, buf, ptr - buf, NULL)))
+				break;
+
+			F_DBG(SPOA, frame, "header[%d]: <%.*s>", i, (int)hdr->len, hdr->ptr);
+
+			LIST_ADDQ(hdrs, &(hdr->list));
+		}
+
+		/* Skip the end of the HTTP header (CRLF). */
+		for (buf = ptr; buf < end; buf++)
+			if (TEST_NAND2(*buf, '\r', '\n'))
+				break;
+	}
+
+	/* In the case of a fault, the allocated memory is released. */
+	if (_ERROR(retval) || ((i > 0) && _NULL(hdr))) {
+		buffer_ptr_free(&hdr);
+
+		list_for_each_entry_safe(hdr, hdr_back, hdrs, list) {
+			LIST_DEL(&(hdr->list));
+			buffer_ptr_free(&hdr);
+		}
+
+		retval = FUNC_RET_ERROR;
+	}
+
+	DBG_RETURN_INT(retval);
+}
+
+
+/***
+ * NAME
  *   spoa_msg_mirror -
  *
  * ARGUMENTS
@@ -373,6 +439,17 @@ int spoa_msg_mirror(struct spoe_frame *frame, const char **buf, const char *end)
 				mir_ptr = &(mir->path);
 			else if ((len == STR_SIZE(SPOE_MSG_ARG_VER)) && (memcmp(str, STR_ADDRSIZE(SPOE_MSG_ARG_VER)) == 0))
 				mir_ptr = &(mir->version);
+			else if ((len == STR_SIZE(SPOE_MSG_ARG_HDRS)) && (memcmp(str, STR_ADDRSIZE(SPOE_MSG_ARG_HDRS)) == 0)) {
+				if (!LIST_ISEMPTY(&(mir->hdrs))) {
+					f_log(frame, _E("arg[%d] '%.*s': Duplicated argument"), i, (int)len, str);
+
+					retval = FUNC_RET_ERROR;
+				}
+				else
+					retval = spoa_msg_arg_hdrs(frame, data.chk.ptr, data.chk.ptr + data.chk.len - 1, &(mir->hdrs));
+
+				continue;
+			}
 			else {
 				f_log(frame, _W("Unknown argument, ignored: '%.*s'"), (int)len, str);
 

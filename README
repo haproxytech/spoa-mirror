@@ -162,6 +162,21 @@ configuration file:
   # /path-to/haproxy -f haproxy.cfg
 
 
+Note related to SPOE configuration: in the 'spoe-message' section (in the
+given example, this section is called 'mirror') the 'args' keyword must always
+(and only) contain the following arguments (after the sign '=' there is a
+permitted argument type):
+
+  arg_method=STR arg_path=STR arg_ver=STR arg_hdrs=(BIN|STR) arg_body=BIN
+
+'arg_hdrs' can have a binary (req.hdrs_bin) or string (req.hdrs) data type
+argument specified.  In case we want to make some changes in the HTTP headers
+that are sent to the mirror URL, then we will use the string data type for
+that argument to which we can add the regsub() converter, as in the example:
+
+  .. arg_hdrs=req.hdrs,regsub(foo,bar)
+
+
 4. Known bugs and limitations
 ------------------------------------------------------------------------
 
