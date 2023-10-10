@@ -115,8 +115,8 @@ int handle_hadiscon(struct spoe_frame *frame)
 
 	/* Decode and check the K/V items. */
 	retval = spoe_decode_kv(frame, &buf, end,
-	                        SPOE_DEC_VARINT, "status-code", 11, check_discon_status_code_cb,
-	                        SPOE_DEC_STR, "message", 7, check_discon_message_cb,
+	                        SPOE_DEC_VARINT, STR_ADDRSIZE("status-code"), check_discon_status_code_cb,
+	                        SPOE_DEC_STR, STR_ADDRSIZE("message"), check_discon_message_cb,
 	                        SPOE_DEC_END);
 	if (_nERROR(retval))
 		retval = buf - frame->buf;
@@ -158,8 +158,8 @@ int prepare_agentdicon(struct spoe_frame *frame)
 	                           SPOA_FRM_T_AGENT, SPOE_FRM_T_AGENT_DISCON, SPOE_FRM_FL_FIN,
 	                           SPOE_ENC_UINT8, 0,
 	                           SPOE_ENC_UINT8, 0,
-	                           SPOE_ENC_KV, "status-code", 11, SPOE_DATA_T_UINT32, FC_PTR->status_code,
-	                           SPOE_ENC_KV, "message", 7, SPOE_DATA_T_STR, reason, strlen(reason),
+	                           SPOE_ENC_KV, STR_ADDRSIZE("status-code"), SPOE_DATA_T_UINT32, FC_PTR->status_code,
+	                           SPOE_ENC_KV, STR_ADDRSIZE("message"), SPOE_DATA_T_STR, reason, strlen(reason),
 	                           SPOE_ENC_END);
 
 	F_DBG(SPOA, frame, "<-- AGENT-DISCONNECT status code: %u", FC_PTR->status_code);

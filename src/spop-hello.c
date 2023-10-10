@@ -318,11 +318,11 @@ int handle_hahello(struct spoe_frame *frame)
 
 	/* Decode and check the K/V items. */
 	retval = spoe_decode_kv(frame, &buf, end,
-	                     SPOE_DEC_STR, "supported-versions", 18, check_proto_version_cb,
-	                     SPOE_DEC_VARINT, "max-frame-size", 14, check_max_frame_size_cb,
-	                     SPOE_DEC_UINT8, "healthcheck", 11, check_healthcheck_cb,
-	                     SPOE_DEC_STR, "capabilities", 12, check_capabilities_cb,
-	                     SPOE_DEC_STR, "engine-id", 9, check_engine_id_cb,
+	                     SPOE_DEC_STR, STR_ADDRSIZE("supported-versions"), check_proto_version_cb,
+	                     SPOE_DEC_VARINT, STR_ADDRSIZE("max-frame-size"), check_max_frame_size_cb,
+	                     SPOE_DEC_UINT8, STR_ADDRSIZE("healthcheck"), check_healthcheck_cb,
+	                     SPOE_DEC_STR, STR_ADDRSIZE("capabilities"), check_capabilities_cb,
+	                     SPOE_DEC_STR, STR_ADDRSIZE("engine-id"), check_engine_id_cb,
 	                     SPOE_DEC_END);
 	if (_ERROR(retval))
 		DBG_RETURN_INT(retval);
@@ -362,19 +362,19 @@ int prepare_agenthello(struct spoe_frame *frame)
 	DBG_FUNC(FW_PTR, "%p", frame);
 
 	if (cfg.cap_flags & FLAG_CAP_FRAGMENTATION) {
-		(void)memcpy(ptr, STR_CAP_FRAGMENTATION, STR_SIZE(STR_CAP_FRAGMENTATION));
+		(void)memcpy(ptr, STR_ADDRSIZE(STR_CAP_FRAGMENTATION));
 		ptr += STR_SIZE(STR_CAP_FRAGMENTATION);
 	}
 	if (FC_PTR->pipelining) {
 		if (cfg.cap_flags & FLAG_CAP_FRAGMENTATION)
 			*(ptr++) = ',';
-		(void)memcpy(ptr, STR_CAP_PIPELINING, STR_SIZE(STR_CAP_PIPELINING));
+		(void)memcpy(ptr, STR_ADDRSIZE(STR_CAP_PIPELINING));
 		ptr += STR_SIZE(STR_CAP_PIPELINING);
 	}
 	if (FC_PTR->async) {
 		if ((cfg.cap_flags & FLAG_CAP_FRAGMENTATION) || FC_PTR->pipelining)
 			*(ptr++) = ',';
-		(void)memcpy(ptr, STR_CAP_ASYNC, STR_SIZE(STR_CAP_ASYNC));
+		(void)memcpy(ptr, STR_ADDRSIZE(STR_CAP_ASYNC));
 		ptr += STR_SIZE(STR_CAP_ASYNC);
 	}
 
@@ -387,9 +387,9 @@ int prepare_agenthello(struct spoe_frame *frame)
 	                           SPOA_FRM_T_AGENT, SPOE_FRM_T_AGENT_HELLO, SPOE_FRM_FL_FIN,
 	                           SPOE_ENC_UINT8, 0,
 	                           SPOE_ENC_UINT8, 0,
-	                           SPOE_ENC_KV, "version", 7, SPOE_DATA_T_STR, SPOP_VERSION, STR_SIZE(SPOP_VERSION),
-	                           SPOE_ENC_KV, "max-frame-size", 14, SPOE_DATA_T_UINT32, FC_PTR->max_frame_size,
-	                           SPOE_ENC_KV, "capabilities", 12, SPOE_DATA_T_STR, cap, (int)(ptr - cap),
+	                           SPOE_ENC_KV, STR_ADDRSIZE("version"), SPOE_DATA_T_STR, STR_ADDRSIZE(SPOP_VERSION),
+	                           SPOE_ENC_KV, STR_ADDRSIZE("max-frame-size"), SPOE_DATA_T_UINT32, FC_PTR->max_frame_size,
+	                           SPOE_ENC_KV, STR_ADDRSIZE("capabilities"), SPOE_DATA_T_STR, cap, (int)(ptr - cap),
 	                           SPOE_ENC_END);
 
 	F_DBG(SPOA, frame, "<-- AGENT-HELLO version: %s", SPOP_VERSION);

@@ -142,7 +142,7 @@ void spoa_msg_iprep_action(struct spoe_frame *frame, char **buf, int ip_score)
 	                  SPOE_ENC_UINT8, SPOE_ACT_T_SET_VAR, /* Action type */
 	                  SPOE_ENC_UINT8, 3,                  /* Number of args */
 	                  SPOE_ENC_UINT8, SPOE_SCOPE_SESS,    /* Arg 1: the scope */
-	                  SPOE_ENC_STR, "ip_score", 8,        /* Arg 2: variable name */
+	                  SPOE_ENC_STR, STR_ADDRSIZE("ip_score"), /* Arg 2: variable name */
 	                  SPOE_ENC_UINT8, SPOE_DATA_T_UINT32, /* Arg 3: variable type */
 	                  SPOE_ENC_VARINT, ip_score,          /*        variable value */
 	                  SPOE_ENC_END);
