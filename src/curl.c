@@ -962,6 +962,14 @@ static CURLcode mir_curl_add_url(struct curl_con *con, const struct mirror *mir)
 		/* Do nothing. */;
 	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_URL, mir->url)) != CURLE_OK)
 		CURL_ERR_EASY("Failed to set URL", retval);
+#if CURL_AT_LEAST_VERSION(7, 55, 0)
+	/*
+	 * WARNING: without this option, support for absolute-form request
+	 * target cannot be used.
+	 */
+	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_REQUEST_TARGET, mir->path)) != CURLE_OK)
+		CURL_ERR_EASY("Failed to set request target", retval);
+#endif
 
 	DBG_RETURN_INT(retval);
 }

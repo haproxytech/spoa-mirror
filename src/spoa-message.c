@@ -384,6 +384,65 @@ static int spoa_msg_arg_hdrs(struct spoe_frame *frame, const char *buf, const ch
 
 /***
  * NAME
+ *   spoa_msg_url -
+ *
+ * ARGUMENTS
+ *   frame -
+ *   mir   -
+ *
+ * DESCRIPTION
+ *   -
+ *
+ * RETURN VALUE
+ *   -
+ */
+static int spoa_msg_url(struct spoe_frame *frame, struct mirror *mir)
+{
+	size_t n = 0, path_len;
+	int    rc, url_len, retval = FUNC_RET_ERROR;
+
+	DBG_FUNC(FW_PTR, "%p, %p", frame, mir);
+
+	path_len = strlen(mir->path);
+
+	/*
+	 * First we need to see if the member path contains an absolute URL;
+	 * and if so, find the beginning of the relative part.
+	 */
+	if (strncasecmp(mir->path, STR_ADDRSIZE(STR_HTTP_PFX)) == 0)
+		n = STR_SIZE(STR_HTTP_PFX);
+	else if (strncasecmp(mir->path, STR_ADDRSIZE(STR_HTTPS_PFX)) == 0)
+		n = STR_SIZE(STR_HTTPS_PFX);
+
+	if (n > 0) {
+		for ( ; n < path_len; n++)
+			if (mir->path[n] == '/')
+				break;
+	}
+
+	/*
+	 * The destination URL is constructed by adding the relative path part
+	 * to the mirror URL.
+	 */
+	if (n < path_len) {
+		url_len = strlen(cfg.mir_url) + path_len - n + 1;
+
+		if (_NULL(mir->url = malloc(url_len)))
+			f_log(frame, _E("Failed to allocate memory"));
+		else if (((rc = snprintf(mir->url, url_len, "%s%s", cfg.mir_url, mir->path + n)) >= url_len) || (rc < 0))
+			f_log(frame, (rc < 0) ? _E("Failed to construct URL: %m") : _E("URL too long"));
+		else
+			retval = FUNC_RET_OK;
+	} else {
+		f_log(frame, _E("Invalid path: '%s'"), mir->path);
+	}
+
+	DBG_RETURN_INT(retval);
+}
+
+
+/***
+ * NAME
  *   spoa_msg_mirror -
  *
  * ARGUMENTS
@@ -488,12 +547,7 @@ int spoa_msg_mirror(struct spoe_frame *frame, const char **buf, const char *end)
 
 #ifdef HAVE_LIBCURL
 	if (_nERROR(retval) && _nNULL(cfg.mir_url)) {
-		int url_len, rc;
-
 		retval = FUNC_RET_ERROR;
-
-		if (_nNULL(mir->path))
-			url_len = strlen(cfg.mir_url) + strlen(mir->path) + 1;
 
 		if (_NULL(mir->path))
 			f_log(frame, _E("HTTP path not set"));
@@ -503,10 +557,8 @@ int spoa_msg_mirror(struct spoe_frame *frame, const char **buf, const char *end)
 			f_log(frame, _E("HTTP version not set"));
 		else if (LIST_ISEMPTY(&(mir->hdrs)))
 			f_log(frame, _E("HTTP headers not set"));
-		else if (_NULL(mir->url = malloc(url_len)))
-			f_log(frame, _E("Failed to allocate memory"));
-		else if (((rc = snprintf(mir->url, url_len, "%s%s", cfg.mir_url, mir->path)) >= url_len) || (rc < 0))
-			f_log(frame, (rc < 0) ? _E("Failed to construct URL: %m") : _E("URL too long"));
+		else if (spoa_msg_url(frame, mir) != FUNC_RET_OK)
+			/* Do nothing. */;
 		else {
 #define CURL_HTTP_METHOD_DEF(a)   { #a, TABLESIZE_1(#a) },
 			static const struct {
