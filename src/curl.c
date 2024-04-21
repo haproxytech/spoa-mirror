@@ -871,17 +871,15 @@ static CURLcode mir_curl_add_out(struct curl_con *con, const struct mirror *mir)
 	if (_NULL(con) || _NULL(mir))
 		DBG_RETURN_INT(retval);
 
-	if (_nNULL(mir->out_address))
-		if ((retval = curl_easy_setopt(con->easy, CURLOPT_INTERFACE, mir->out_address)) != CURLE_OK)
+	if (_nNULL(cfg.mir_interface))
+		if ((retval = curl_easy_setopt(con->easy, CURLOPT_INTERFACE, cfg.mir_interface)) != CURLE_OK)
 			CURL_ERR_EASY("Failed to set outgoing connections interface", retval);
 
-	if ((retval != CURLE_OK) || (mir->out_port[0] == 0))
+	if ((retval != CURLE_OK) || (cfg.mir_port[0] == 0))
 		/* Do nothing. */;
-	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_LOCALPORT, (long)mir->out_port[0])) != CURLE_OK)
+	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_LOCALPORT, (long)cfg.mir_port[0])) != CURLE_OK)
 		CURL_ERR_EASY("Failed to set outgoing connections port", retval);
-	else if (mir->out_port[1] == 0)
-		/* Do nothing. */;
-	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_LOCALPORTRANGE, (long)mir->out_port[1])) != CURLE_OK)
+	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_LOCALPORTRANGE, (long)cfg.mir_port[1])) != CURLE_OK)
 		CURL_ERR_EASY("Failed to set outgoing connections port range", retval);
 
 	DBG_RETURN_INT(retval);

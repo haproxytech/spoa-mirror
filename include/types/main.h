@@ -76,8 +76,8 @@ struct config_data {
 	uint          ev_backend;
 #ifdef HAVE_LIBCURL
 	char         *mir_url;
-	const char   *mir_address;
-	int           mir_port[2];
+	const char   *mir_interface;       /* Outgoing connections interface (IP address). */
+	int           mir_port[2];         /* Outgoing connections port. */
 #endif
 };
 

@@ -619,7 +619,6 @@ void mir_ptr_free(struct mirror **data)
 
 	W_DBG(NOTICE, NULL, "freeing mirror { \"%s\" \"%s\" \"%s\" %d \"%s\" { %p %p } %p %zu/%zu }", (*data)->url, (*data)->path, (*data)->method, (*data)->request_method, (*data)->version, (*data)->hdrs.p, (*data)->hdrs.n, (*data)->body, (*data)->body_head, (*data)->body_size);
 
-	PTR_FREE((*data)->out_address);
 	PTR_FREE((*data)->url);
 	PTR_FREE((*data)->path);
 	PTR_FREE((*data)->method);

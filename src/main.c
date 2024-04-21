@@ -430,7 +430,7 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 		else if (c == 'u')
 			mir_url = optarg;
 		else if (c == 'I')
-			cfg.mir_address = optarg;
+			cfg.mir_interface = optarg;
 		else if (c == 'P')
 			flag_error |= _OK(getopt_set_ports(optarg, cfg.mir_port)) ? 0 : 1;
 #endif

@@ -34,8 +34,6 @@
 #define SPOE_MSG_ARG_VER       "arg_ver"
 
 struct mirror {
-	char        *out_address;    /* Outgoing connections interface (IP address). */
-	int          out_port[2];    /* Outgoing connections port. */
 	char        *url;            /* */
 	char        *path;           /* */
 	char        *method;         /* */
