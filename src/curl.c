@@ -24,6 +24,37 @@
 
 /***
  * NAME
+ *   mir_curl_slist_dump -
+ *
+ * ARGUMENTS
+ *   list -
+ *   msg  -
+ *
+ * DESCRIPTION
+ *   -
+ *
+ * RETURN VALUE
+ *   This function does not return a value.
+ */
+static void mir_curl_slist_dump(const struct curl_slist *list, const char *msg)
+{
+	if (_NULL(list)) {
+		W_DBG(DEBUG, NULL, "%s NULL list", msg);
+	}
+	else if (_NULL(list->data) && (_NULL(list->next))) {
+		W_DBG(DEBUG, NULL, "%s %p:{ empty list }", msg, list);
+	}
+	else {
+		W_DBG(DEBUG, NULL, "%s %p:{", msg, list);
+		for ( ; _nNULL(list); list = list->next)
+			W_DBG(DEBUG, NULL, "  %p:{ '%s' %p %p }", list, list->data, list->data, list->next);
+		W_DBG(DEBUG, NULL, "}");
+	}
+}
+
+
+/***
+ * NAME
  *   mir_curl_debug_cb - CURLOPT_DEBUGFUNCTION callback function
  *
  * ARGUMENTS
@@ -500,6 +531,10 @@ static CURLcode mir_curl_set_headers(struct curl_con *con, const struct mirror *
 		}
 		con->hdrs = slist;
 	}
+
+#ifdef DEBUG
+	mir_curl_slist_dump(con->hdrs, "HTTP headers");
+#endif
 
 	if ((retval == CURLE_OK) && _nNULL(mir->method))
 		if ((retval = curl_easy_setopt(con->easy, CURLOPT_CUSTOMREQUEST, mir->method)) != CURLE_OK)
