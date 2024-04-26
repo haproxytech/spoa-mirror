@@ -80,6 +80,8 @@ struct config_data {
 	char         *mir_url;
 	const char   *mir_interface;       /* Outgoing connections interface (IP address). */
 	int           mir_port[2];         /* Outgoing connections port. */
+	uint64_t      conn_timeout_us;     /* The maximum time allowed to connect to the mirror server. */
+	uint64_t      timeout_us;          /* The maximum time allowed for a single transfer operation. */
 #endif
 };
 

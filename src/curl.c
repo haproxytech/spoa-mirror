@@ -1027,7 +1027,6 @@ int mir_curl_add(struct curl_data *curl, struct mirror *mir)
 	struct curl_con *con;
 	CURLcode         rc;
 	CURLMcode        rcm;
-	long             con_timeout_ms = CURL_CON_TMOUT, timeout_ms = CURL_TMOUT;
 	int              retval = FUNC_RET_ERROR;
 
 	DBG_FUNC(NULL, "%p, %p", curl, mir);
@@ -1036,9 +1035,6 @@ int mir_curl_add(struct curl_data *curl, struct mirror *mir)
 		DBG_RETURN_INT(retval);
 
 	CURL_DBG("Adding mirror { \"%s\" \"%s\" \"%s\" %d \"%s\" { %p %p } %p %zu/%zu }", mir->url, mir->path, mir->method, mir->request_method, mir->version, mir->hdrs.p, mir->hdrs.n, mir->body, mir->body_head, mir->body_size);
-
-	con_timeout_ms = CLAMP_VALUE(con_timeout_ms, CURL_CON_TMOUT_MIN, CURL_CON_TMOUT_MAX);
-	timeout_ms     = CLAMP_VALUE(timeout_ms, CURL_TMOUT_MIN, CURL_TMOUT_MAX);
 
 	if (_NULL(con = calloc(1, sizeof(*con))))
 		w_log(NULL, CURL_STR _E("Failed to allocate memory"));
@@ -1078,9 +1074,9 @@ int mir_curl_add(struct curl_data *curl, struct mirror *mir)
 		CURL_ERR_EASY("Failed to set low speed time", rc);
 	else if ((rc = curl_easy_setopt(con->easy, CURLOPT_NOSIGNAL, 1L)) != CURLE_OK)
 		CURL_ERR_EASY("Failed to disable signals", rc);
-	else if ((rc = curl_easy_setopt(con->easy, CURLOPT_CONNECTTIMEOUT_MS, con_timeout_ms)) != CURLE_OK)
+	else if ((rc = curl_easy_setopt(con->easy, CURLOPT_CONNECTTIMEOUT_MS, (long)(cfg.conn_timeout_us / UINT64_C(1000)))) != CURLE_OK)
 		CURL_ERR_EASY("Failed to set connect timeout", rc);
-	else if ((rc = curl_easy_setopt(con->easy, CURLOPT_TIMEOUT_MS, timeout_ms)) != CURLE_OK)
+	else if ((rc = curl_easy_setopt(con->easy, CURLOPT_TIMEOUT_MS, (long)(cfg.timeout_us / UINT64_C(1000)))) != CURLE_OK)
 		CURL_ERR_EASY("Failed to set read timeout", rc);
 	else if ((rc = mir_curl_add_keepalive(con, 1, CURL_KEEPIDLE_TIME, CURL_KEEPINTVL_TIME)) != CURLE_OK)
 		/* Do nothing. */;
