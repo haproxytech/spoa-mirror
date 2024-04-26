@@ -575,13 +575,13 @@ uint64_t parse_delay_us(const char *delay, uint64_t val_min, uint64_t val_max)
 	else if ((endptr[0] == '\0') || TEST_ARRAY3(endptr, 0, 'm', 's', '\0'))
 		PARSE_DELAY_US(1000);               /* No unit or milliseconds */
 	else if (TEST_ARRAY2(endptr, 0, 's', '\0'))
-		PARSE_DELAY_US(1000000ULL);         /* seconds */
+		PARSE_DELAY_US(UINT64_C(1000000));         /* seconds */
 	else if (TEST_ARRAY2(endptr, 0, 'm', '\0'))
-		PARSE_DELAY_US(1000000ULL * 60);    /* minutes */
+		PARSE_DELAY_US(UINT64_C(1000000) * 60);    /* minutes */
 	else if (TEST_ARRAY2(endptr, 0, 'h', '\0'))
-		PARSE_DELAY_US(1000000ULL * 3600);  /* hours */
+		PARSE_DELAY_US(UINT64_C(1000000) * 3600);  /* hours */
 	else if (TEST_ARRAY2(endptr, 0, 'd', '\0'))
-		PARSE_DELAY_US(1000000ULL * 86400); /* days */
+		PARSE_DELAY_US(UINT64_C(1000000) * 86400); /* days */
 	else
 		errno = EINVAL;                     /* Invalid unit. */
 

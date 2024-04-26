@@ -93,10 +93,10 @@
 #define TIMEVAL_SET_MS(t,s)        do { (t)->tv_sec = (s) / 1000; (t)->tv_usec = (s) % 1000; } while (0)
 #define TIMEVAL_SET_US(t,s)        do { (t)->tv_sec = (s) / 1000000; (t)->tv_usec = (s) % 1000000; } while (0)
 #define TIMEVAL_S(t)               ((t)->tv_sec + ((t)->tv_usec + 500000) / 1000000)
-#define TIMEVAL_MS(t)              ((t)->tv_sec * 1000ULL + ((t)->tv_usec + 500) / 1000)
-#define TIMEVAL_US(t)              ((t)->tv_sec * 1000000ULL + (t)->tv_usec)
-#define TIMEVAL_DIFF_MS(a,b)       (((a)->tv_sec - (b)->tv_sec) * 1000ULL + ((a)->tv_usec - (b)->tv_usec + 500) / 1000)
-#define TIMEVAL_DIFF_US(a,b)       (((a)->tv_sec - (b)->tv_sec) * 1000000ULL + (a)->tv_usec - (b)->tv_usec)
+#define TIMEVAL_MS(t)              ((t)->tv_sec * UINT64_C(1000) + ((t)->tv_usec + 500) / 1000)
+#define TIMEVAL_US(t)              ((t)->tv_sec * UINT64_C(1000000) + (t)->tv_usec)
+#define TIMEVAL_DIFF_MS(a,b)       (((a)->tv_sec - (b)->tv_sec) * UINT64_C(1000) + ((a)->tv_usec - (b)->tv_usec + 500) / 1000)
+#define TIMEVAL_DIFF_US(a,b)       (((a)->tv_sec - (b)->tv_sec) * UINT64_C(1000000) + (a)->tv_usec - (b)->tv_usec)
 
 #define STR_STRINGIFY(s)           #s
 #define STR_VERSION2(M,m)          STR_STRINGIFY(M) "." STR_STRINGIFY(m)

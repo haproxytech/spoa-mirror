@@ -45,7 +45,7 @@
 #define _I(s)                "(I) " s
 
 #define PARSE_DELAY_US(t)    do { if (retval > (ULLONG_MAX / (t))) errno = ERANGE; else retval *= (t); } while (0)
-#define TIMEINT_S(t)         ((t) * 1000000ULL)
+#define TIMEINT_S(t)         ((t) * UINT64_C(1000000))
 
 enum flag_getopt_enum {
 	FLAG_GETOPT_DIST_ERRORS     = 0x01,
