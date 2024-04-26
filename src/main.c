@@ -34,6 +34,9 @@ struct config_data cfg = {
 	.runtime_us          = DEFAULT_RUNTIME,
 	.pidfile_fd          = -1,
 	.ev_backend          = EVFLAG_AUTO,
+#ifdef LIBCURL
+	.access_log_mode     = 3,
+#endif
 };
 struct program_data prg;
 
@@ -76,6 +79,9 @@ static void usage(const char *program_name, bool_t flag_verbose)
 		(void)printf("  -F, --pidfile=FILE              Specifies a file to write the process-id to.\n");
 		(void)printf("  -h, --help                      Show this text.\n");
 		(void)printf("  -i, --monitor-interval=TIME     Set the monitor interval (default: %s).\n", str_delay(DEFAULT_MONITOR_INTERVAL));
+#ifdef HAVE_LIBCURL
+		(void)printf("  -L, --access-log=MODE           Specify the mode of access logging (default: \"ALL\").\n");
+#endif
 		(void)printf("  -l, --logfile=[MODE:]FILE       Log all messages to logfile (default: stdout/stderr).\n");
 		(void)printf("  -m, --max-frame-size=VALUE      Specify the maximum frame size (default: %d bytes).\n", DEFAULT_MAX_FRAME_SIZE);
 		(void)printf("  -n, --num-workers=VALUE         Specify the number of workers (default: %d).\n", DEFAULT_NUM_WORKERS);
@@ -96,6 +102,7 @@ static void usage(const char *program_name, bool_t flag_verbose)
 		(void)printf("for the mode, then line buffering is used when writing to the log file.\n\n");
 		(void)printf("The time delay/interval is specified in milliseconds by default, but can be\n");
 		(void)printf("in any other unit if the number is suffixed by a unit (us, ms, s, m, h, d).\n\n");
+		(void)printf("Access logging modes are 'NONE', 'ERROR', 'SUCCESS', 'ALL'.\n\n");
 		(void)printf("Copyright 2018-2020 HAProxy Technologies\n");
 		(void)printf("SPDX-License-Identifier: GPL-2.0-or-later\n\n");
 	} else {
@@ -333,6 +340,55 @@ static int getopt_set_ports(const char *ports, int *range)
 
 /***
  * NAME
+ *   getopt_set_access_log_mode -
+ *
+ * ARGUMENTS
+ *   mode_txt -
+ *   mode_val -
+ *
+ * DESCRIPTION
+ *   -
+ *
+ * RETURN VALUE
+ *   -
+ */
+static int getopt_set_access_log_mode(const char *mode_txt, int *mode_val)
+{
+	int retval = FUNC_RET_ERROR, mode=0;
+
+	DBG_FUNC(NULL, "\"%s\", %p", mode_txt, mode_val);
+
+	if (*mode_txt == 'A' || *mode_txt == 'a') {
+		mode = 3;
+		retval = FUNC_RET_OK;
+	}
+	else if (*mode_txt == 'E' || *mode_txt == 'e') {
+		mode = 2;
+		retval = FUNC_RET_OK;
+	}
+	else if (*mode_txt == 'S' || *mode_txt == 's') {
+		mode = 1;
+		retval = FUNC_RET_OK;
+	}
+	else if (*mode_txt == 'N' || *mode_txt == 'n') {
+		mode = 0;
+		retval = FUNC_RET_OK;
+	}
+	else
+		(void)fprintf(stderr, "ERROR: access log mode must be one of 'ALL', 'ERROR', 'SUCCESS', or 'NONE'\n");
+
+	/* If everything is fine, set the mode. */
+	if (_OK(retval)) {
+		*mode_val = mode;
+		W_DBG(NOTICE, NULL, "  mode set to %d", mode);
+	}
+
+	return retval;
+}
+
+
+/***
+ * NAME
  *   main -
  *
  * ARGUMENTS
@@ -365,6 +421,7 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 		{ "runtime",            required_argument, NULL, 'r' },
 		{ "processing-delay",   required_argument, NULL, 't' },
 #ifdef HAVE_LIBCURL
+		{ "access-log",         required_argument, NULL, 'L' },
 		{ "mirror-url",         required_argument, NULL, 'u' },
 		{ "mirror-interface",   required_argument, NULL, 'I' },
 		{ "mirror-local-port",  required_argument, NULL, 'P' },
@@ -427,6 +484,8 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 		else if (c == 't')
 			flag_error |= _OK(getopt_set_time(optarg, &(cfg.processing_delay_us), 0, TIMEINT_S(1))) ? 0 : 1;
 #ifdef HAVE_LIBCURL
+		else if (c == 'L')
+			flag_error |= _OK(getopt_set_access_log_mode(optarg, &(cfg.access_log_mode))) ? 0 : 1;
 		else if (c == 'u')
 			mir_url = optarg;
 		else if (c == 'I')
