@@ -332,7 +332,7 @@ static int spoa_msg_arg_hdrs_bin(struct spoe_frame *frame, const char *buf, cons
  * RETURN VALUE
  *   -
  */
-static int spoa_msg_arg_hdrs(struct spoe_frame *frame, const char *buf, const char *end, struct list *hdrs)
+static int spoa_msg_arg_hdrs(struct spoe_frame *frame __maybe_unused, const char *buf, const char *end, struct list *hdrs)
 {
 	struct buffer *hdr = NULL, *hdr_back;
 	const char    *ptr;
