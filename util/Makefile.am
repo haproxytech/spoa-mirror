@@ -1,18 +1,28 @@
 ## Process this file with automake to produce Makefile.in
 ##
-    AUTOMAKE_OPTIONS = subdir-objects
+       AUTOMAKE_OPTIONS = subdir-objects
 
-         AM_CPPFLAGS = $(SPOA_MIRROR_CPPFLAGS)
-           AM_CFLAGS = $(SPOA_MIRROR_CFLAGS)
-          AM_LDFLAGS = $(SPOA_MIRROR_LDFLAGS)
+            AM_CPPFLAGS = @SPOA_MIRROR_CPPFLAGS@ -I$(top_builddir)/include -I$(srcdir)/../include -DPACKAGE_BUILD=`cat $(srcdir)/../src/.build-counter`
+              AM_CFLAGS = @SPOA_MIRROR_CFLAGS@
+             AM_LDFLAGS = @SPOA_MIRROR_LDFLAGS@
 
-decode_data_CPPFLAGS = $(AM_CPPFLAGS) -DPACKAGE_BUILD=`cat ../src/.build-counter` -I../include
-  decode_data_CFLAGS = $(AM_CFLAGS)
- decode_data_LDFLAGS =
- decode_data_SOURCES = ../src/spoe-decode.c decode-data.c util.c
+         common_SOURCES = ../src/spoe-decode.c decode-data.c util.c
 
-        bin_PROGRAMS = decode-data
-          CLEANFILES = a.out
+if WANT_DEBUG
+decode_data_dbg_LDFLAGS =
+decode_data_dbg_SOURCES = $(common_SOURCES)
+
+           bin_PROGRAMS = decode-data_dbg
+
+else
+
+    decode_data_LDFLAGS =
+    decode_data_SOURCES = $(common_SOURCES)
+
+           bin_PROGRAMS = decode-data
+endif
+
+CLEANFILES = a.out
 
 clean: clean-am
 ##

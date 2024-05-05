@@ -1,15 +1,11 @@
 ## Process this file with automake to produce Makefile.in
 ##
-       AM_CPPFLAGS = $(SPOA_MIRROR_CPPFLAGS)
-         AM_CFLAGS = $(SPOA_MIRROR_CFLAGS)
-        AM_LDFLAGS = $(SPOA_MIRROR_LDFLAGS)
-              LIBS = @LIBS@ @SPOA_MIRROR_LIBS@
+   AM_CPPFLAGS = @SPOA_MIRROR_CPPFLAGS@ -I$(top_builddir)/include -I$(srcdir)/../include -DPACKAGE_BUILD=`cat $(srcdir)/../src/.build-counter`
+     AM_CFLAGS = @SPOA_MIRROR_CFLAGS@
+    AM_LDFLAGS = @SPOA_MIRROR_LDFLAGS@
+          LIBS = @LIBS@ @SPOA_MIRROR_LIBS@
 
-spoa_mirror_CPPFLAGS = $(AM_CPPFLAGS) -DPACKAGE_BUILD=`cat .build-counter` -I../include
-  spoa_mirror_CFLAGS = $(AM_CFLAGS)
- spoa_mirror_LDFLAGS = $(AM_LDFLAGS)
-        bin_PROGRAMS = spoa-mirror
- spoa_mirror_SOURCES = \
+common_SOURCES = \
 	libev.c \
 	main.c \
 	spoa-message.c \
@@ -27,7 +23,17 @@ spoa_mirror_CPPFLAGS = $(AM_CPPFLAGS) -DPACKAGE_BUILD=`cat .build-counter` -I../
 	worker.c
 
 if WANT_CURL
-spoa_mirror_SOURCES += curl.c
+common_SOURCES += curl.c
+endif
+
+if WANT_DEBUG
+           bin_PROGRAMS = spoa-mirror_dbg
+spoa_mirror_dbg_SOURCES = $(common_SOURCES)
+
+else
+
+           bin_PROGRAMS = spoa-mirror
+    spoa_mirror_SOURCES = $(common_SOURCES)
 endif
 
 CLEANFILES = a.out
