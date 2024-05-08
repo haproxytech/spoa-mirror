@@ -3,7 +3,7 @@ dnl
 AC_DEFUN([AM_WITH_CURL], [
 	AC_ARG_WITH([curl],
 		[AS_HELP_STRING([--with-curl@<:@=DIR@:>@], [use CURL library @<:@default=check@:>@])],
-		[with_curl="${withval}"],
+		[],
 		[with_curl=check]
 	)
 

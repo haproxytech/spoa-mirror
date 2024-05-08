@@ -3,7 +3,7 @@ dnl
 AC_DEFUN([AM_WITH_LIBEV], [
 	AC_ARG_WITH([libev],
 		[AS_HELP_STRING([--with-libev@<:@=DIR@:>@], [use LIBEV library @<:@default=check@:>@])],
-		[with_libev="${withval}"],
+		[],
 		[with_libev=check]
 	)
 

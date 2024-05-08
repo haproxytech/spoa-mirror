@@ -3,7 +3,7 @@ dnl
 AC_DEFUN([AM_ENABLE_THREADS], [
 	AC_ARG_ENABLE([threads],
 		[AS_HELP_STRING([--enable-threads], [enable threads @<:@default=check@:>@])],
-		[enable_threads="${enableval}"],
+		[],
 		[enable_threads=check]
 	)
 

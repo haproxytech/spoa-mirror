@@ -34,7 +34,7 @@ AC_DEFUN([AM_VARIABLES_SET], [
 	LIBS="${LIBS} ${SET_LIBS}"
 ])
 
-dnl
+dnl Check which options the C compiler supports.
 dnl
 AC_DEFUN([AM_PROG_CC_SET], [
 	_var_cflags=
@@ -45,38 +45,52 @@ AC_DEFUN([AM_PROG_CC_SET], [
 	case "${CC}" in
 	  *gcc*)
 		_var_cflags="\
-			-Wall \
-			-Wextra \
-			-Waggregate-return \
-			-Wbad-function-cast \
-			-Wcast-align \
-			-Wchar-subscripts \
-			-Wcomment \
-			-Wfloat-equal \
-			-Wimplicit \
-			-Winline \
-			-Wmain \
-			-Wmissing-braces \
-			-Wmissing-declarations \
-			-Wmissing-noreturn \
-			-Wmissing-prototypes \
-			-Wnested-externs \
-			-Wparentheses \
-			-Wpointer-arith \
-			-Wreturn-type \
-			-Wsequence-point \
-			-Wshadow \
-			-Wstrict-prototypes \
-			-Wswitch \
-			-Wtrigraphs \
-			-Wundef \
-			-Wuninitialized \
-			-Wunused \
-			-Wwrite-strings"
-		if test "${enable_debug}" = "yes"; then
-			_var_cflags="${_var_cflags} -Wformat=2"
-		else
-			_var_cflags="${_var_cflags} -Wformat-security -Wformat-y2k"
+			-Wall"
+		if test "${enable_compile_warnings}" = "yes"; then
+			_var_cflags="${_var_cflags} \
+				-Wextra \
+				-Waggregate-return \
+				-Wbad-function-cast \
+				-Wcast-align \
+				-Wchar-subscripts \
+				-Wcomment \
+				-Wfloat-equal \
+				-Wimplicit \
+				-Winline \
+				-Wmain \
+				-Wmissing-braces \
+				-Wmissing-declarations \
+				-Wmissing-noreturn \
+				-Wmissing-prototypes \
+				-Wnested-externs \
+				-Wparentheses \
+				-Wpointer-arith \
+				-Wreturn-type \
+				-Wsequence-point \
+				-Wshadow \
+				-Wstrict-prototypes \
+				-Wswitch \
+				-Wtrigraphs \
+				-Wundef \
+				-Wuninitialized \
+				-Wunused \
+				-Wwrite-strings"
+			if test "${enable_debug}" = "yes"; then
+				_var_cflags="${_var_cflags} \
+					-Wformat=2"
+			else
+				_var_cflags="${_var_cflags} \
+					-Wno-strict-aliasing \
+					-Wformat-security \
+					-Wformat-y2k"
+			fi
+		elif test "${enable_debug}" != "yes"; then
+				_var_cflags="${_var_cflags} \
+					-Wno-strict-aliasing"
+		fi
+		if test "${enable_compile_errors}" = "yes" ; then
+			_var_cflags="${_var_cflags} \
+				-Werror"
 		fi
 		;;
 	  cc)
@@ -89,16 +103,17 @@ AC_DEFUN([AM_PROG_CC_SET], [
 	esac
 
 	TMP_CFLAGS="${CFLAGS}"
+	AC_LANG_PUSH([C])
 	for _loop_cflags in ${_var_cflags} $1; do
 		AC_MSG_CHECKING([whether ${CC} accepts ${_loop_cflags}])
 		CFLAGS="${TMP_CFLAGS} ${_loop_cflags}"
-		AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])],
+		AC_TRY_COMPILE([], [],
 			[AC_MSG_RESULT([ yes])
 			SET_CFLAGS="${SET_CFLAGS} ${_loop_cflags}"],
 			[AC_MSG_RESULT([ no])]
 		)
 	done
-	CFLAGS="${TMP_CFLAGS}"
+	AC_LANG_POP([C])
 
 	AM_VARIABLES_RESTORE
 ])
@@ -107,8 +122,8 @@ dnl Check whether the C compiler has __DATE__ macro.
 dnl
 AC_DEFUN([AM_CHECK___DATE__], [
 	AC_MSG_CHECKING([whether the C compiler (${CC}) has __DATE__ macro])
-	AC_LINK_IFELSE([AC_LANG_PROGRAM([],
-			[char *test=__DATE__;])],
+	AC_TRY_COMPILE([],
+		[char *test=__DATE__;],
 		[AC_MSG_RESULT([ yes])],
 		[AC_DEFINE_UNQUOTED([__DATE__], ["`date`"], [Define if your C compiled doesn't have __DATE__ macro.])
 		 AC_MSG_RESULT([ no])]
@@ -119,8 +134,8 @@ dnl Check whether the C compiler has __func__ variable.
 dnl
 AC_DEFUN([AM_CHECK___FUNC__], [
 	AC_MSG_CHECKING([whether the C compiler (${CC}) has __func__ variable])
-	AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <stdio.h>],
-			[printf ("%s", __func__);])],
+	AC_TRY_COMPILE([#include <stdio.h>],
+		[printf ("%s", __func__);],
 		[AC_MSG_RESULT([ yes])],
 		[AC_DEFINE_UNQUOTED([__func__], ["__unknown__"], [Define if your C compiler doesn't have __func__ variable.])
 		 AC_MSG_RESULT([ no])]
@@ -131,10 +146,10 @@ dnl Check whether the C compiler defines __STDC__.
 dnl
 AC_DEFUN([AM_CHECK___STDC__], [
 	AC_MSG_CHECKING([whether the C compiler (${CC}) defines __STDC__])
-	AC_LINK_IFELSE([AC_LANG_PROGRAM([],
+	AC_TRY_COMPILE([],
 			[#ifndef __STDC__
 			    test_stdc ();
-			 #endif])],
+			 #endif],
 		[AC_MSG_RESULT([ yes])
 		 AC_DEFINE_UNQUOTED([ANSI_FUNC], [1], [Define if you use an ANSI C compiler.])
 		 stdc_defined="yes"],
@@ -177,8 +192,8 @@ dnl Check whether the C compiler has __attribute__ keyword.
 dnl
 AC_DEFUN([AM_CHECK___ATTRIBUTE__], [
 	AC_MSG_CHECKING([whether the C compiler (${CC}) has __attribute__ keyword])
-	AC_LINK_IFELSE([AC_LANG_PROGRAM([void t1 () __attribute__ ((noreturn)); void t1 () { return; };],
-			[t1 ();])],
+	AC_TRY_COMPILE([void t1 () __attribute__ ((noreturn)); void t1 () { return; };],
+		[t1 ();],
 		[AC_MSG_RESULT([ yes])
 		 AC_DEFINE_UNQUOTED([__ATTRIBUTE__], [1], [Define if your C compiler has __attribute__ keyword.])],
 		[AC_MSG_RESULT([ no])]
@@ -191,7 +206,24 @@ AC_DEFUN([AM_ENABLE_DEBUG], [
 		[if test "${enableval}" = "yes"; then
 			AC_DEFINE([DEBUG], [1], [Define to 1 if you want to include debugging options.])
 			CFLAGS="${CFLAGS} -g -O0"
-		 fi]
+		 else
+			AC_DEFINE([NDEBUG], [1], [Define to 1 if you want to disable C asserts.])
+		 fi],
+		[AC_DEFINE([NDEBUG], [1], [Define to 1 if you want to disable C asserts.])]
+	)
+])
+
+AC_DEFUN([AM_ENABLE_COMPILE_WARNINGS], [
+	AC_ARG_ENABLE([compile-warnings],
+		[AS_HELP_STRING([--enable-compile-warnings], [enable compile warnings @<:@default=yes@:>@])],
+		[],
+		[enable_compile_warnings=yes]
+	)
+])
+
+AC_DEFUN([AM_ENABLE_COMPILE_ERRORS], [
+	AC_ARG_ENABLE([compile-errors],
+		[AS_HELP_STRING([--enable-compile-errors], [treat all compile warnings as errors @<:@default=no@:>@])],
 	)
 ])
 
