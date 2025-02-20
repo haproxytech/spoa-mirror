@@ -35,8 +35,8 @@ struct config_data cfg = {
 	.pidfile_fd          = -1,
 	.ev_backend          = EVFLAG_AUTO,
 #ifdef HAVE_LIBCURL
-	.conn_timeout_us     = CURL_CON_TMOUT,
-	.timeout_us          = CURL_TMOUT,
+	.conn_timeout_us     = CURL_CON_TMOUT * UINT64_C(1000),
+	.timeout_us          = CURL_TMOUT * UINT64_C(1000),
 #endif
 };
 struct program_data prg;
@@ -73,7 +73,7 @@ static void usage(const char *program_name, bool_t flag_verbose)
 		(void)printf("  -B, --libev-backend=TYPE        Specify the libev backend type (default: AUTO).\n");
 		(void)printf("  -b, --connection-backlog=VALUE  Specify the connection backlog size (default: %d).\n", DEFAULT_CONNECTION_BACKLOG);
 #ifdef HAVE_LIBCURL
-		(void)printf("  -C, --connection-timeout=VALUE  Set the maximum time to establish a connection (default: %s).\n", str_delay(CURL_CON_TMOUT));
+		(void)printf("  -C, --connection-timeout=VALUE  Set the maximum time to establish a connection (default: %s).\n", str_delay(CURL_CON_TMOUT * UINT64_C(1000)));
 #endif
 		(void)printf("  -c, --capability=NAME           Enable the support of the specified capability.\n");
 		(void)printf("  -D, --daemonize                 Run this program as a daemon.\n");
@@ -89,7 +89,7 @@ static void usage(const char *program_name, bool_t flag_verbose)
 		(void)printf("  -p, --port=VALUE                Specify the port to listen on (default: %d).\n", DEFAULT_SERVER_PORT);
 		(void)printf("  -r, --runtime=TIME              Run this program for the specified time (0 = unlimited).\n");
 #ifdef HAVE_LIBCURL
-		(void)printf("  -T, --timeout=VALUE             Set the maximum time for a single transfer operation (default: %s).\n", str_delay(CURL_TMOUT));
+		(void)printf("  -T, --timeout=VALUE             Set the maximum time for a single transfer operation (default: %s).\n", str_delay(CURL_TMOUT * UINT64_C(1000)));
 #endif
 		(void)printf("  -t, --processing-delay=TIME     Set a delay to process a message (default: %s).\n", str_delay(DEFAULT_PROCESSING_DELAY));
 #ifdef HAVE_LIBCURL
@@ -440,9 +440,9 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 			flag_error |= _OK(getopt_set_time(optarg, &(cfg.processing_delay_us), 0, TIMEINT_S(1))) ? 0 : 1;
 #ifdef HAVE_LIBCURL
 		else if (c == 'C')
-			flag_error |= _OK(getopt_set_time(optarg, (uint64_t *)&(cfg.conn_timeout_us), TIMEINT_S(CURL_CON_TMOUT_MIN), TIMEINT_S(CURL_CON_TMOUT_MAX))) ? 0 : 1;
+			flag_error |= _OK(getopt_set_time(optarg, (uint64_t *)&(cfg.conn_timeout_us), TIMEINT_S(CURL_CON_TMOUT_MIN * UINT64_C(1000)), TIMEINT_S(CURL_CON_TMOUT_MAX * UINT64_C(1000)))) ? 0 : 1;
 		else if (c == 'T')
-			flag_error |= _OK(getopt_set_time(optarg, (uint64_t *)&(cfg.timeout_us), TIMEINT_S(CURL_TMOUT_MIN), TIMEINT_S(CURL_TMOUT_MAX))) ? 0 : 1;
+			flag_error |= _OK(getopt_set_time(optarg, (uint64_t *)&(cfg.timeout_us), TIMEINT_S(CURL_TMOUT_MIN * UINT64_C(1000)), TIMEINT_S(CURL_TMOUT_MAX * UINT64_C(1000)))) ? 0 : 1;
 		else if (c == 'u')
 			mir_url = optarg;
 		else if (c == 'I')
