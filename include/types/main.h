@@ -30,6 +30,8 @@
 #define DEFAULT_CONNECTION_BACKLOG   10
 #define DEFAULT_RUNTIME              -1
 
+#define MIN_FRAME_SIZE               512
+
 #define SPOP_VERSION                 "2.0"
 
 #define STR_CAP_FRAGMENTATION        "fragmentation"

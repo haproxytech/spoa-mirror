@@ -452,6 +452,11 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 			flag_error = 1;
 		}
 
+		if (cfg.max_frame_size < MIN_FRAME_SIZE) {
+			(void)fprintf(stderr, "ERROR: max-frame-size cannot be less than %d\n", MIN_FRAME_SIZE);
+			flag_error = 1;
+		}
+
 		if (!IN_RANGE(cfg.num_workers, 1, 1000)) {
 			(void)fprintf(stderr, "ERROR: invalid number of workers '%d'\n", cfg.num_workers);
 			flag_error = 1;
