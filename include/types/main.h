@@ -77,6 +77,7 @@ struct config_data {
 	int           pidfile_fd;
 	uint          ev_backend;
 #ifdef HAVE_LIBCURL
+	int           access_log_mode;
 	char         *mir_url;
 	const char   *mir_interface;       /* Outgoing connections interface (IP address). */
 	int           mir_port[2];         /* Outgoing connections port. */
