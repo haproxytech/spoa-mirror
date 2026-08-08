@@ -43,6 +43,9 @@
 #define CONNECTION_BACKLOG 10
 #define NUM_WORKERS        10
 #define MAX_FRAME_SIZE     16384
+#define MIN_FRAME_SIZE     512
+#define LIMIT_FRAME_SIZE   1048576
+#define MAX_FRAG_FRAMES    64
 #define SPOP_VERSION       "2.0"
 
 #define SLEN(str) (sizeof(str)-1)
@@ -414,6 +417,14 @@ acc_payload(struct spoe_frame *frame)
 	/* No need to accumulation payload */
 	if (frame->fragmented == false)
 		return ret;
+
+	/* The accumulated payload must not grow over the allowed size */
+	if (frame->frag_len + len > (size_t)max_frame_size * MAX_FRAG_FRAMES) {
+		LOG(client->worker, "Fragmented frame too big : %zu > %zu",
+		    frame->frag_len + len, (size_t)max_frame_size * MAX_FRAG_FRAMES);
+		client->status_code = SPOE_FRM_ERR_TOO_BIG;
+		return -1;
+	}
 
 	buf = realloc(frame->frag_buf, frame->frag_len + len);
 	if (buf == NULL) {
@@ -1108,7 +1119,12 @@ use_spoe_engine(struct client *client)
 		return;
 	}
 
-	eng->id = strdup(client->engine_id);
+	if ((eng->id = strdup(client->engine_id)) == NULL) {
+		client->async = false;
+		free(eng);
+		return;
+	}
+
 	LIST_INIT(&eng->clients);
 	LIST_INIT(&eng->processing_frames);
 	LIST_INIT(&eng->outgoing_frames);
@@ -1787,6 +1803,12 @@ main(int argc, char **argv)
 				usage(argv[0]);
 				return EXIT_FAILURE;
 		}
+	}
+
+	if (max_frame_size < MIN_FRAME_SIZE || max_frame_size > LIMIT_FRAME_SIZE) {
+		LOG(&null_worker, "%s : Invalid maximum frame size '%u'\n",
+		    argv[0], max_frame_size);
+		goto error;
 	}
 
 	if (num_workers <= 0) {
