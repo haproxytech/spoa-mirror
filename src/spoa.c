@@ -31,7 +31,8 @@
  *   Add the payload of the frame <frame> to the buffer in which the fragments
  *   are accumulated.  When the last fragment arrives, the accumulated buffer
  *   becomes the frame buffer and the frame is ready to be processed.  A frame
- *   that is not fragmented is left as it is.
+ *   that is not fragmented is left as it is, and one whose payload grows over
+ *   the size that SPOA_FRAG_MAX_FRM allows is refused.
  *
  * RETURN VALUE
  *   It returns the offset of the payload in the frame buffer, 1 if the next
@@ -39,13 +40,22 @@
  */
 int acc_payload(struct spoe_frame *frame)
 {
-	size_t len = frame->len - frame->offset;
+	size_t len = frame->len - frame->offset, max_size;
 	int    retval = frame->offset;
 
 	DBG_FUNC(FW_PTR, "%p", frame);
 
+	max_size = (size_t)cfg.max_frame_size * SPOA_FRAG_MAX_FRM;
+
 	if (!frame->fragmented) {
 		/* No need to accumulation payload. */
+	}
+	else if ((frame->frag.len + len) > max_size) {
+		FC_PTR->status_code = SPOE_FRM_ERR_TOO_BIG;
+
+		f_log(frame, _E("Fragmented frame too big: %zu > %zu"), frame->frag.len + len, max_size);
+
+		retval = FUNC_RET_ERROR;
 	}
 	else if (_ERROR(buffer_grow(&(frame->frag), frame->buf + frame->offset, len))) {
 		FC_PTR->status_code = SPOE_FRM_ERR_RES;

@@ -1074,7 +1074,9 @@ static CURLcode mir_curl_add_url(struct curl_con *con, const struct mirror *mir)
  *   options of the handle are set before that; the URL, the HTTP headers, the
  *   callback functions, the timeouts and the keepalive, and the multi handle
  *   <curl> then runs the transfer.  The connection is closed again when any of
- *   these steps fails.
+ *   these steps fails.  The mirror data <mir> is taken over by the connection
+ *   only when the easy handle is really added, so that the caller releases the
+ *   data in every other case.
  *
  * RETURN VALUE
  *   It returns FUNC_RET_OK (0) on success, FUNC_RET_ERROR (-1) otherwise.
@@ -1143,12 +1145,14 @@ int mir_curl_add(struct curl_data *curl, struct mirror *mir)
 		CURL_DBG("Adding easy %p to multi %p (%s)", con->easy, curl->multi, mir->url);
 
 		con->curl = curl;
-		con->mir  = mir;
 
-		if ((rcm = curl_multi_add_handle(curl->multi, con->easy)) != CURLM_OK)
+		if ((rcm = curl_multi_add_handle(curl->multi, con->easy)) != CURLM_OK) {
 			CURL_ERR_MULTI("Failed to add easy handle", rcm);
-		else
+		} else {
+			con->mir = mir;
+
 			retval = FUNC_RET_OK;
+		}
 	}
 
 	if (_ERROR(retval))

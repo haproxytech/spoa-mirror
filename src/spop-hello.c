@@ -280,7 +280,11 @@ static void use_spoe_engine(struct client *client)
 		if (strcmp(e->id, client->engine_id) == 0)
 			goto end;
 
-	if (_NULL(e = calloc(1, sizeof(*e)))) {
+	e = calloc(1, sizeof(*e));
+	if (_nNULL(e) && _NULL(e->id = strdup(client->engine_id)))
+		PTR_FREE(e);
+
+	if (_NULL(e)) {
 		client->async = false;
 
 		c_log(client, _E("--> HAPROXY-HELLO Failed to allocate memory: %m"));
@@ -288,7 +292,6 @@ static void use_spoe_engine(struct client *client)
 		DBG_RETURN();
 	}
 
-	e->id = strdup(client->engine_id);
 	LIST_INIT(&(e->clients));
 	LIST_INIT(&(e->processing_frames));
 	LIST_INIT(&(e->outgoing_frames));

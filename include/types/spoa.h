@@ -23,6 +23,9 @@
 #define SPOA_FRM_LEN        sizeof(uint32_t)
 #define SPOA_FRM_READ_CNT   3
 
+/* A fragmented payload may not grow beyond this many frames. */
+#define SPOA_FRAG_MAX_FRM   64
+
 #define FC_PTR              (frame->client)
 #define FW_PTR              (frame->worker)
 #define CW_PTR              (client->worker)

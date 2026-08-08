@@ -499,8 +499,8 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 			flag_error = 1;
 		}
 
-		if (cfg.max_frame_size < MIN_FRAME_SIZE) {
-			(void)fprintf(stderr, "ERROR: max-frame-size cannot be less than %d\n", MIN_FRAME_SIZE);
+		if (!IN_RANGE(cfg.max_frame_size, MIN_FRAME_SIZE, MAX_FRAME_SIZE)) {
+			(void)fprintf(stderr, "ERROR: max-frame-size not in range [%d, %d]\n", MIN_FRAME_SIZE, MAX_FRAME_SIZE);
 			flag_error = 1;
 		}
 

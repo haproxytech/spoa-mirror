@@ -269,7 +269,8 @@ int spoa_msg_test(struct spoe_frame *frame, const char **buf, const char *end)
  *   Decode the HTTP headers that are written as a sequence of the name and
  *   value strings, and add every header, in the 'name: value' form, to the list
  *   <hdrs>.  A header that has no value gets a semicolon instead of it.  All
- *   the headers allocated so far are released if the decoding fails.
+ *   the headers allocated so far are released if the decoding fails or if the
+ *   data ends after a header name.
  *
  * RETURN VALUE
  *   It returns a non-negative value on success, or FUNC_RET_ERROR (-1) in case
@@ -304,6 +305,9 @@ static int spoa_msg_arg_hdrs_bin(struct spoe_frame *frame, const char *buf, cons
 
 			F_DBG(SPOA, frame, "header[%d]: <%.*s>", i / 2, (int)hdr->len, hdr->ptr);
 			LIST_ADDQ(hdrs, &(hdr->list));
+
+			/* The header is on the list, it is not released here. */
+			hdr = NULL;
 		}
 		else if (_NULL(str)) {
 			if (buf != end) {
@@ -315,13 +319,15 @@ static int spoa_msg_arg_hdrs_bin(struct spoe_frame *frame, const char *buf, cons
 
 			break;
 		}
-		else if (_NULL(hdr = buffer_alloc(cfg.max_frame_size, str, len, NULL))) {
+		else if (_NULL(hdr = buffer_alloc(len, str, len, NULL))) {
+			retval = FUNC_RET_ERROR;
+
 			break;
 		}
 	}
 
 	/* In the case of a fault, the allocated memory is released. */
-	if (_ERROR(retval) || _NULL(hdr)) {
+	if (_ERROR(retval) || _nNULL(hdr)) {
 		buffer_ptr_free(&hdr);
 
 		list_for_each_entry_safe(hdr, hdr_back, hdrs, list) {
@@ -375,12 +381,19 @@ static int spoa_msg_arg_hdrs(struct spoe_frame *frame __maybe_unused, const char
 		 * In that case, this block is skipped.
 		 */
 		if (ptr != buf) {
-			if (_NULL(hdr = buffer_alloc(cfg.max_frame_size, buf, ptr - buf, NULL)))
+			/* One byte more is allocated, for the string terminator. */
+			if (_NULL(hdr = buffer_alloc(ptr - buf + 1, buf, ptr - buf, NULL))) {
+				retval = FUNC_RET_ERROR;
+
 				break;
+			}
 
 			F_DBG(SPOA, frame, "header[%d]: <%.*s>", i, (int)hdr->len, hdr->ptr);
 
 			LIST_ADDQ(hdrs, &(hdr->list));
+
+			/* The header is on the list, it is not released here. */
+			hdr = NULL;
 		}
 
 		/* Skip the end of the HTTP header (CRLF). */
@@ -390,7 +403,7 @@ static int spoa_msg_arg_hdrs(struct spoe_frame *frame __maybe_unused, const char
 	}
 
 	/* In the case of a fault, the allocated memory is released. */
-	if (_ERROR(retval) || ((i > 0) && _NULL(hdr))) {
+	if (_ERROR(retval) || _nNULL(hdr)) {
 		buffer_ptr_free(&hdr);
 
 		list_for_each_entry_safe(hdr, hdr_back, hdrs, list) {

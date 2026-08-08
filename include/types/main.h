@@ -31,6 +31,7 @@
 #define DEFAULT_RUNTIME              -1
 
 #define MIN_FRAME_SIZE               512
+#define MAX_FRAME_SIZE               1048576
 
 #define SPOP_VERSION                 "2.0"
 

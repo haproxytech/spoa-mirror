@@ -212,8 +212,9 @@ void buffer_ptr_free(struct buffer **data)
  * DESCRIPTION
  *   Add <n> bytes of the data pointed to by <src> to the end of the buffer
  *   <data>.  If there is not enough free space in the buffer, the data area is
- *   enlarged by <n> bytes rounded up to a multiple of 32.  When <src> is a NULL
- *   pointer, the buffer is only enlarged and the added space is cleared.
+ *   enlarged by <n> bytes rounded up to a multiple of 32, or doubled when that
+ *   gives more room.  When <src> is a NULL pointer, nothing is added and only
+ *   the space for <n> bytes is reserved and cleared.
  *
  * RETURN VALUE
  *   It returns the length of the data in the buffer, or FUNC_RET_ERROR (-1) in
@@ -223,21 +224,31 @@ ssize_t buffer_grow(struct buffer *data, const void *src, size_t n)
 {
 	uint8_t *ptr;
 	size_t   size = ALIGN_VALUE(n, 5);
-	int      retval = FUNC_RET_ERROR;
+	ssize_t  retval = FUNC_RET_ERROR;
 
 	DBG_FUNC(NULL, "%p, %p, %zu", data, src, n);
 
 	if (_NULL(data))
 		DBG_RETURN_SSIZE(retval);
 
-	if (_NULL(data->ptr))
-		buffer_init(data);
+	/* A buffer without the data area cannot hold anything. */
+	if (_NULL(data->ptr)) {
+		data->len  = 0;
+		data->size = 0;
+	}
+
+	/* Doubling the data area keeps the number of the reallocations low. */
+	if (size < data->size)
+		size = data->size;
 
 	if (n == 0) {
 		retval = data->len;
 	}
 	else if (_nNULL(data->ptr) && ((data->size - data->len) >= n)) {
-		if (_nNULL(src)) {
+		if (_NULL(src)) {
+			/* Clearing the requested part of the buffer. */
+			(void)memset(data->ptr + data->len, 0, n);
+		} else {
 			/* Copying src data to buffer. */
 			(void)memcpy(data->ptr + data->len, src, n);
 
@@ -302,6 +313,8 @@ ssize_t buffer_grow_va(struct buffer *data, const void *src, size_t n, ...)
 
 	if (_NULL(data))
 		DBG_RETURN_SSIZE(retval);
+
+	retval = data->len;
 
 	va_start(ap, n);
 	while (_nNULL(src) && (n > 0)) {
