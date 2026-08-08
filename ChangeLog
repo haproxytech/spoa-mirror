@@ -1,0 +1,203 @@
+ChangeLog :
+===========
+
+2024/04/21 : 1.2.19
+
+    Added support for the absolute-form request target and corrected the use
+    of the outgoing connection options.  The data decoder learned to decode
+    whole SPOP frames.
+
+    - CLEANUP: using the STR_ADDRSIZE() macro for working with static strings
+    - MINOR: util: added possibility of decoding SPOP frames
+    - BUG/MINOR: added support for absolute-form request target
+    - BUG/MINOR: fixed the use of '--mirror-(interface|local-port)' program command-line arguments
+
+2023/10/09 : 1.2.18
+
+    The HTTP headers sent to the mirror URL can now be changed, and a program
+    for decoding the data received from HAProxy was added.
+
+    - BUG/MINOR: examples: corrected path to spoa-mirror program
+    - MINOR: util: added a program for decoding data received from HAProxy via SPOP
+    - CLEANUP: changing the name of the function spoa_msg_arg_hdrs()
+    - MINOR: added possibility to change HTTP headers that are sent to mirror URL
+
+2023/09/04 : 1.2.17
+
+    The test configurations were moved into a debug subdirectory and simplified
+    ones were added.  The deprecated CURLOPT_PUT option was dropped.
+
+    - CLEANUP: examples: moved all test configurations to the 'debug' subdirectory
+    - MINOR: examples: added simplified configurations for program testing
+    - CLEANUP: drop CURLOPT_PUT because it is deprecated
+
+2022/09/14 : 1.2.16
+
+    The build system was corrected in several places, the libev library can be
+    configured using pkg-config, and the call to the libev socket timer callback
+    was deferred.
+
+    - BUILD/MINOR: small corrections to the build system
+    - BUILD/MINOR: replaced deprecated macro AC_TRY_COMPILE()
+    - BUILD/MINOR: enabled configuration of libev library using pkg-config
+    - BUILD/MINOR: remove 'typeset' from the variable definition
+    - BUILD/MINOR: added libdata to PKG_CONFIG path
+    - BUG/MINOR: deferred calling the libev socket timer callback function
+
+2022/04/13 : 1.2.15
+
+    Corrections to the debug output, among them the definition of the macro
+    DBG_FUNC_END() for the non-debug mode.
+
+    - BUG/MINOR: debug: fixed incorrectly defined 'return' statement
+    - CLEANUP: debug: added a tag for the end of the function in the debug output
+    - BUG/MINOR: debug: define DBG_FUNC_END() macro for non-debug mode
+
+2022/04/12 : 1.2.14
+
+    Better signal handling, and the debug output now shows the return values
+    of all functions.
+
+    - MINOR: better signal handling
+    - fix missing put body (#23)
+    - MINOR: examples: removed the deprecated global 'debug' directive
+    - MINOR: debug: show return values of all functions in the debug output
+
+2020/08/17 : 1.2.13
+
+    Fixed the saving of the HTTP headers data in the mirror structure.
+
+    - BUG/MINOR: fixed saving of HTTP headers data in struct mirror
+
+2020/07/13 : 1.2.12
+
+    The size allocation of 'struct buffer' was changed, and its initialization
+    and the release of its data were improved.  The multiple execution of the
+    worker_stop() function was disabled.
+
+    - MINOR: changed 'struct buffer' size allocation
+    - MINOR: improved initialization and release of 'struct buffer' data
+    - BUG/MINOR: multiple execution of the function worker_stop() disabled
+
+2020/03/19 : 1.2.11
+
+    Fixed the calculation of the 'size' member of 'struct buffer'.
+
+    - BUG/MINOR: fixed 'struct buffer' 'size' member calculation
+
+2020/03/19 : 1.2.10
+
+    The maximum debug level can be set using the value -1.
+
+    - MINOR: allowed to set the maximum debug level using the value -1
+
+2020/03/18 : 1.2.9
+
+    Added a master-worker configuration file for testing the program, and the
+    spoa_msg_arg_dup() function.
+
+    - MINOR: examples: added master-worker configuration file
+    - CLEANUP: added spoa_msg_arg_dup() function
+
+2020/03/10 : 1.2.8
+
+    Fixed the network address check.
+
+    - BUG/MINOR: fixed network address check
+
+2020/03/10 : 1.2.7
+
+    The '-d' option can be used in the non-debug mode, and the buffer_grow_kv()
+    function was renamed to buffer_grow_va().
+
+    - CLEANUP: simplified frame buffer initialization
+    - DOC: added some code comments in parse_url() function
+    - MINOR: renamed buffer_grow_kv() function to buffer_grow_va()
+    - MINOR: enabled using the '-d' option in non-debug mode
+
+2020/02/21 : 1.2.6
+
+    Removed the memory leaks that appeared when no HTTP requests were mirrored.
+
+    - DOC: updated README
+    - CLEANUP: removed unnecessary initialization of client structure members
+    - BUG/MINOR: removed memory leaks if no HTTP requests are mirrored
+
+2020/02/21 : 1.2.5
+
+    Fixed the program crash in the asynchronous mode and the false positive
+    warning when parsing the HTTP headers.
+
+    - BUG/MINOR: removed false positive warning when parsing HTTP headers
+    - BUG/MINOR: fixed program crash in asynchronous mode
+
+2020/02/18 : 1.2.4
+
+    Allowed the use of the HTTP headers with no value, and added the function
+    buffer_grow_kv().
+
+    - CLEANUP: simplified use of the debug levels in x_DBG() macros
+    - CLEANUP: removed use of the DEREF_PTR() macro
+    - MINOR: buffer_alloc() function definition changed
+    - MINOR: added buffer_grow_kv()
+    - BUG/MINOR: allowed use of HTTP headers with no value
+
+2020/01/22 : 1.2.3
+
+    Added the '--libev-backend' program command-line argument.
+
+    - CLEANUP: removed the redundant lines from configure.ac
+    - MINOR: added '--libev-backend' program command-line argument
+
+2020/01/15 : 1.2.2
+
+    The name of the worker thread is now set.
+
+    - BUILD/MINOR: added protection against multiple __packed macro definitions
+    - CLEANUP: removed duplicate debugging line
+    - CLEANUP: using macro for NULL pointer checking
+    - MINOR: set worker thread name
+
+2019/09/21 : 1.2.1
+
+    Fixed the parsing of the HAPROXY-HELLO capabilities.
+
+    - BUILD/MINOR: enabled warning for pointer signedness difference
+    - BUG/MINOR: fixed parsing of HAPROXY-HELLO capabilities
+
+2019/07/29 : 1.2.0
+
+    Added support for the HTTP/2 protocol.
+
+    - MINOR: added support for HTTP/2 protocol
+
+2019/07/29 : 1.1.0
+
+    Added support for HTTPS and corrected the support for the query string.
+
+    - DOC: corrected documentation related to http methods
+    - BUG/MINOR: examples: corrected support for the query string
+    - BUG/MINOR: changed the type of CURL_LS_* arguments
+    - MINOR: added support for HTTPS
+
+2019/07/16 : 1.0.1
+
+    Fixed the checking of the healthcheck requests.
+
+    - BUG/MINOR: fixed checking of healthcheck requests
+
+2019/06/18 : 1.0.0
+
+    The first released version.  The program is built on top of the libev and
+    the cURL libraries, it processes the 'mirror' SPOE message, and it encodes
+    and decodes the SPOP frames in a standardized way.
+
+    - Initial commit
+    - MINOR: deleted prefixes in error messages
+    - BUG/MINOR: uninitialized variable rc
+    - MINOR: added logfile status variable
+    - MINOR: preserve open file descriptors in daemonize() function
+    - MINOR: added '--pidfile' program command-line argument
+    - MINOR: supported older versions of the cURL library
+    - MINOR: reduced the minimum required version of Automake tool
+    - MINOR: supported older versions of the cURL library (up from 7.32.0)
