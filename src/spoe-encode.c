@@ -250,6 +250,7 @@ int spoe_encode_frame(const char *msg, struct spoe_frame *frame, uint8_t spoa_ty
 	/* Be careful here, in async mode, frame->client can be NULL. */
 	va_list  ap;
 	char    *buf;
+	uint32_t netflags;
 	int      retval = FUNC_RET_OK;
 
 	DBG_FUNC(FW_PTR, "\"%s\", %p, %hhu, %hhu, 0x%08x, %d, ...", msg, frame, spoa_type, spoe_type, flags, type);
@@ -263,9 +264,10 @@ int spoe_encode_frame(const char *msg, struct spoe_frame *frame, uint8_t spoa_ty
 	/* Frame type */
 	*(buf++) = spoe_type;
 
-	/* Set flags */
-	*(uint32_t *)buf = htonl(flags);
-	buf += sizeof(uint32_t);
+	/* Set flags; they are not aligned in the buffer. */
+	netflags = htonl(flags);
+	(void)memcpy(buf, &netflags, sizeof(netflags));
+	buf += sizeof(netflags);
 
 	va_start(ap, type);
 	retval = spoe_vencode(frame, &buf, type, ap);

@@ -294,8 +294,9 @@ static int spoe_vdecode(struct spoe_frame *frame, const char **buf, const char *
 		else if (type == SPOE_DEC_UINT32) {
 			uint32_t *addr32 = va_arg(ap, typeof(addr32));
 
-			*addr32  = *(typeof(addr32))ptr;
-			ptr     += sizeof(*addr32);
+			/* The frame flags are not aligned in the buffer. */
+			(void)memcpy(addr32, ptr, sizeof(*addr32));
+			ptr += sizeof(*addr32);
 		}
 		else if (type == SPOE_DEC_VARINT0) {
 			uint64_t *value = va_arg(ap, typeof(value));
