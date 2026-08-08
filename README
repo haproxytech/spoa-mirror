@@ -9,7 +9,8 @@ Summary
   1. Introduction
   2. Build instructions
   3. Use of the program
-  4. Known bugs and limitations
+  4. HAProxy compatibility
+  5. Known bugs and limitations
 
 
 1. Introduction
@@ -74,6 +75,10 @@ Compiling the program:
 
 After that, in the directory src will be located spoa-mirror program.
 
+The util directory holds the decode-data program, which decodes the SPOP frame
+data copied from the log created by spoa-mirror.  It is described in more detail
+in util/README.
+
 
 3. Use of the program
 ------------------------------------------------------------------------
@@ -133,19 +138,16 @@ The program simultaneously supports short and long format options.
 
 
 The test directory contains the configuration files for HAProxy (haproxy.cfg)
-and SPOE (spoe.cfg).  ssl-cert.pem is a certificate intended for testing if we
-want to use HTTPS HAProxy frontend.
+and SPOE (spoe.cfg).  haproxy-ssl.cfg adds an HTTPS frontend, haproxy-mw.cfg
+starts HAProxy in master-worker mode and declares the agent as a program, and
+ssl-cert.pem is a certificate intended for testing the HTTPS frontend.  The
+get-absolute-uri.sh script sends a request with an absolute-form target.
 
-During the normal work of the program, should be placed under the comment the
-following lines in the spoe.cfg:
-
---- spoe.cfg ----------
-  messages check-client-ip
-  messages test
---- spoe.cfg ----------
-
-These two rows can be used when debugging the program, especially if it is
-configured with the option --enable-debug .
+The test/debug subdirectory holds the same configurations extended with the
+SPOE variable captures, and its spoe.cfg also refers to the check-client-ip
+and test messages.  Those messages are commented out there and are meant to
+be enabled only when debugging the program, which is most useful when it is
+configured with the --enable-debug option.
 
 
 First, the spoa-mirror program should be launched by referring to the URL to
@@ -182,7 +184,27 @@ that argument to which we can add the regsub() converter, as in the example:
   .. arg_hdrs=req.hdrs,regsub(foo,bar)
 
 
-4. Known bugs and limitations
+4. HAProxy compatibility
+------------------------------------------------------------------------
+
+The program implements version 2.0 of the SPOP protocol and works with all the
+HAProxy versions that support it.  Starting with HAProxy 3.1 the protocol is
+handled by a dedicated multiplexer, while the SPOE filter keeps the agent and
+message configuration.
+
+That multiplexer announces and accepts the pipelining capability alone, so the
+fragmentation and async capabilities are negotiated only with older versions.
+
+The backend used by the SPOE agent should be declared with 'mode spop', but a
+backend left in 'mode tcp' is still converted automatically, so the shipped
+configurations keep working.
+
+The following spoe-agent keywords are still parsed by the newer versions but
+they no longer have any effect: 'option async', 'option send-frag-payload',
+'maxconnrate', 'maxerrrate' and 'max-waiting-frames'.
+
+
+5. Known bugs and limitations
 ------------------------------------------------------------------------
 
 HAProxy should be used in SSL termination mode if HTTPS is used in the HAProxy
