@@ -151,6 +151,12 @@ static int check_capabilities_cb(struct spoe_frame *frame, void *arg1, void *arg
 	if (_NULL(str))
 		DBG_RETURN_INT(retval);
 
+	/*
+	 * NOTE: the 'async' and 'fragmentation' capabilities are announced
+	 * only by HAProxy older than 3.1.  The SPOP multiplexer added in that
+	 * version announces and accepts 'pipelining' alone, so they are kept
+	 * here for the older versions.
+	 */
 	while (len > 0) {
 		/* Skip leading spaces. */
 		for ( ; (len > 0) && (*str == ' '); len--, str++);

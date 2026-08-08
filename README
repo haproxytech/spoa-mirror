@@ -113,6 +113,9 @@ Supported libev backends: select, poll, epoll, linuxaio.
 
 Supported capabilities: fragmentation, pipelining, async.
 
+The fragmentation and async capabilities are supported only by HAProxy older
+than 3.1; newer versions negotiate pipelining only.
+
 Allowed logging file opening modes: a, w.  The 'a' mode allows openning or
 creating file for writing at end-of-file.  The 'w' mode allows truncating
 the file to zero length or creating a new file.  If a capital letter is used

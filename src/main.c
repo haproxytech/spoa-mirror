@@ -100,6 +100,8 @@ static void usage(const char *program_name, bool_t flag_verbose)
 		(void)printf("  -V, --version                   Show program version.\n\n");
 		(void)printf("Supported libev backends: %s.\n\n", ev_backends_supported());
 		(void)printf("Supported capabilities: " STR_CAP_FRAGMENTATION ", " STR_CAP_PIPELINING ", " STR_CAP_ASYNC ".\n\n");
+		(void)printf("The " STR_CAP_FRAGMENTATION " and " STR_CAP_ASYNC " capabilities are supported only by HAProxy older\n");
+		(void)printf("than 3.1; newer versions negotiate " STR_CAP_PIPELINING " only.\n\n");
 		(void)printf("Allowed logging file opening modes: a, w.  The 'a' mode allows openning or\n");
 		(void)printf("creating file for writing at end-of-file.  The 'w' mode allows truncating\n");
 		(void)printf("the file to zero length or creating a new file.  If a capital letter is used\n");
