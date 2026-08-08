@@ -530,6 +530,15 @@ static ssize_t frame_recv(struct spoe_frame *frame)
 		if (retval == SPOA_FRM_LEN) {
 			frame->len  = ntohl(*(uint32_t *)frame->buf);
 			frame->buf += SPOA_FRM_LEN;
+
+			/* The announced frame data must fit into the allocated buffer. */
+			if (frame->len > cfg.max_frame_size) {
+				FC_PTR->status_code = SPOE_FRM_ERR_TOO_BIG;
+
+				c_log(FC_PTR, _E("Frame too big: %zu > %u"), frame->len, cfg.max_frame_size);
+
+				DBG_RETURN_SSIZE(FUNC_RET_ERROR);
+			}
 		} else {
 			DBG_RETURN_SSIZE((retval > 0) ? 0 : retval);
 		}
