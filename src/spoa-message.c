@@ -22,23 +22,29 @@
 
 /***
  * NAME
- *   spoa_msg_arg_dup -
+ *   spoa_msg_arg_dup - duplicate the value of a message argument
  *
  * ARGUMENTS
- *   frame  -
- *   i      -
- *   arg    -
- *   arglen -
- *   data   -
- *   ptr    -
- *   len    -
- *   errmsg -
+ *   frame  - frame that is processed
+ *   i      - index of the message argument
+ *   arg    - name of the message argument
+ *   arglen - length of the argument name
+ *   data   - decoded value of the argument
+ *   ptr    - pointer to the duplicated value
+ *   len    - pointer to the length of the duplicated value
+ *   errmsg - text written in the log in case of the error
  *
  * DESCRIPTION
- *   -
+ *   Duplicate the value of the message argument <arg> and save the address of
+ *   the copy in <*ptr>, and its length in <*len> when <len> is given.  Nothing
+ *   is duplicated when <*ptr> is already set, because that means the argument
+ *   is given more than once; such an argument is reported in the log and the
+ *   first value is kept.  The index <i> and the name <arg> are used in the
+ *   logged messages only.
  *
  * RETURN VALUE
- *   -
+ *   It returns the pointer <*ptr>, which is a NULL pointer only when the value
+ *   cannot be duplicated.
  */
 static void *spoa_msg_arg_dup(const struct spoe_frame *frame, int i, const char *arg, size_t arglen, const union spoe_data *data, char **ptr, size_t *len, const char *errmsg)
 {
@@ -57,19 +63,23 @@ static void *spoa_msg_arg_dup(const struct spoe_frame *frame, int i, const char 
 
 /***
  * NAME
- *   spoa_msg_iprep -
+ *   spoa_msg_iprep - process the check-client-ip message
  *
  * ARGUMENTS
- *   frame    -
- *   buf      -
- *   end      -
- *   ip_score -
+ *   frame    - frame that is processed
+ *   buf      - pointer to the message data
+ *   end      - pointer to the end of the frame data
+ *   ip_score - pointer to the calculated IP score
  *
  * DESCRIPTION
- *   -
+ *   Decode the argument of the 'check-client-ip' message and calculate a score
+ *   for the IPv4 or the IPv6 address that the argument holds.  The score is a
+ *   random number and is saved in <*ip_score>.  On success the pointer <*buf>
+ *   is moved after the decoded message.
  *
  * RETURN VALUE
- *   -
+ *   It returns the number of the read bytes, 0 if the message does not have a
+ *   single address argument, or FUNC_RET_ERROR (-1) in case of the error.
  */
 int spoa_msg_iprep(struct spoe_frame *frame, const char **buf, const char *end, int *ip_score)
 {
@@ -119,15 +129,17 @@ int spoa_msg_iprep(struct spoe_frame *frame, const char **buf, const char *end, 
 
 /***
  * NAME
- *   spoa_msg_iprep_action -
+ *   spoa_msg_iprep_action - add the ip_score action to a frame
  *
  * ARGUMENTS
- *   frame    -
- *   buf      -
- *   ip_score -
+ *   frame    - frame in which the action is written
+ *   buf      - pointer to the position in the frame buffer
+ *   ip_score - IP score that is set
  *
  * DESCRIPTION
- *   -
+ *   Add to the frame <frame> the action that sets the session variable named
+ *   'ip_score' to the value <ip_score>.  The action is encoded at the position
+ *   <*buf>, which is moved after the encoded action.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -153,18 +165,22 @@ void spoa_msg_iprep_action(struct spoe_frame *frame, char **buf, int ip_score)
 
 /***
  * NAME
- *   spoa_msg_test -
+ *   spoa_msg_test - process the test message
  *
  * ARGUMENTS
- *   frame -
- *   buf   -
- *   end   -
+ *   frame - frame that is processed
+ *   buf   - pointer to the message data
+ *   end   - pointer to the end of the frame data
  *
  * DESCRIPTION
- *   -
+ *   Decode all the arguments of the 'test' message and write their names, types
+ *   and values to the log.  The message is used to check the decoding of all
+ *   the data types that HAProxy can send.  On success the pointer <*buf> is
+ *   moved after the decoded message.
  *
  * RETURN VALUE
- *   -
+ *   It returns the number of the read bytes, or FUNC_RET_ERROR (-1) in case of
+ *   the error.
  */
 int spoa_msg_test(struct spoe_frame *frame, const char **buf, const char *end)
 {
@@ -241,19 +257,23 @@ int spoa_msg_test(struct spoe_frame *frame, const char **buf, const char *end)
 
 /***
  * NAME
- *   spoa_msg_arg_hdrs_bin -
+ *   spoa_msg_arg_hdrs_bin - decode the HTTP headers from a binary argument
  *
  * ARGUMENTS
- *   frame -
- *   buf   -
- *   end   -
- *   hdrs  -
+ *   frame - frame that is processed
+ *   buf   - pointer to the argument data
+ *   end   - pointer to the end of the argument data
+ *   hdrs  - list to which the decoded headers are added
  *
  * DESCRIPTION
- *   -
+ *   Decode the HTTP headers that are written as a sequence of the name and
+ *   value strings, and add every header, in the 'name: value' form, to the list
+ *   <hdrs>.  A header that has no value gets a semicolon instead of it.  All
+ *   the headers allocated so far are released if the decoding fails.
  *
  * RETURN VALUE
- *   -
+ *   It returns a non-negative value on success, or FUNC_RET_ERROR (-1) in case
+ *   of the error.
  */
 static int spoa_msg_arg_hdrs_bin(struct spoe_frame *frame, const char *buf, const char *end, struct list *hdrs)
 {
@@ -318,19 +338,22 @@ static int spoa_msg_arg_hdrs_bin(struct spoe_frame *frame, const char *buf, cons
 
 /***
  * NAME
- *   spoa_msg_arg_hdrs -
+ *   spoa_msg_arg_hdrs - decode the HTTP headers from a string argument
  *
  * ARGUMENTS
- *   frame -
- *   buf   -
- *   end   -
- *   hdrs  -
+ *   frame - frame that is processed
+ *   buf   - pointer to the argument data
+ *   end   - pointer to the end of the argument data
+ *   hdrs  - list to which the decoded headers are added
  *
  * DESCRIPTION
- *   -
+ *   Split the HTTP headers that are written as a single string in which every
+ *   header ends with CRLF, and add each of them to the list <hdrs>.  The empty
+ *   headers are skipped.  All the headers allocated so far are released if the
+ *   splitting fails.
  *
  * RETURN VALUE
- *   -
+ *   It returns FUNC_RET_OK (0) on success, FUNC_RET_ERROR (-1) otherwise.
  */
 static int spoa_msg_arg_hdrs(struct spoe_frame *frame __maybe_unused, const char *buf, const char *end, struct list *hdrs)
 {
@@ -384,17 +407,20 @@ static int spoa_msg_arg_hdrs(struct spoe_frame *frame __maybe_unused, const char
 
 /***
  * NAME
- *   spoa_msg_url -
+ *   spoa_msg_url - construct the URL of the mirrored request
  *
  * ARGUMENTS
- *   frame -
- *   mir   -
+ *   frame - frame that is processed
+ *   mir   - mirror data of the message
  *
  * DESCRIPTION
- *   -
+ *   Construct the URL to which the request is mirrored, adding the relative
+ *   part of the path from the mirror data <mir> to the configured mirror URL.
+ *   If the path is an absolute URL, only the part that starts with the first
+ *   '/' after the scheme and the host name is used.
  *
  * RETURN VALUE
- *   -
+ *   It returns FUNC_RET_OK (0) on success, FUNC_RET_ERROR (-1) otherwise.
  */
 static int spoa_msg_url(struct spoe_frame *frame, struct mirror *mir)
 {
@@ -443,18 +469,25 @@ static int spoa_msg_url(struct spoe_frame *frame, struct mirror *mir)
 
 /***
  * NAME
- *   spoa_msg_mirror -
+ *   spoa_msg_mirror - process the mirror message
  *
  * ARGUMENTS
- *   frame -
- *   buf   -
- *   end   -
+ *   frame - frame that is processed
+ *   buf   - pointer to the message data
+ *   end   - pointer to the end of the frame data
  *
  * DESCRIPTION
- *   -
+ *   Decode the arguments of the 'mirror' message; the method, the path, the
+ *   version, the headers and the body of the HTTP request.  The decoded data is
+ *   collected in a mirror structure, the destination URL is constructed, and
+ *   the request is added to the cURL queue of the worker if the program is
+ *   built with the cURL support.  The mirror data is released when the message
+ *   cannot be processed or when no mirror URL is configured.  On success the
+ *   pointer <*buf> is moved after the decoded message.
  *
  * RETURN VALUE
- *   -
+ *   It returns the number of the read bytes, or FUNC_RET_ERROR (-1) in case of
+ *   the error.
  */
 int spoa_msg_mirror(struct spoe_frame *frame, const char **buf, const char *end)
 {
@@ -561,9 +594,10 @@ int spoa_msg_mirror(struct spoe_frame *frame, const char **buf, const char *end)
 			/* Do nothing. */;
 		else {
 #define CURL_HTTP_METHOD_DEF(a)   { #a, TABLESIZE_1(#a) },
+			/* The supported HTTP request methods and their lengths. */
 			static const struct {
-				const char *name;
-				size_t      len;
+				const char *name; /* The name of the request method. */
+				size_t      len;  /* The length of the name. */
 			} http_method[] = { CURL_HTTP_METHOD_DEFINES };
 #undef CURL_HTTP_METHOD_DEF
 
@@ -597,13 +631,14 @@ int spoa_msg_mirror(struct spoe_frame *frame, const char **buf, const char *end)
 
 /***
  * NAME
- *   mir_ptr_free -
+ *   mir_ptr_free - release the mirror data
  *
  * ARGUMENTS
- *   data -
+ *   data - pointer to the mirror structure pointer
  *
  * DESCRIPTION
- *   -
+ *   Release all the data allocated in the mirror structure <*data>, together
+ *   with the structure itself, and set the pointer <*data> to a NULL pointer.
  *
  * RETURN VALUE
  *   This function does not return a value.

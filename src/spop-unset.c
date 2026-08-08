@@ -22,17 +22,21 @@
 
 /***
  * NAME
- *   handle_hafrag -
+ *   handle_hafrag - decode a frame fragment
  *
  * ARGUMENTS
- *   frame -
+ *   frame - frame that is decoded
  *
  * DESCRIPTION
- *   Decode next part of a fragmented frame received from HAProxy.
+ *   Decode the next fragment of a fragmented frame received from HAProxy and
+ *   add its payload to the payload that is already accumulated.  The fragment
+ *   is refused when the program is not configured to use the fragmentation, and
+ *   a fragment that aborts the processing of the frame is ignored.
  *
  * RETURN VALUE
- *   It returns FUNC_RET_ERROR (-1) if an error occurred,
- *   0 if it must be ignored, otherwise the number of read bytes.
+ *   It returns the offset of the payload in the frame buffer, 0 if the frame is
+ *   not a fragment or if the processing is aborted, 1 if the next fragments are
+ *   still expected, or FUNC_RET_ERROR (-1) in case of the error.
  */
 int handle_hafrag(struct spoe_frame *frame)
 {

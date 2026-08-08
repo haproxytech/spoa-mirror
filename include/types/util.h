@@ -53,11 +53,12 @@ enum flag_getopt_enum {
 	FLAG_GETOPT_NONOPTION_ARG   = 0x04,
 };
 
+/* A memory buffer that can be linked into a list. */
 struct buffer {
-	struct list  list;
-	uint8_t     *ptr;
-	size_t       len;
-	size_t       size;
+	struct list  list; /* Buffers of a list. */
+	uint8_t     *ptr;  /* The data area of the buffer. */
+	size_t       len;  /* The number of the used bytes. */
+	size_t       size; /* The size of the data area. */
 };
 
 #endif /* _TYPES_UTIL_H */

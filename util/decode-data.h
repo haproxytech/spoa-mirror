@@ -24,11 +24,12 @@
 #define STR_HEX(a,b)     ((STR_NIBBLE(a) << 4) | STR_NIBBLE(b))
 #define STR_IDX(a,b,c)   ((a) + (b) * 2 + (c))
 
+/* The configuration and the input data of the decoding program. */
 struct _prg_data {
-	const char *name;
-	uint8_t     opt_flags;
-        const char *bin_data;
-        const char *frame_data;
+	const char *name;       /* The program name. */
+	uint8_t     opt_flags;  /* Options set on the command line. */
+	const char *bin_data;   /* The hexadecimal data to write as strings. */
+	const char *frame_data; /* The hexadecimal data of the frame to decode. */
 };
 
 #endif /* _DECODE_DATA_H */

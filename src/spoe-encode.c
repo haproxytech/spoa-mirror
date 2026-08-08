@@ -22,12 +22,12 @@
 
 /***
  * NAME
- *   spoe_encode_varint -
+ *   spoe_encode_varint - encode a variable-length integer
  *
  * ARGUMENTS
- *   value -
- *   buf   -
- *   end   -
+ *   value - value that is encoded
+ *   buf   - pointer to the position in the frame data
+ *   end   - pointer to the end of the frame buffer
  *
  * DESCRIPTION
  *   Encode the integer <value> into a varint (variable-length integer).
@@ -76,13 +76,13 @@ static __always_inline int spoe_encode_varint(uint64_t value, char **buf, const 
 
 /***
  * NAME
- *   spoe_encode_buffer -
+ *   spoe_encode_buffer - encode a buffer
  *
  * ARGUMENTS
- *   str -
- *   len -
- *   buf -
- *   end -
+ *   str - buffer that is encoded
+ *   len - length of the buffer
+ *   buf - pointer to the position in the frame data
+ *   end - pointer to the end of the frame buffer
  *
  * DESCRIPTION
  *   Encode a buffer.  Its length <len> is encoded as a varint, followed by a
@@ -123,20 +123,24 @@ static __always_inline int spoe_encode_buffer(const char *str, size_t len, char 
 
 /***
  * NAME
- *   spoe_vencode -
+ *   spoe_vencode - encode the data items of a frame
  *
  * ARGUMENTS
- *   frame -
- *   buf   -
- *   type  -
- *   ap    -
+ *   frame - frame that is encoded
+ *   buf   - pointer to the position in the frame data
+ *   type  - type of the first data item
+ *   ap    - list of the remaining arguments
  *
  * DESCRIPTION
- *   Encode a data to send it to HAProxy.
+ *   Encode the data items that are sent to HAProxy into the buffer of the frame
+ *   <frame>, starting at the position <*buf>.  Every item is described with its
+ *   type, one of the SPOE_ENC_* values, followed by the values that have to be
+ *   encoded; the list of the items ends with SPOE_ENC_END.  The length of the
+ *   frame is updated, and on success <*buf> is moved after the encoded data.
  *
  * RETURN VALUE
- *   It returns the number of written bytes,
- *   or FUNC_RET_ERROR (-1) in case of the error.
+ *   It returns the number of written bytes, or FUNC_RET_ERROR (-1) in case of
+ *   the error.
  */
 static int spoe_vencode(struct spoe_frame *frame, char **buf, int type, va_list ap)
 {
@@ -199,19 +203,20 @@ static int spoe_vencode(struct spoe_frame *frame, char **buf, int type, va_list 
 
 /***
  * NAME
- *   spoe_encode -
+ *   spoe_encode - encode the data items of a frame
  *
  * ARGUMENTS
- *   frame -
- *   buf   -
- *   type  -
+ *   frame - frame that is encoded
+ *   buf   - pointer to the position in the frame data
+ *   type  - type of the first data item
  *
  * DESCRIPTION
- *   Encode a data to send it to HAProxy.
+ *   Encode the data items of the frame <frame>, taking them from the variable
+ *   arguments and passing them to spoe_vencode().
  *
  * RETURN VALUE
- *   It returns the number of written bytes,
- *   or FUNC_RET_ERROR (-1) in case of the error.
+ *   It returns the number of written bytes, or FUNC_RET_ERROR (-1) in case of
+ *   the error.
  */
 int spoe_encode(struct spoe_frame *frame, char **buf, int type, ...)
 {
@@ -228,22 +233,25 @@ int spoe_encode(struct spoe_frame *frame, char **buf, int type, ...)
 
 /***
  * NAME
- *   spoe_encode_frame -
+ *   spoe_encode_frame - encode a frame to send it to HAProxy
  *
  * ARGUMENTS
- *   msg       -
- *   frame     -
- *   spoa_type -
- *   spoe_type -
- *   flags     -
- *   type      -
+ *   msg       - name of the frame, used in the logged messages
+ *   frame     - frame that is encoded
+ *   spoa_type - type that is saved in the frame structure
+ *   spoe_type - type of the frame that is sent
+ *   flags     - flags of the frame that is sent
+ *   type      - type of the first data item
  *
  * DESCRIPTION
- *   Encode a frame to send it to HAProxy.
+ *   Encode a frame to send it to HAProxy; the frame type <spoe_type> and the
+ *   flags <flags> are written first, followed by the data items given in the
+ *   variable arguments.  The type <spoa_type> is saved in the frame structure,
+ *   and the name <msg> is used in the logged messages only.
  *
  * RETURN VALUE
- *   It returns the number of written bytes,
- *   or FUNC_RET_ERROR (-1) in case of the error.
+ *   It returns the length of the encoded frame, or FUNC_RET_ERROR (-1) in case
+ *   of the error.
  */
 int spoe_encode_frame(const char *msg, struct spoe_frame *frame, uint8_t spoa_type, uint8_t spoe_type, uint32_t flags, int type, ...)
 {

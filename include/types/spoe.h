@@ -33,39 +33,41 @@
 		*buf   = (typeof(*buf))ptr;       \
 	}
 
+/* Clients and frames that share the same SPOE engine identifier. */
 struct spoe_engine {
-	char       *id;
+	char       *id;                /* The engine identifier. */
 
-	struct list processing_frames;
-	struct list outgoing_frames;
+	struct list processing_frames; /* Frames that are being processed. */
+	struct list outgoing_frames;   /* Frames that wait to be sent. */
 
-	struct list clients;
-	struct list list;
+	struct list clients;           /* Clients that share the engine. */
+	struct list list;              /* Engines of the worker. */
 };
 
+/* A single SPOP frame together with its data buffer. */
 struct spoe_frame {
-	enum spoa_frame_type  type;       /* Not used really, set only. */
-	char                 *buf;
-	size_t                offset;
-	size_t                len;
-	int                   rd_errors;
-	int                   wr_errors;
+	enum spoa_frame_type  type;             /* Not used really, set only. */
+	char                 *buf;              /* The buffer the frame is received in or sent from. */
+	size_t                offset;           /* The number of the bytes already transferred. */
+	size_t                len;              /* The length of the frame data. */
+	int                   rd_errors;        /* The number of the consecutive read errors. */
+	int                   wr_errors;        /* The number of the consecutive write errors. */
 
-	unsigned int          stream_id;
-	unsigned int          frame_id;
-	unsigned int          flags;
-	bool                  hcheck;     /* true is the CONNECT frame is a healthcheck */
-	bool                  fragmented; /* true if the frame is fragmented */
+	unsigned int          stream_id;        /* The stream identifier of the frame. */
+	unsigned int          frame_id;         /* The frame identifier of the frame. */
+	unsigned int          flags;            /* The flags of the frame header. */
+	bool                  hcheck;           /* true is the CONNECT frame is a healthcheck */
+	bool                  fragmented;       /* true if the frame is fragmented */
 
-	struct ev_timer       ev_process_frame;
-	struct worker        *worker;
-	struct spoe_engine   *engine;
-	struct client        *client;
-	struct list           list;
+	struct ev_timer       ev_process_frame; /* The timer of the message processing delay. */
+	struct worker        *worker;           /* The worker that processes the frame. */
+	struct spoe_engine   *engine;           /* The engine the frame belongs to. */
+	struct client        *client;           /* The client the frame belongs to. */
+	struct list           list;             /* Frames of a worker, client or engine. */
 
-	struct buffer         frag;       /* used to accumulate payload of a fragmented frame */
+	struct buffer         frag;             /* used to accumulate payload of a fragmented frame */
 
-	char                  data[0];
+	char                  data[0];          /* The data area of the frame. */
 };
 
 #endif /* _TYPES_SPOE_H */

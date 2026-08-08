@@ -22,19 +22,20 @@
 
 /***
  * NAME
- *   check_discon_status_code_cb -
+ *   check_discon_status_code_cb - status-code item callback function
  *
  * ARGUMENTS
- *   frame -
- *   arg1  -
- *   arg2  -
+ *   frame - frame that is decoded
+ *   arg1  - pointer to the value of the status-code item
+ *   arg2  - not used, always a NULL pointer
  *
  * DESCRIPTION
- *   Check disconnect status code.
+ *   Write the status code that HAProxy sent in the DISCONNECT frame, together
+ *   with the description of that code, to the log.  Nothing is done when the
+ *   program is built without the debug support.
  *
  * RETURN VALUE
- *   It returns FUNC_RET_ERROR (-1) if an error occurred,
- *   the number of read bytes otherwise.
+ *   It always returns FUNC_RET_OK (0).
  */
 static int check_discon_status_code_cb(struct spoe_frame *frame __maybe_unused, void *arg1 __maybe_unused, void *arg2 __maybe_unused)
 {
@@ -53,19 +54,19 @@ static int check_discon_status_code_cb(struct spoe_frame *frame __maybe_unused, 
 
 /***
  * NAME
- *   check_discon_message_cb -
+ *   check_discon_message_cb - message item callback function
  *
  * ARGUMENTS
- *   frame -
- *   arg1  -
- *   arg2  -
+ *   frame - frame that is decoded
+ *   arg1  - value of the message item
+ *   arg2  - pointer to the length of the item value
  *
  * DESCRIPTION
- *   Check the disconnect message.
+ *   Write the message that HAProxy sent in the DISCONNECT frame to the log.
+ *   Nothing is done when the program is built without the debug support.
  *
  * RETURN VALUE
- *   It returns FUNC_RET_ERROR (-1) if an error occurred,
- *   the number of read bytes otherwise.
+ *   It always returns FUNC_RET_OK (0).
  */
 static int check_discon_message_cb(struct spoe_frame *frame __maybe_unused, void *arg1 __maybe_unused, void *arg2 __maybe_unused)
 {
@@ -85,18 +86,20 @@ static int check_discon_message_cb(struct spoe_frame *frame __maybe_unused, void
 
 /***
  * NAME
- *   handle_hadiscon -
+ *   handle_hadiscon - decode a DISCONNECT frame
  *
  * ARGUMENTS
- *   frame -
+ *   frame - frame that is decoded
  *
  * DESCRIPTION
- *   Decode a DISCONNECT frame received from HAProxy.
+ *   Decode a DISCONNECT frame received from HAProxy and check its key/value
+ *   items; the status code and the message that tell why the connection is
+ *   closed.
  *
  * RETURN VALUE
  *   It returns FUNC_RET_ERROR (-1) if an error occurred, otherwise the number
- *   of read bytes.  DISCONNECT frame cannot be ignored and having another
- *   frame than a DISCONNECT frame is an error.
+ *   of read bytes.  DISCONNECT frame cannot be ignored and having another frame
+ *   than a DISCONNECT frame is an error.
  */
 int handle_hadiscon(struct spoe_frame *frame)
 {
@@ -127,17 +130,19 @@ int handle_hadiscon(struct spoe_frame *frame)
 
 /***
  * NAME
- *   prepare_agentdicon -
+ *   prepare_agentdicon - encode a DISCONNECT frame
  *
  * ARGUMENTS
- *   frame -
+ *   frame - frame that is encoded
  *
  * DESCRIPTION
- *   Encode a DISCONNECT frame to send it to HAProxy.
+ *   Encode the agent DISCONNECT frame that closes the connection with HAProxy.
+ *   The frame holds the status code of the client and the description of that
+ *   code; a status code that is not known is reported as an unknown error.
  *
  * RETURN VALUE
- *   It returns the number of written bytes,
- *   or FUNC_RET_ERROR (-1) in case of the error.
+ *   It returns the length of the encoded frame, or FUNC_RET_ERROR (-1) in case
+ *   of the error.
  */
 int prepare_agentdicon(struct spoe_frame *frame)
 {

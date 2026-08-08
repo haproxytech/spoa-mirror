@@ -22,23 +22,26 @@
 
 /***
  * NAME
- *   spoe_frm_err_reasons -
+ *   spoe_frm_err_reasons - get the description of a frame error
  *
  * ARGUMENTS
- *   status_code -
+ *   status_code - status code of the frame error
  *
  * DESCRIPTION
- *   -
+ *   Look for the status code <status_code> in the table that pairs every frame
+ *   error with its description.
  *
  * RETURN VALUE
- *   -
+ *   It returns the description of the error <status_code>, or the description
+ *   of the unknown error if the status code is not in the table.
  */
 const char *spoe_frm_err_reasons(int status_code)
 {
 #define SPOE_FRM_ERR_DEF(v,e,s)   { s, SPOE_FRM_ERR_##e },
+	/* The frame errors and their descriptions. */
 	static const struct {
-		const char *str;
-		int code;
+		const char *str; /* The description of the error. */
+		int code;        /* The status code of the error. */
 	} reasons[] = { SPOE_FRM_ERR_DEFINES };
 #undef SPOE_FRM_ERR_DEF
 	int i;

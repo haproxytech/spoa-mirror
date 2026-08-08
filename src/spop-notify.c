@@ -22,17 +22,20 @@
 
 /***
  * NAME
- *   handle_hanotify -
+ *   handle_hanotify - decode a NOTIFY frame
  *
  * ARGUMENTS
- *   frame -
+ *   frame - frame that is decoded
  *
  * DESCRIPTION
- *   Decode a NOTIFY frame received from HAProxy.
+ *   Decode a NOTIFY frame received from HAProxy and accumulate its payload.  A
+ *   fragmented frame is refused when the program is not configured to use the
+ *   fragmentation.
  *
  * RETURN VALUE
- *   It returns FUNC_RET_ERROR (-1) if an error occurred,
- *   0 if it must be ignored, otherwise the number of read bytes.
+ *   It returns the offset of the payload in the frame buffer, 0 for a frame
+ *   that is not a NOTIFY frame, 1 if the next fragments are still expected, or
+ *   FUNC_RET_ERROR (-1) in case of the error.
  */
 int handle_hanotify(struct spoe_frame *frame)
 {

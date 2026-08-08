@@ -40,32 +40,33 @@ enum spoa_frame_type {
 };
 
 
+/* Data of a single HAProxy connection to the agent. */
 struct client {
-	int                 fd;
-	unsigned long       id;
-	enum spoa_state     state;
+	int                 fd;                /* The socket of the connection. */
+	unsigned long       id;                /* The client identifier. */
+	enum spoa_state     state;             /* The state of the SPOP connection. */
 
-	struct ev_io        ev_frame_rd;
-	struct ev_io        ev_frame_wr;
+	struct ev_io        ev_frame_rd;       /* The watcher that reads the frames. */
+	struct ev_io        ev_frame_wr;       /* The watcher that writes the frames. */
 
-	struct spoe_frame  *incoming_frame;
-	struct spoe_frame  *outgoing_frame;
+	struct spoe_frame  *incoming_frame;    /* The frame the data is received in. */
+	struct spoe_frame  *outgoing_frame;    /* The frame the data is sent from. */
 
-	struct list         processing_frames;
-	struct list         outgoing_frames;
+	struct list         processing_frames; /* Frames that are being processed. */
+	struct list         outgoing_frames;   /* Frames that wait to be sent. */
 
-	unsigned int        max_frame_size;
-	int                 status_code;
+	unsigned int        max_frame_size;    /* The maximum frame size of the client. */
+	int                 status_code;       /* The status code of the last frame error. */
 
-	char               *engine_id;
-	struct spoe_engine *engine;
-	bool                pipelining;
-	bool                async;
-	bool                fragmentation;
+	char               *engine_id;         /* The engine identifier the client announced. */
+	struct spoe_engine *engine;            /* The engine the client is attached to. */
+	bool                pipelining;        /* Set when the pipelining capability is used. */
+	bool                async;             /* Set when the async capability is used. */
+	bool                fragmentation;     /* Set when the fragmentation capability is used. */
 
-	struct worker      *worker;
-	struct list         by_worker;
-	struct list         by_engine;
+	struct worker      *worker;            /* The worker that serves the client. */
+	struct list         by_worker;         /* Clients of the worker. */
+	struct list         by_engine;         /* Clients of the engine. */
 };
 
 #endif /* _TYPES_SPOA_H */

@@ -49,14 +49,17 @@ __THR int         dbg_indent = 0;
 
 /***
  * NAME
- *   usage -
+ *   usage - show how the program is used
  *
  * ARGUMENTS
- *   program_name -
- *   flag_verbose -
+ *   program_name - name of the program
+ *   flag_verbose - whether all the options are described
  *
  * DESCRIPTION
- *   -
+ *   Write the ways in which the program can be started to the standard output.
+ *   When the flag <flag_verbose> is set, all the program options are described,
+ *   together with the supported libev backends and capabilities; otherwise only
+ *   the hint how to get that text is shown.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -118,23 +121,27 @@ static void usage(const char *program_name, bool_t flag_verbose)
 
 /***
  * NAME
- *   getopt_set_capability -
+ *   getopt_set_capability - set a capability from the command line
  *
  * ARGUMENTS
- *   name -
+ *   name - name of the capability
  *
  * DESCRIPTION
- *   -
+ *   Look for the capability <name> in the table of the supported capabilities
+ *   and add its flag to the program configuration.  An unsupported name is
+ *   reported on the standard error output.
  *
  * RETURN VALUE
- *   -
+ *   It returns FUNC_RET_OK (0) if the capability is set, and FUNC_RET_ERROR
+ *   (-1) if it is not.
  */
 static int getopt_set_capability(const char *name)
 {
 #define CAP_DEF(a,b)   { #a, b },
+	/* The supported capabilities and their flags. */
 	static const struct {
-		const char *name;
-		uint8_t     flag;
+		const char *name; /* The name of the capability. */
+		uint8_t     flag; /* The flag of the capability. */
 	} capabilities[] = { CAP_DEFINES };
 #undef CAP_DEF
 	int i, retval = FUNC_RET_OK;
@@ -159,23 +166,27 @@ static int getopt_set_capability(const char *name)
 
 /***
  * NAME
- *   getopt_set_ev_backend -
+ *   getopt_set_ev_backend - set the libev backend from the command line
  *
  * ARGUMENTS
- *   type -
+ *   type - name of the libev backend
  *
  * DESCRIPTION
- *   -
+ *   Look for the backend <type> in the table of the libev backends and add it
+ *   to the program configuration.  A name that is not valid is reported on the
+ *   standard error output.
  *
  * RETURN VALUE
- *   -
+ *   It returns FUNC_RET_OK (0) if the backend is set, and FUNC_RET_ERROR (-1)
+ *   if it is not.
  */
 static int getopt_set_ev_backend(const char *type)
 {
 #define LIBEV_BACKEND_DEF(v,s)   { s, EVBACKEND_##v },
+	/* The libev backends and their names. */
 	static const struct {
-		const char *str;
-		uint        type;
+		const char *str;  /* The name of the backend. */
+		uint        type; /* The type of the backend. */
 	} backends[] = { LIBEV_BACKEND_DEFINES };
 #undef LIBEV_BACKEND_DEF
 	int i, retval = FUNC_RET_OK;
@@ -202,19 +213,23 @@ static int getopt_set_ev_backend(const char *type)
 
 /***
  * NAME
- *   getopt_set_debug_level -
+ *   getopt_set_debug_level - set the debug level from the command line
  *
  * ARGUMENTS
- *   value       -
- *   debug_level -
- *   val_min     -
- *   val_max     -
+ *   value       - string with the debug level
+ *   debug_level - pointer to the configured debug level
+ *   val_min     - lowest allowed debug level
+ *   val_max     - highest allowed debug level
  *
  * DESCRIPTION
- *   -
+ *   Convert the string <value> into the debug level and save the result in
+ *   <*debug_level>, together with the flag that switches the debug mode on.
+ *   The level -1 stands for all the levels, that is for the value <val_max>.
+ *   Every error found is reported on the standard error output.
  *
  * RETURN VALUE
- *   -
+ *   It returns FUNC_RET_OK (0) if the level is set, and FUNC_RET_ERROR (-1) if
+ *   it is not.
  */
 static int getopt_set_debug_level(const char *value, uint32_t *debug_level, int val_min, int val_max)
 {
@@ -246,19 +261,22 @@ static int getopt_set_debug_level(const char *value, uint32_t *debug_level, int 
 
 /***
  * NAME
- *   getopt_set_time -
+ *   getopt_set_time - set a time interval from the command line
  *
  * ARGUMENTS
- *   delay   -
- *   time_us -
- *   val_min -
- *   val_max -
+ *   delay   - string with the time interval
+ *   time_us - pointer to the configured time interval, in microseconds
+ *   val_min - lowest allowed time interval, in microseconds
+ *   val_max - highest allowed time interval, in microseconds
  *
  * DESCRIPTION
- *   -
+ *   Convert the time interval written in the string <delay> to microseconds and
+ *   save it in <*time_us>.  An interval that is out of the range [<val_min>,
+ *   <val_max>], as well as one that cannot be parsed, is reported as an error.
  *
  * RETURN VALUE
- *   -
+ *   It returns FUNC_RET_OK (0) if the interval is set, and FUNC_RET_ERROR (-1)
+ *   if it is not.
  */
 static int getopt_set_time(const char *delay, uint64_t *time_us, uint64_t val_min, uint64_t val_max)
 {
@@ -291,17 +309,21 @@ static int getopt_set_time(const char *delay, uint64_t *time_us, uint64_t val_mi
 
 /***
  * NAME
- *   getopt_set_ports -
+ *   getopt_set_ports - set a port range from the command line
  *
  * ARGUMENTS
- *   ports -
- *   range -
+ *   ports - string with the port or the port range
+ *   range - array in which the port range is saved
  *
  * DESCRIPTION
- *   -
+ *   Convert the string <ports>, which holds either a single port or two ports
+ *   separated with a dash, and save the first port and the number of the ports
+ *   in the array <range>.  Every error found is reported on the standard error
+ *   output.
  *
  * RETURN VALUE
- *   -
+ *   It returns FUNC_RET_OK (0) if the range is set, and FUNC_RET_ERROR (-1) if
+ *   it is not.
  */
 static int getopt_set_ports(const char *ports, int *range)
 {
@@ -345,18 +367,23 @@ static int getopt_set_ports(const char *ports, int *range)
 
 /***
  * NAME
- *   main -
+ *   main - program entry point
  *
  * ARGUMENTS
- *   argv -
- *   argc -
- *   envp -
+ *   argc - number of the command line arguments
+ *   argv - array of the command line arguments
+ *   envp - array of the environment variables, not used
  *
  * DESCRIPTION
- *   -
+ *   Parse the command line options and check their values.  The help text and
+ *   the program version are written when they are asked for; otherwise the pid
+ *   file and the log file are opened, the program is moved to the background if
+ *   that is requested, and the workers are run until the program is stopped.
  *
  * RETURN VALUE
- *   -
+ *   It returns EX_OK (0) on success, EX_USAGE for a command line that is not
+ *   correct, FUNC_RET_ERROR (-1) if the pid file or the log file cannot be
+ *   used, or the value that worker_run() returned.
  */
 int main(int argc, char **argv, char **envp __maybe_unused)
 {

@@ -22,16 +22,20 @@
 
 /***
  * NAME
- *   acc_payload -
+ *   acc_payload - accumulate the payload of a fragmented frame
  *
  * ARGUMENTS
- *   frame -
+ *   frame - frame whose payload is accumulated
  *
  * DESCRIPTION
- *   -
+ *   Add the payload of the frame <frame> to the buffer in which the fragments
+ *   are accumulated.  When the last fragment arrives, the accumulated buffer
+ *   becomes the frame buffer and the frame is ready to be processed.  A frame
+ *   that is not fragmented is left as it is.
  *
  * RETURN VALUE
- *   -
+ *   It returns the offset of the payload in the frame buffer, 1 if the next
+ *   fragments are still expected, or FUNC_RET_ERROR (-1) in case of the error.
  */
 int acc_payload(struct spoe_frame *frame)
 {
@@ -64,13 +68,15 @@ int acc_payload(struct spoe_frame *frame)
 
 /***
  * NAME
- *   release_frame -
+ *   release_frame - return a frame to its worker
  *
  * ARGUMENTS
- *   frame -
+ *   frame - frame that is released
  *
  * DESCRIPTION
- *   -
+ *   Stop the processing timer of the frame <frame>, release the accumulated
+ *   payload and clear the whole frame.  The frame is not freed but put back on
+ *   the list of the free frames of its worker, so that it can be used again.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -101,13 +107,16 @@ static void release_frame(struct spoe_frame *frame)
 
 /***
  * NAME
- *   unuse_spoe_engine -
+ *   unuse_spoe_engine - detach a client from its SPOE engine
  *
  * ARGUMENTS
- *   client -
+ *   client - client that is detached
  *
  * DESCRIPTION
- *   -
+ *   Remove the client <client> from the list of the clients of its SPOE engine.
+ *   The engine itself is released when the client was the last one that used
+ *   it, together with all the frames that are still processed or waiting to be
+ *   sent.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -144,13 +153,15 @@ static void unuse_spoe_engine(struct client *client)
 
 /***
  * NAME
- *   release_client -
+ *   release_client - release a client
  *
  * ARGUMENTS
- *   client -
+ *   client - client that is released
  *
  * DESCRIPTION
- *   -
+ *   Detach the client <client> from its worker and from its SPOE engine, stop
+ *   the read and the write watchers, release all the frames of the client and
+ *   close its socket.  The client structure itself is released too.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -200,13 +211,16 @@ void release_client(struct client *client)
 
 /***
  * NAME
- *   reset_frame -
+ *   reset_frame - prepare a frame for the next use
  *
  * ARGUMENTS
- *   frame -
+ *   frame - frame that is reset
  *
  * DESCRIPTION
- *   -
+ *   Release the accumulated payload of the frame <frame> and set the frame
+ *   buffer, the identifiers and the flags to their initial values.  The frame
+ *   keeps its worker and its client, so it can be used for the next frame that
+ *   the same client sends.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -234,14 +248,20 @@ static void reset_frame(struct spoe_frame *frame)
 
 /***
  * NAME
- *   write_frame -
+ *   write_frame - queue a frame for sending
  *
  * ARGUMENTS
- *   client -
- *   frame  -
+ *   client - client to which the frame is sent, or NULL
+ *   frame  - frame that is sent
  *
  * DESCRIPTION
- *   -
+ *   Write the length of the frame <frame> at the beginning of its buffer and
+ *   queue the frame for sending.  If the client <client> is given, which is
+ *   done for the HELLO and the DISCONNECT frames, the frame is attached to that
+ *   client, otherwise to the client of the frame.  A frame whose client is not
+ *   known, which happens in the asynchronous mode, is queued on its SPOE engine
+ *   and may then be sent by any client of the engine.  The write watcher is
+ *   started and the worker event loop is woken up.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -309,15 +329,19 @@ static void write_frame(struct client *client, struct spoe_frame *frame)
 
 /***
  * NAME
- *   process_frame_cb -
+ *   process_frame_cb - libev frame processing callback function
  *
  * ARGUMENTS
- *   loop    -
- *   ev      -
- *   revents -
+ *   loop    - event loop of the worker
+ *   ev      - timer watcher of the frame
+ *   revents - received event flags
  *
  * DESCRIPTION
- *   -
+ *   Process all the SPOE messages of the frame that is attached to the watcher
+ *   <ev>; the known messages are handled and the unknown ones are skipped.  An
+ *   agent ACK frame is then prepared, and the action that sets the ip_score
+ *   variable is added to it when the score is known, before the frame is queued
+ *   for sending.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -378,16 +402,21 @@ static void process_frame_cb(struct ev_loop *loop __maybe_unused, struct ev_time
 
 /***
  * NAME
- *   acquire_incoming_frame -
+ *   acquire_incoming_frame - get the frame in which a client receives data
  *
  * ARGUMENTS
- *   client -
+ *   client - client from which the data is received
  *
  * DESCRIPTION
- *   -
+ *   Return the frame in which the client <client> receives data.  If the client
+ *   has no such frame, one is taken from the list of the free frames of the
+ *   worker, or a new one is allocated when that list is empty.  The frame is
+ *   reset, attached to the client, and its processing timer is initialized with
+ *   the configured processing delay.
  *
  * RETURN VALUE
- *   -
+ *   It returns a pointer to the incoming frame of the client, or a NULL pointer
+ *   if a new frame cannot be allocated.
  */
 static struct spoe_frame *acquire_incoming_frame(struct client *client)
 {
@@ -424,16 +453,20 @@ static struct spoe_frame *acquire_incoming_frame(struct client *client)
 
 /***
  * NAME
- *   acquire_outgoing_frame -
+ *   acquire_outgoing_frame - get the frame that a client sends
  *
  * ARGUMENTS
- *   client -
+ *   client - client to which the data is sent
  *
  * DESCRIPTION
- *   -
+ *   Return the frame that the client <client> sends.  If the client has no such
+ *   frame, the first frame is taken from the list of the frames that wait on
+ *   the client, or from the list of the frames that wait on the SPOE engine of
+ *   the client.
  *
  * RETURN VALUE
- *   -
+ *   It returns a pointer to the outgoing frame of the client, or a NULL pointer
+ *   if there is no frame to send.
  */
 static struct spoe_frame *acquire_outgoing_frame(struct client *client)
 {
@@ -461,13 +494,18 @@ static struct spoe_frame *acquire_outgoing_frame(struct client *client)
 
 /***
  * NAME
- *   process_incoming_frame -
+ *   process_incoming_frame - start the processing of a received frame
  *
  * ARGUMENTS
- *   frame -
+ *   frame - frame that is processed
  *
  * DESCRIPTION
- *   -
+ *   Start the processing timer of the frame <frame>.  In the asynchronous mode
+ *   the frame is detached from its client and put on the list of the frames
+ *   that its SPOE engine processes, and when the pipelining is used it is put
+ *   on the same list of its client.  If neither mode is used, reading from the
+ *   client is stopped until the frame is answered.  The worker event loop is
+ *   then woken up.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -497,16 +535,19 @@ static void process_incoming_frame(struct spoe_frame *frame)
 
 /***
  * NAME
- *   frame_recv -
+ *   frame_recv - receive a frame
  *
  * ARGUMENTS
- *   frame -
+ *   frame - frame in which the data is received
  *
  * DESCRIPTION
- *   -
+ *   Receive the frame <frame> from HAProxy; first its length and then as many
+ *   data bytes as the length announces.  The frame is refused if it is bigger
+ *   than the configured maximum frame size.
  *
  * RETURN VALUE
- *   -
+ *   It returns the number of the received data bytes, 0 if the whole frame is
+ *   not received yet, or FUNC_RET_ERROR (-1) in case of the error.
  */
 static ssize_t frame_recv(struct spoe_frame *frame)
 {
@@ -561,15 +602,20 @@ static ssize_t frame_recv(struct spoe_frame *frame)
 
 /***
  * NAME
- *   read_frame_cb -
+ *   read_frame_cb - libev frame read callback function
  *
  * ARGUMENTS
- *   loop    -
- *   ev      -
- *   revents -
+ *   loop    - event loop of the worker
+ *   ev      - socket watcher of the client
+ *   revents - received event flags
  *
  * DESCRIPTION
- *   -
+ *   Receive a frame from the client that is attached to the watcher <ev> and
+ *   handle it according to the state of the client.  A HELLO frame is answered
+ *   with the agent HELLO frame, a DISCONNECT frame starts the disconnection,
+ *   and a NOTIFY frame is processed as soon as it is received completely.  When
+ *   a frame cannot be decoded, a DISCONNECT frame is sent to HAProxy, and the
+ *   client is released if even that fails.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -668,17 +714,19 @@ void read_frame_cb(struct ev_loop *loop __maybe_unused, ev_io *ev, int revents _
 
 /***
  * NAME
- *   frame_send -
+ *   frame_send - send a frame
  *
  * ARGUMENTS
- *   client -
- *   frame  -
+ *   client - client to which the frame is sent
+ *   frame  - frame that is sent
  *
  * DESCRIPTION
- *   -
+ *   Send the frame <frame> to the client <client>, first its length and then
+ *   the frame data.
  *
  * RETURN VALUE
- *   -
+ *   It returns the number of the sent data bytes, 0 if the whole frame is not
+ *   sent yet, or FUNC_RET_ERROR (-1) in case of the error.
  */
 static ssize_t frame_send(const struct client *client, struct spoe_frame *frame)
 {
@@ -717,15 +765,20 @@ static ssize_t frame_send(const struct client *client, struct spoe_frame *frame)
 
 /***
  * NAME
- *   write_frame_cb -
+ *   write_frame_cb - libev frame write callback function
  *
  * ARGUMENTS
- *   loop    -
- *   ev      -
- *   revents -
+ *   loop    - event loop of the worker
+ *   ev      - socket watcher of the client
+ *   revents - received event flags
  *
  * DESCRIPTION
- *   -
+ *   Send a frame to the client that is attached to the watcher <ev>.  The write
+ *   watcher is stopped when the client has no frame to send.  A client that
+ *   answered a healthcheck, and a client that is disconnecting, are released
+ *   after the frame is sent.  In the other cases the sent frame is released
+ *   and, when neither the asynchronous mode nor the pipelining is used, reading
+ *   from the client is started again.
  *
  * RETURN VALUE
  *   This function does not return a value.

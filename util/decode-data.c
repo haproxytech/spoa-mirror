@@ -38,14 +38,16 @@ __THR int         dbg_indent = 0;
 
 /***
  * NAME
- *   usage -
+ *   usage - show how the program is used
  *
  * ARGUMENTS
- *   program_name -
- *   flag_verbose -
+ *   program_name - name of the program
+ *   flag_verbose - whether all the options are described
  *
  * DESCRIPTION
- *   -
+ *   Write the ways in which the program can be started to the standard output.
+ *   When the flag <flag_verbose> is set, all the program options are described;
+ *   otherwise only the hint how to get that text is shown.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -72,18 +74,18 @@ static void usage(const char *program_name, bool_t flag_verbose)
 
 /***
  * NAME
- *   cb_spoe_dec_str -
+ *   cb_spoe_dec_str - string value callback function
  *
  * ARGUMENTS
- *   frame -
- *   arg1  -
- *   arg2  -
+ *   frame - frame that is decoded, not used
+ *   arg1  - value of the decoded item
+ *   arg2  - pointer to the length of the item value
  *
  * DESCRIPTION
- *   -
+ *   Write the string value of a decoded key/value item to the standard output.
  *
  * RETURN VALUE
- *   -
+ *   It always returns FUNC_RET_OK (0).
  */
 static int cb_spoe_dec_str(struct spoe_frame *frame __maybe_unused, void *arg1, void *arg2 __maybe_unused)
 {
@@ -98,18 +100,18 @@ static int cb_spoe_dec_str(struct spoe_frame *frame __maybe_unused, void *arg1, 
 
 /***
  * NAME
- *   cb_spoe_dec_uint8 -
+ *   cb_spoe_dec_uint8 - 8-bit value callback function
  *
  * ARGUMENTS
- *   frame -
- *   arg1  -
- *   arg2  -
+ *   frame - frame that is decoded, not used
+ *   arg1  - pointer to the value of the decoded item
+ *   arg2  - not used, always a NULL pointer
  *
  * DESCRIPTION
- *   -
+ *   Write the byte value of a decoded key/value item to the standard output.
  *
  * RETURN VALUE
- *   -
+ *   It always returns FUNC_RET_OK (0).
  */
 static int cb_spoe_dec_uint8(struct spoe_frame *frame __maybe_unused, void *arg1, void *arg2 __maybe_unused)
 {
@@ -123,18 +125,18 @@ static int cb_spoe_dec_uint8(struct spoe_frame *frame __maybe_unused, void *arg1
 
 /***
  * NAME
- *   cb_spoe_dec_varint -
+ *   cb_spoe_dec_varint - varint value callback function
  *
  * ARGUMENTS
- *   frame -
- *   arg1  -
- *   arg2  -
+ *   frame - frame that is decoded, not used
+ *   arg1  - pointer to the value of the decoded item
+ *   arg2  - not used, always a NULL pointer
  *
  * DESCRIPTION
- *   -
+ *   Write the integer value of a decoded key/value item to the standard output.
  *
  * RETURN VALUE
- *   -
+ *   It always returns FUNC_RET_OK (0).
  */
 static int cb_spoe_dec_varint(struct spoe_frame *frame __maybe_unused, void *arg1, void *arg2 __maybe_unused)
 {
@@ -148,18 +150,21 @@ static int cb_spoe_dec_varint(struct spoe_frame *frame __maybe_unused, void *arg
 
 /***
  * NAME
- *   hex2uint8 -
+ *   hex2uint8 - convert a hexadecimal string to bytes
  *
  * ARGUMENTS
- *   data   -
- *   len    -
- *   buffer -
+ *   data   - string with the hexadecimal data
+ *   len    - length of the string <data>
+ *   buffer - pointer to the buffer with the converted data
  *
  * DESCRIPTION
- *   -
+ *   Convert the pairs of the hexadecimal digits from the string <data> into
+ *   bytes and save them in <*buffer>, which is allocated when a buffer is not
+ *   given.  A pair that is not complete is reported on the standard output.
  *
  * RETURN VALUE
- *   -
+ *   It returns the number of the converted bytes, or FUNC_RET_ERROR (-1) in
+ *   case of the error.
  */
 static ssize_t hex2uint8(const char *data, size_t len, uint8_t **buffer)
 {
@@ -202,17 +207,21 @@ static ssize_t hex2uint8(const char *data, size_t len, uint8_t **buffer)
 
 /***
  * NAME
- *   decode_bin -
+ *   decode_bin - write hexadecimal data as strings
  *
  * ARGUMENTS
- *   data -
- *   len  -
+ *   data - string with the hexadecimal data
+ *   len  - length of the string <data>
  *
  * DESCRIPTION
- *   -
+ *   Convert the pairs of the hexadecimal digits from the string <data> into
+ *   bytes and write them to the standard output; the printable characters are
+ *   shown as a string, while every other byte is shown as its hexadecimal and
+ *   decimal value.  The offset in the data is written in front of every row.
  *
  * RETURN VALUE
- *   -
+ *   It returns FUNC_RET_OK (0) on success, or FUNC_RET_ERROR (-1) if <data> is
+ *   a NULL pointer or holds a pair that is not complete.
  */
 static int decode_bin(const char *data, size_t len)
 {
@@ -261,23 +270,29 @@ static int decode_bin(const char *data, size_t len)
 
 /***
  * NAME
- *   decode_frame -
+ *   decode_frame - write hexadecimal data as a decoded frame
  *
  * ARGUMENTS
- *   data -
- *   len  -
+ *   data - string with the hexadecimal data of a frame
+ *   len  - length of the string <data>
  *
  * DESCRIPTION
- *   -
+ *   Convert the hexadecimal data of the string <data> into a SPOE frame and
+ *   write its content to the standard output.  The frame type is recognized
+ *   first, then the frame header is decoded, and after that all the key/value
+ *   items or the messages that a frame of that type holds, and a warning is
+ *   written when the frame is not decoded to its end.
  *
  * RETURN VALUE
- *   -
+ *   It returns FUNC_RET_OK (0) if the frame is decoded, FUNC_RET_ERROR (-1)
+ *   otherwise.
  */
 static int decode_frame(const char *data, size_t len)
 {
+	/* The SPOE frame types and their names. */
 	static const struct {
-		const char           *msg;
-		enum spoe_frame_type  type;
+		const char           *msg;  /* The name of the frame type. */
+		enum spoe_frame_type  type; /* The frame type. */
 	} frame_type[] = {
 		{ "UNSET",              SPOE_FRM_T_UNSET          },
 		{ "HAPROXY-HELLO",      SPOE_FRM_T_HAPROXY_HELLO  },

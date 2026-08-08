@@ -22,23 +22,26 @@
 
 /***
  * NAME
- *   ev_backend_name -
+ *   ev_backend_name - get the name of a libev backend
  *
  * ARGUMENTS
- *   type -
+ *   type - libev backend type
  *
  * DESCRIPTION
- *   -
+ *   Look for the backend <type> in the table that pairs every libev backend
+ *   with its name.
  *
  * RETURN VALUE
- *   -
+ *   It returns the name of the backend <type>, or "unknown" if the type is not
+ *   in the table.
  */
 const char *ev_backend_name(uint type)
 {
 #define LIBEV_BACKEND_DEF(v,s)   { s, EVBACKEND_##v },
+	/* The libev backends and their names. */
 	static const struct {
-		const char *name;
-		uint        type;
+		const char *name; /* The name of the backend. */
+		uint        type; /* The type of the backend. */
 	} backends[] = { LIBEV_BACKEND_DEFINES };
 #undef LIBEV_BACKEND_DEF
 	int         i;
@@ -59,16 +62,17 @@ const char *ev_backend_name(uint type)
 
 /***
  * NAME
- *   ev_backend_type -
+ *   ev_backend_type - get the backend name of an event loop
  *
  * ARGUMENTS
- *   loop -
+ *   loop - event loop that is checked
  *
  * DESCRIPTION
- *   -
+ *   Get the name of the libev backend that the event loop <loop> uses.
  *
  * RETURN VALUE
- *   -
+ *   It returns the name of the backend of the loop, or "invalid" if <loop> is a
+ *   NULL pointer.
  */
 const char *ev_backend_type(struct ev_loop *loop)
 {
@@ -85,16 +89,18 @@ const char *ev_backend_type(struct ev_loop *loop)
 
 /***
  * NAME
- *   ev_backends_supported -
+ *   ev_backends_supported - list the supported libev backends
  *
  * ARGUMENTS
  *   This function takes no arguments.
  *
  * DESCRIPTION
- *   -
+ *   Compose the list of the names of all the libev backends that the library
+ *   supports on the system on which the program runs, separated with commas,
+ *   into a static buffer.
  *
  * RETURN VALUE
- *   -
+ *   It returns a pointer to the composed list.
  */
 const char *ev_backends_supported(void)
 {

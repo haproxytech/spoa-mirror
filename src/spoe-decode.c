@@ -22,16 +22,16 @@
 
 /***
  * NAME
- *   spoe_decode_varint -
+ *   spoe_decode_varint - decode a variable-length integer
  *
  * ARGUMENTS
- *   buf   -
- *   end   -
- *   value -
+ *   buf   - pointer to the position in the frame data
+ *   end   - pointer to the end of the frame data
+ *   value - pointer to the decoded value
  *
  * DESCRIPTION
- *   Decode a varint from <*buf> and save the decoded value in <*value>.
- *   See 'spoe_encode_varint' for details about varint.
+ *   Decode a varint from <*buf> and save the decoded value in <*value>.  See
+ *   spoe_encode_varint() for the details about the varint.
  *
  * RETURN VALUE
  *   On success, it returns the number of read bytes and <*buf> is moved after
@@ -64,17 +64,18 @@ static __always_inline int spoe_decode_varint(const char **buf, const char *end,
 
 /***
  * NAME
- *   spoe_decode_buffer -
+ *   spoe_decode_buffer - decode a buffer
  *
  * ARGUMENTS
- *   buf -
- *   end -
- *   str -
- *   len -
+ *   buf - pointer to the position in the frame data
+ *   end - pointer to the end of the frame data
+ *   str - pointer to the first byte of the buffer
+ *   len - pointer to the length of the buffer
  *
  * DESCRIPTION
- *   Decode a buffer.  The buffer length is decoded and saved in <*len>.
- *   <*str> points on the first byte of the buffer.
+ *   Decode a buffer.  The buffer length is decoded and saved in <*len>, and
+ *   <*str> points on the first byte of the buffer.  An empty buffer leaves
+ *   <*str> set to a NULL pointer.
  *
  * RETURN VALUE
  *   On success, it returns the buffer length and <*buf> is moved after the
@@ -110,11 +111,11 @@ static __always_inline int spoe_decode_buffer(const char **buf, const char *end,
 
 /***
  * NAME
- *   spoe_skip_data -
+ *   spoe_skip_data - skip a typed data
  *
  * ARGUMENTS
- *   buf -
- *   end -
+ *   buf - pointer to the position in the frame data
+ *   end - pointer to the end of the frame data
  *
  * DESCRIPTION
  *   Skip a typed data.
@@ -167,20 +168,21 @@ static __always_inline int spoe_skip_data(const char **buf, const char *end)
 
 /***
  * NAME
- *   spoe_decode_data -
+ *   spoe_decode_data - decode a typed data
  *
  * ARGUMENTS
- *   buf  -
- *   end  -
- *   data -
- *   type -
+ *   buf  - pointer to the position in the frame data
+ *   end  - pointer to the end of the frame data
+ *   data - pointer to the decoded data
+ *   type - pointer to the type of the decoded data
  *
  * DESCRIPTION
- *   Decode a typed data and fill <smp>.  See spoe_skip_data for details.
+ *   Decode a typed data and save it in <*data>, with its type in <*type>.  See
+ *   spoe_skip_data() for the description of a typed data.
  *
  * RETURN VALUE
- *   If an error occurred, -1 is returned, otherwise the number of read bytes
- *   is returned and <*buf> is moved after the decoded data.
+ *   On success, it returns the number of read bytes and <*buf> is moved after
+ *   the decoded data.  Otherwise, it returns FUNC_RET_ERROR (-1).
  */
 static __always_inline int spoe_decode_data(const char **buf, const char *end, union spoe_data *data, enum spoe_data_type *type)
 {
@@ -256,20 +258,26 @@ static __always_inline int spoe_decode_data(const char **buf, const char *end, u
 
 /***
  * NAME
- *   spoe_vdecode -
+ *   spoe_vdecode - decode the data items of a frame
  *
  * ARGUMENTS
- *   frame -
- *   buf   -
- *   end   -
- *   type  -
- *   ap    -
+ *   frame - frame that is decoded
+ *   buf   - pointer to the position in the frame data
+ *   end   - pointer to the end of the frame data
+ *   type  - type of the first data item
+ *   ap    - list of the remaining arguments
  *
  * DESCRIPTION
- *   -
+ *   Decode the data items that HAProxy sent in the frame <frame>, starting at
+ *   the position <*buf>.  Every item is described with its type, one of the
+ *   SPOE_DEC_* values, followed by the addresses at which the decoded values
+ *   are saved, and the list of the items ends with SPOE_DEC_END.  The status
+ *   code of the client is set when an item cannot be decoded, and on success
+ *   <*buf> is moved after the decoded data.
  *
  * RETURN VALUE
- *   -
+ *   It returns the number of the read bytes, or FUNC_RET_ERROR (-1) in case of
+ *   the error.
  */
 static int spoe_vdecode(struct spoe_frame *frame, const char **buf, const char *end, int type, va_list ap)
 {
@@ -357,19 +365,21 @@ static int spoe_vdecode(struct spoe_frame *frame, const char **buf, const char *
 
 /***
  * NAME
- *   spoe_decode -
+ *   spoe_decode - decode the data items of a frame
  *
  * ARGUMENTS
- *   frame -
- *   buf   -
- *   end   -
- *   type  -
+ *   frame - frame that is decoded
+ *   buf   - pointer to the position in the frame data
+ *   end   - pointer to the end of the frame data
+ *   type  - type of the first data item
  *
  * DESCRIPTION
- *   -
+ *   Decode the data items of the frame <frame>, taking them from the variable
+ *   arguments and passing them to spoe_vdecode().
  *
  * RETURN VALUE
- *   -
+ *   It returns the number of the read bytes, or FUNC_RET_ERROR (-1) in case of
+ *   the error.
  */
 int spoe_decode(struct spoe_frame *frame, const char **buf, const char *end, int type, ...)
 {
@@ -386,20 +396,25 @@ int spoe_decode(struct spoe_frame *frame, const char **buf, const char *end, int
 
 /***
  * NAME
- *   spoe_decode_kv_item -
+ *   spoe_decode_kv_item - decode a key/value item
  *
  * ARGUMENTS
- *   frame   -
- *   buf     -
- *   end     -
- *   type    -
- *   cb_func -
+ *   frame   - frame that is decoded
+ *   buf     - pointer to the position in the frame data
+ *   end     - pointer to the end of the frame data
+ *   type    - type of the item value
+ *   cb_func - function that is called with the decoded value
  *
  * DESCRIPTION
- *   -
+ *   Decode the value of the key/value item of the type <type>, which is one of
+ *   the SPOE_DEC_* values, and call the function <cb_func> with the decoded
+ *   value.  The types SPOE_DEC_VARINT0 and SPOE_DEC_STR0 are not supported
+ *   here, and neither is an unknown type.  On success <*buf> is moved after the
+ *   decoded value.
  *
  * RETURN VALUE
- *   -
+ *   It returns the number of the read bytes, or FUNC_RET_ERROR (-1) in case of
+ *   the error.
  */
 static int spoe_decode_kv_item(struct spoe_frame *frame, const char **buf, const char *end, int type, spoe_dec_kv_cb_t cb_func)
 {
@@ -475,18 +490,24 @@ static int spoe_decode_kv_item(struct spoe_frame *frame, const char **buf, const
 
 /***
  * NAME
- *   spoe_decode_kv -
+ *   spoe_decode_kv - decode the key/value items of a frame
  *
  * ARGUMENTS
- *   frame -
- *   buf   -
- *   end   -
+ *   frame - frame that is decoded
+ *   buf   - pointer to the position in the frame data
+ *   end   - pointer to the end of the frame data
  *
  * DESCRIPTION
- *   -
+ *   Decode all the key/value items that the frame <frame> holds, between the
+ *   positions <*buf> and <end>.  Every known item is described with its type,
+ *   its name and the length of the name, and the function that is called with
+ *   the decoded value; the list of the items ends with SPOE_DEC_END.  An item
+ *   that is not known is skipped, while an item that cannot be decoded, as well
+ *   as a frame that holds no item at all, aborts the whole frame.
  *
  * RETURN VALUE
- *   -
+ *   It returns the number of the read bytes, or FUNC_RET_ERROR (-1) in case of
+ *   the error.
  */
 int spoe_decode_kv(struct spoe_frame *frame, const char **buf, const char *end, ...)
 {
@@ -551,18 +572,22 @@ int spoe_decode_kv(struct spoe_frame *frame, const char **buf, const char *end, 
 
 /***
  * NAME
- *   spoe_decode_skip_msg -
+ *   spoe_decode_skip_msg - skip a message
  *
  * ARGUMENTS
- *   frame -
- *   buf   -
- *   end   -
+ *   frame - frame that is decoded
+ *   buf   - pointer to the position in the frame data
+ *   end   - pointer to the end of the frame data
  *
  * DESCRIPTION
- *   -
+ *   Skip the message that starts at the position <*buf>.  The number of the
+ *   message arguments is decoded first, and then the name and the value of
+ *   every argument are skipped.  On success <*buf> is moved after the skipped
+ *   message.
  *
  * RETURN VALUE
- *   -
+ *   It returns the number of the skipped bytes, or FUNC_RET_ERROR (-1) in case
+ *   of the error.
  */
 int spoe_decode_skip_msg(struct spoe_frame *frame, const char **buf, const char *end)
 {
@@ -595,20 +620,28 @@ int spoe_decode_skip_msg(struct spoe_frame *frame, const char **buf, const char 
 
 /***
  * NAME
- *   spoe_decode_frame -
+ *   spoe_decode_frame - decode a frame received from HAProxy
  *
  * ARGUMENTS
- *   msg         -
- *   frame       -
- *   spoe_type   -
- *   spoe_retval -
- *   type        -
+ *   msg         - name of the frame, used in the logged messages
+ *   frame       - frame that is decoded
+ *   spoe_type   - expected type of the frame
+ *   spoe_retval - value returned for a frame of another type
+ *   type        - type of the first data item
  *
  * DESCRIPTION
- *   Decode a frame received from HAProxy.
+ *   Decode a frame received from HAProxy; its type, flags, stream identifier
+ *   and frame identifier, followed by the data items given in the variable
+ *   arguments.  A NOTIFY frame sets the identifiers of the frame and marks it
+ *   as fragmented when the last fragment is not reached yet.  A fragment has to
+ *   belong to the frame that is being assembled, while a HELLO and a DISCONNECT
+ *   frame must not be fragmented and must have both identifiers cleared; the
+ *   status code of the client is set when that is not the case.
  *
  * RETURN VALUE
- *   -
+ *   It returns the offset at which the frame data that is not decoded starts,
+ *   or <spoe_retval> for a frame that is not of the type <spoe_type>.  In case
+ *   of the error, FUNC_RET_ERROR (-1) is returned.
  */
 int spoe_decode_frame(const char *msg, struct spoe_frame *frame, uint8_t spoe_type, int spoe_retval, int type, ...)
 {

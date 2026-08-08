@@ -22,15 +22,16 @@
 
 /***
  * NAME
- *   worker_async_cb -
+ *   worker_async_cb - libev async watcher callback function
  *
  * ARGUMENTS
- *   loop    -
- *   ev      -
- *   revents -
+ *   loop    - event loop of the worker
+ *   ev      - async watcher of the worker
+ *   revents - received event flags
  *
  * DESCRIPTION
- *   -
+ *   Do nothing but write the entry to the log, because the async watcher is
+ *   only used to wake the event loop of the worker up from another thread.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -49,13 +50,14 @@ static void worker_async_cb(struct ev_loop *loop __maybe_unused, struct ev_async
 
 /***
  * NAME
- *   worker_async_init -
+ *   worker_async_init - start the async watcher of a worker
  *
  * ARGUMENTS
- *   worker -
+ *   worker - worker whose watcher is started
  *
  * DESCRIPTION
- *   -
+ *   Initialize and start the async watcher of the worker <worker>, so that the
+ *   event loop of the worker can be woken up from another thread.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -73,16 +75,20 @@ static void worker_async_init(struct worker *worker)
 
 /***
  * NAME
- *   bind_server_socket -
+ *   bind_server_socket - create and bind the server socket
  *
  * ARGUMENTS
- *   ai -
+ *   ai - address on which the socket listens
  *
  * DESCRIPTION
- *   -
+ *   Create the socket for the address <ai>, set the address reuse, the disabled
+ *   Nagle algorithm and the keepalive on it, then bind it and start listening
+ *   with the configured connection backlog.  The socket is closed again when
+ *   any of these steps fails.
  *
  * RETURN VALUE
- *   -
+ *   It returns the file descriptor of the server socket, or FUNC_RET_ERROR (-1)
+ *   in case of the error.
  */
 static int bind_server_socket(struct addrinfo *ai)
 {
@@ -118,16 +124,18 @@ static int bind_server_socket(struct addrinfo *ai)
 
 /***
  * NAME
- *   create_server_socket -
+ *   create_server_socket - create the server socket
  *
  * ARGUMENTS
  *   This function takes no arguments.
  *
  * DESCRIPTION
- *   -
+ *   Resolve the configured server address and port, then create the server
+ *   socket for the first IPv4 address that can be bound.
  *
  * RETURN VALUE
- *   -
+ *   It returns the file descriptor of the server socket, or FUNC_RET_ERROR (-1)
+ *   in case of the error.
  */
 static int create_server_socket(void)
 {
@@ -181,15 +189,17 @@ static int create_server_socket(void)
 
 /***
  * NAME
- *   worker_thread_monitor_cb -
+ *   worker_thread_monitor_cb - libev monitor timer callback function
  *
  * ARGUMENTS
- *   loop    -
- *   ev      -
- *   revents -
+ *   loop    - event loop of the worker
+ *   ev      - monitor timer watcher of the worker
+ *   revents - received event flags
  *
  * DESCRIPTION
- *   -
+ *   Write the number of the clients that the worker serves, the number of the
+ *   frames that it processed and the state of its async watcher to the log.
+ *   Nothing is done when the program is built without the debug support.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -212,16 +222,17 @@ static void worker_thread_monitor_cb(struct ev_loop *loop __maybe_unused, struct
 
 /***
  * NAME
- *   worker_thread_exit -
+ *   worker_thread_exit - stop a worker thread
  *
  * ARGUMENTS
- *   worker -
+ *   worker - worker that is stopped
  *
  * DESCRIPTION
- *   -
+ *   Stop the monitor timer of the worker <worker>, destroy the event loop of
+ *   the worker and terminate its thread.
  *
  * RETURN VALUE
- *   -
+ *   This function does not return; the thread of the worker is terminated.
  */
 __noreturn static void *worker_thread_exit(struct worker *worker)
 {
@@ -247,16 +258,20 @@ __noreturn static void *worker_thread_exit(struct worker *worker)
 
 /***
  * NAME
- *   worker_thread -
+ *   worker_thread - worker thread function
  *
  * ARGUMENTS
- *   data -
+ *   data - worker that the thread serves
  *
  * DESCRIPTION
- *   -
+ *   Set the name of the thread, initialize the lists and the event loop of the
+ *   worker <data>, together with the cURL mirroring when a mirror URL is set,
+ *   and run the event loop until the worker is stopped.  All the clients and
+ *   all the frames of the worker are released after that.
  *
  * RETURN VALUE
- *   -
+ *   This function does not return; the thread of the worker is terminated by
+ *   worker_thread_exit().
  */
 static void *worker_thread(void *data)
 {
@@ -322,14 +337,14 @@ static void *worker_thread(void *data)
 
 /***
  * NAME
- *   worker_stop_ev -
+ *   worker_stop_ev - libev one-shot stop callback function
  *
  * ARGUMENTS
- *   revents -
- *   base    -
+ *   revents - received event flags
+ *   base    - event loop that is stopped
  *
  * DESCRIPTION
- *   -
+ *   Break the event loop <base>, so that the thread which runs it can finish.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -346,14 +361,17 @@ static void worker_stop_ev(int revents __maybe_unused, void *base)
 
 /***
  * NAME
- *   worker_stop -
+ *   worker_stop - stop the server
  *
  * ARGUMENTS
- *   loop -
- *   msg  -
+ *   loop - main event loop
+ *   msg  - text written in the log
  *
  * DESCRIPTION
- *   -
+ *   Break the main event loop and the event loop of every worker, so that the
+ *   whole program stops, and write the text <msg> that tells why to the log.
+ *   Only the first call does the work, because the stopping may be requested
+ *   more than once.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -399,15 +417,16 @@ static void worker_stop(struct ev_loop *loop, const char *msg __maybe_unused)
 
 /***
  * NAME
- *   worker_signal_stop_cb -
+ *   worker_signal_stop_cb - libev stopping signal callback function
  *
  * ARGUMENTS
- *   loop    -
- *   ev      -
- *   revents -
+ *   loop    - main event loop
+ *   ev      - signal watcher of the received signal
+ *   revents - received event flags
  *
  * DESCRIPTION
- *   -
+ *   Stop the server when one of the signals that ask for it is received.  The
+ *   name and the number of the signal are written to the log.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -431,15 +450,17 @@ static void worker_signal_stop_cb(struct ev_loop *loop, struct ev_signal *ev, in
 
 /***
  * NAME
- *   worker_signal_ignore_cb -
+ *   worker_signal_ignore_cb - libev ignored signal callback function
  *
  * ARGUMENTS
- *   loop    -
- *   ev      -
- *   revents -
+ *   loop    - main event loop
+ *   ev      - signal watcher of the received signal
+ *   revents - received event flags
  *
  * DESCRIPTION
- *   -
+ *   Write the name and the number of the received signal to the log and do
+ *   nothing else, because the signals that are handled this way are ignored on
+ *   purpose.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -463,15 +484,15 @@ static void worker_signal_ignore_cb(struct ev_loop *loop __maybe_unused, struct 
 
 /***
  * NAME
- *   worker_runtime_cb -
+ *   worker_runtime_cb - libev runtime timer callback function
  *
  * ARGUMENTS
- *   loop    -
- *   ev      -
- *   revents -
+ *   loop    - main event loop
+ *   ev      - runtime timer watcher
+ *   revents - received event flags
  *
  * DESCRIPTION
- *   -
+ *   Stop the server when the configured runtime of the program is exceeded.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -488,15 +509,18 @@ static void worker_runtime_cb(struct ev_loop *loop __maybe_unused, struct ev_tim
 
 /***
  * NAME
- *   worker_accept_cb -
+ *   worker_accept_cb - libev connection accept callback function
  *
  * ARGUMENTS
- *   loop    -
- *   ev      -
- *   revents -
+ *   loop    - main event loop
+ *   ev      - watcher of the server socket
+ *   revents - received event flags
  *
  * DESCRIPTION
- *   -
+ *   Accept a new client connection and assign it to the next worker in turn.
+ *   The socket of the client is set to the non-blocking mode and the keepalive
+ *   is enabled on it, the client is added to the list of the clients of the
+ *   worker, and the reading from the client is started.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -570,21 +594,24 @@ static void worker_accept_cb(struct ev_loop *loop __maybe_unused, struct ev_io *
 
 /***
  * NAME
- *   worker_run_exit -
+ *   worker_run_exit - release the resources of the server
  *
  * ARGUMENTS
- *   fd         -
- *   ev_base    -
- *   ev_signals -
- *   nr_signals -
- *   ev_accept  -
- *   retval     -
+ *   fd         - file descriptor of the server socket
+ *   ev_base    - main event loop
+ *   ev_signals - array of the signal watchers
+ *   nr_signals - number of the elements of the array <ev_signals>
+ *   ev_accept  - watcher of the server socket
+ *   retval     - value that the function returns
  *
  * DESCRIPTION
- *   -
+ *   Stop the watcher of the server socket and all the signal watchers, destroy
+ *   the main event loop, close the server socket and release the workers.  The
+ *   value <retval> is only passed through, so that the caller can clean up and
+ *   return in one step.
  *
  * RETURN VALUE
- *   -
+ *   It returns the value <retval>.
  */
 static int worker_run_exit(int fd, struct ev_loop *ev_base, struct worker_signal *ev_signals, int nr_signals, struct ev_io *ev_accept, int retval)
 {
@@ -611,16 +638,21 @@ static int worker_run_exit(int fd, struct ev_loop *ev_base, struct worker_signal
 
 /***
  * NAME
- *   worker_run -
+ *   worker_run - run the server
  *
  * ARGUMENTS
  *   This function takes no arguments.
  *
  * DESCRIPTION
- *   -
+ *   Raise the limit of the open files, create the server socket and the main
+ *   event loop, and start a thread for every configured worker.  The signal
+ *   watchers, the watcher of the server socket and the runtime timer are then
+ *   started, and the main event loop runs until the program is stopped, when
+ *   all the worker threads are joined.
  *
  * RETURN VALUE
- *   This function does not return a value.
+ *   It returns EX_OK (0) on success, or EX_SOFTWARE if the server cannot be
+ *   started.
  */
 int worker_run(void)
 {

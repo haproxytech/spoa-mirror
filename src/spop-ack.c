@@ -22,17 +22,20 @@
 
 /***
  * NAME
- *   prepare_agentack -
+ *   prepare_agentack - encode an ACK frame
  *
  * ARGUMENTS
- *   frame -
+ *   frame - frame that is encoded
  *
  * DESCRIPTION
- *   Encode an ACK frame to send it to HAProxy.
+ *   Encode the agent ACK frame that answers a NOTIFY frame.  The frame buffer
+ *   is reset first, and the frame holds the stream identifier and the frame
+ *   identifier of the frame that is answered; the actions of the agent are
+ *   added to it afterwards.
  *
  * RETURN VALUE
- *   It returns the number of written bytes,
- *   or FUNC_RET_ERROR (-1) in case of the error.
+ *   It returns the length of the encoded frame, which is also the offset at
+ *   which the actions are added, or FUNC_RET_ERROR (-1) in case of the error.
  */
 int prepare_agentack(struct spoe_frame *frame)
 {

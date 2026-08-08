@@ -33,16 +33,17 @@
 #define SPOE_MSG_ARG_PATH      "arg_path"
 #define SPOE_MSG_ARG_VER       "arg_ver"
 
+/* The HTTP request that is mirrored to the mirror server. */
 struct mirror {
-	char        *url;            /* */
-	char        *path;           /* */
-	char        *method;         /* */
-	int          request_method; /* */
-	char        *version;        /* */
-	struct list  hdrs;           /* */
-	char        *body;           /* */
-	size_t       body_head;      /* */
-	size_t       body_size;      /* */
+	char        *url;            /* The URL of the mirrored request. */
+	char        *path;           /* The path of the HTTP request. */
+	char        *method;         /* The HTTP request method. */
+	int          request_method; /* The index of the HTTP request method. */
+	char        *version;        /* The HTTP version. */
+	struct list  hdrs;           /* The headers of the HTTP request. */
+	char        *body;           /* The body of the HTTP request. */
+	size_t       body_head;      /* The number of the body bytes already sent. */
+	size_t       body_size;      /* The size of the body. */
 };
 
 #endif /* _TYPES_SPOA_MESSAGE_H */

@@ -26,14 +26,16 @@ bool_t flag_log_nl = 0;
 
 /***
  * NAME
- *   f_log -
+ *   f_log - write a log message
  *
  * ARGUMENTS
- *   frame  -
- *   format -
+ *   frame  - frame for which the message is written, not used
+ *   format - printf(3) style format of the message
  *
  * DESCRIPTION
- *   -
+ *   Write the message <format> to the standard output.  A newline is added to
+ *   the message when the flag flag_log_nl is set, as it is while the header of
+ *   a frame is decoded.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -58,14 +60,15 @@ void f_log(const struct spoe_frame *frame __maybe_unused, const char *format, ..
 
 /***
  * NAME
- *   w_log -
+ *   w_log - write a worker log message
  *
  * ARGUMENTS
- *   worker -
- *   format -
+ *   worker - worker for which the message is written, not used
+ *   format - printf(3) style format of the message, not used
  *
  * DESCRIPTION
- *   -
+ *   Do nothing.  The function only replaces the one of the program, so that the
+ *   sources which decode the frames can be linked with this utility.
  *
  * RETURN VALUE
  *   This function does not return a value.

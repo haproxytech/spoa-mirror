@@ -22,17 +22,20 @@
 
 /***
  * NAME
- *   mem_dup -
+ *   mem_dup - duplicate memory data
  *
  * ARGUMENTS
- *   s    -
- *   size -
+ *   s    - pointer to the data that is duplicated
+ *   size - size of the data, in bytes
  *
  * DESCRIPTION
- *   -
+ *   Duplicate the first <size> bytes of the data pointed to by <s> into newly
+ *   allocated memory.  One byte more than requested is allocated and the copy
+ *   is terminated with the null character, so it can be used as a string too.
  *
  * RETURN VALUE
- *   -
+ *   It returns a pointer to the duplicated data, or a NULL pointer in case of
+ *   the error.  The returned memory has to be released using free().
  */
 void *mem_dup(const void *s, size_t size)
 {
@@ -52,13 +55,15 @@ void *mem_dup(const void *s, size_t size)
 
 /***
  * NAME
- *   buffer_init -
+ *   buffer_init - initialize a buffer
  *
  * ARGUMENTS
- *   data -
+ *   data - pointer to the buffer structure
  *
  * DESCRIPTION
- *   -
+ *   Initialize the buffer <data>.  All fields of the structure are cleared and
+ *   its list is set to an empty one, without releasing anything, so only a
+ *   buffer whose data area is not allocated may be initialized in this way.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -81,13 +86,15 @@ void buffer_init(struct buffer *data)
 
 /***
  * NAME
- *   buffer_free -
+ *   buffer_free - release the data of a buffer
  *
  * ARGUMENTS
- *   data -
+ *   data - pointer to the buffer structure
  *
  * DESCRIPTION
- *   -
+ *   Release the data area allocated in the buffer <data>, remove the buffer
+ *   from the list it is on and initialize the buffer structure again.  The
+ *   buffer structure itself is not released.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -114,17 +121,22 @@ void buffer_free(struct buffer *data)
 
 /***
  * NAME
- *   buffer_alloc -
+ *   buffer_alloc - allocate a buffer
  *
  * ARGUMENTS
- *   size -
- *   src  -
+ *   size - size of the buffer data area, in bytes
+ *   src  - pointer to the data that is added to the buffer
  *
  * DESCRIPTION
- *   -
+ *   Allocate a buffer structure together with its data area of <size> bytes,
+ *   then add the data pointed to by <src> to it.  The pointer <src> is followed
+ *   by the number of the bytes that are added, and any number of such pairs may
+ *   be given, the last pointer being NULL.  The whole buffer is released if any
+ *   of the data cannot be added to it.
  *
  * RETURN VALUE
- *   -
+ *   It returns a pointer to the allocated buffer, or a NULL pointer in case of
+ *   the error.  The buffer has to be released using buffer_ptr_free().
  */
 struct buffer *buffer_alloc(size_t size, const void *src, ...)
 {
@@ -162,13 +174,14 @@ struct buffer *buffer_alloc(size_t size, const void *src, ...)
 
 /***
  * NAME
- *   buffer_ptr_free -
+ *   buffer_ptr_free - release a buffer
  *
  * ARGUMENTS
- *   data -
+ *   data - pointer to the buffer structure pointer
  *
  * DESCRIPTION
- *   -
+ *   Release the buffer <*data> together with the data area allocated in it, and
+ *   set the pointer <*data> to a NULL pointer.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -189,18 +202,22 @@ void buffer_ptr_free(struct buffer **data)
 
 /***
  * NAME
- *   buffer_grow -
+ *   buffer_grow - add data to a buffer
  *
  * ARGUMENTS
- *   data -
- *   src  -
- *   n    -
+ *   data - pointer to the buffer structure
+ *   src  - pointer to the data that is added to the buffer
+ *   n    - number of the data bytes that are added to the buffer
  *
  * DESCRIPTION
- *   -
+ *   Add <n> bytes of the data pointed to by <src> to the end of the buffer
+ *   <data>.  If there is not enough free space in the buffer, the data area is
+ *   enlarged by <n> bytes rounded up to a multiple of 32.  When <src> is a NULL
+ *   pointer, the buffer is only enlarged and the added space is cleared.
  *
  * RETURN VALUE
- *   -
+ *   It returns the length of the data in the buffer, or FUNC_RET_ERROR (-1) in
+ *   case of the error.
  */
 ssize_t buffer_grow(struct buffer *data, const void *src, size_t n)
 {
@@ -259,18 +276,21 @@ ssize_t buffer_grow(struct buffer *data, const void *src, size_t n)
 
 /***
  * NAME
- *   buffer_grow_va -
+ *   buffer_grow_va - add more data blocks to a buffer
  *
  * ARGUMENTS
- *   data -
- *   src  -
- *   n    -
+ *   data - pointer to the buffer structure
+ *   src  - pointer to the data that is added to the buffer
+ *   n    - number of the data bytes that are added to the buffer
  *
  * DESCRIPTION
- *   -
+ *   Add the data given as pointer/size pairs to the end of the buffer <data>,
+ *   in the same way as buffer_grow() does.  Any number of the pairs may be
+ *   given after <data>, the last pointer being NULL.
  *
  * RETURN VALUE
- *   -
+ *   It returns the length of the data in the buffer, or FUNC_RET_ERROR (-1) in
+ *   case of the error.
  */
 ssize_t buffer_grow_va(struct buffer *data, const void *src, size_t n, ...)
 {
@@ -413,22 +433,27 @@ bool_t str_toull(const char *str, char **endptr, bool_t flag_end, int base, uint
 
 /***
  * NAME
- *   str_toll -
+ *   str_toll - convert a string to a signed integer
  *
  * ARGUMENTS
- *   str      -
- *   endptr   -
- *   flag_end -
- *   base     -
- *   value    -
- *   val_min  -
- *   val_max  -
+ *   str      - string that is converted
+ *   endptr   - pointer to the first character after the number
+ *   flag_end - whether the whole string has to be a number
+ *   base     - base of the conversion, or 0 to take it from the string
+ *   value    - pointer to the converted value
+ *   val_min  - lowest allowed value
+ *   val_max  - highest allowed value
  *
  * DESCRIPTION
- *   -
+ *   Convert the string <str> into a signed integer value and save the result in
+ *   <*value>.  If <endptr> is not a NULL pointer, the address of the first
+ *   character that does not belong to the number is stored there.  When the
+ *   flag <flag_end> is set, the whole string has to be a number.  The result is
+ *   checked against the range [<val_min>, <val_max>], but only if <val_min> is
+ *   not greater than <val_max>.  Every error found is logged.
  *
  * RETURN VALUE
- *   -
+ *   It returns true if the string is converted, false otherwise.
  */
 bool_t str_toll(const char *str, char **endptr, bool_t flag_end, int base, int64_t *value, int64_t val_min, int64_t val_max)
 {
@@ -458,16 +483,19 @@ bool_t str_toll(const char *str, char **endptr, bool_t flag_end, int base, int64
 
 /***
  * NAME
- *   str_delay -
+ *   str_delay - convert a time interval to a string
  *
  * ARGUMENTS
- *   delay_us -
+ *   delay_us - time interval in microseconds
  *
  * DESCRIPTION
- *   -
+ *   Write the time interval <delay_us> into a static buffer, using the largest
+ *   unit (seconds, milliseconds or microseconds) in which the interval can be
+ *   shown.  Two buffers are used in turn, so the results of two calls may be
+ *   used in the same expression.
  *
  * RETURN VALUE
- *   -
+ *   It returns a pointer to the written string.
  */
 const char *str_delay(uint64_t delay_us)
 {
@@ -490,19 +518,24 @@ const char *str_delay(uint64_t delay_us)
 
 /***
  * NAME
- *   getopt_shortopts -
+ *   getopt_shortopts - compose the short options string
  *
  * ARGUMENTS
- *   longopts  -
- *   shortopts -
- *   size      -
- *   flags     -
+ *   longopts  - array of the long options, ended by a zeroed element
+ *   shortopts - buffer in which the short options string is written
+ *   size      - size of the buffer <shortopts>, in bytes
+ *   flags     - flags that select the way the options are parsed
  *
  * DESCRIPTION
- *   -
+ *   Compose the short options string from the long options array <longopts>,
+ *   adding a colon after every option that requires an argument.  The flags
+ *   FLAG_GETOPT_POSIXLY_CORRECT and FLAG_GETOPT_NONOPTION_ARG add the character
+ *   '+' or '-' at the beginning of the string, and the character ':' is added
+ *   by the flag FLAG_GETOPT_DIST_ERRORS.
  *
  * RETURN VALUE
- *   -
+ *   It returns the number of the options written, or FUNC_RET_ERROR (-1) if an
+ *   error occurred, in which case errno is set.
  */
 int getopt_shortopts(const struct option *longopts, char *shortopts, size_t size, uint8_t flags)
 {
@@ -548,18 +581,22 @@ int getopt_shortopts(const struct option *longopts, char *shortopts, size_t size
 
 /***
  * NAME
- *   parse_delay_us -
+ *   parse_delay_us - parse a time interval
  *
  * ARGUMENTS
- *   delay   -
- *   val_min -
- *   val_max -
+ *   delay   - string with the time interval that is parsed
+ *   val_min - lowest allowed time interval, in microseconds
+ *   val_max - highest allowed time interval, in microseconds
  *
  * DESCRIPTION
- *   -
+ *   Convert the time interval written in the string <delay> to microseconds.
+ *   The number may be followed by one of the units 'us', 'ms', 's', 'm', 'h' or
+ *   'd'; when the unit is not given, milliseconds are used.  The result is
+ *   checked against the range [<val_min>, <val_max>].
  *
  * RETURN VALUE
- *   -
+ *   It returns the time interval in microseconds, or ULLONG_MAX if an error
+ *   occurred, in which case errno is set.
  */
 uint64_t parse_delay_us(const char *delay, uint64_t val_min, uint64_t val_max)
 {
@@ -599,16 +636,18 @@ uint64_t parse_delay_us(const char *delay, uint64_t val_min, uint64_t val_max)
 
 /***
  * NAME
- *   parse_hostname -
+ *   parse_hostname - check a host name
  *
  * ARGUMENTS
- *   hostname -
+ *   hostname - host name that is checked
  *
  * DESCRIPTION
- *   -
+ *   Check whether the host name <hostname> can be resolved, using a connection
+ *   based protocol and allowing both the IPv4 and the IPv6 address family.
  *
  * RETURN VALUE
- *   -
+ *   It returns FUNC_RET_OK (0) if the host name <hostname> is resolved, and
+ *   FUNC_RET_ERROR (-1) if it is not.
  */
 int parse_hostname(const char *hostname)
 {
@@ -638,16 +677,19 @@ int parse_hostname(const char *hostname)
 
 /***
  * NAME
- *   parse_url -
+ *   parse_url - check and duplicate a URL
  *
  * ARGUMENTS
- *   url -
+ *   url - URL that is parsed
  *
  * DESCRIPTION
- *   -
+ *   Check the URL <url> and duplicate it.  Only the schemes 'http' and 'https'
+ *   are allowed, all trailing '/' characters are removed from the copy, and the
+ *   host name and the port number, if it is given, are checked.
  *
  * RETURN VALUE
- *   -
+ *   It returns a pointer to the duplicated URL, or a NULL pointer in case of
+ *   the error.  The returned memory has to be released using free().
  */
 char *parse_url(const char *url)
 {
@@ -748,16 +790,19 @@ char *parse_url(const char *url)
 
 /***
  * NAME
- *   thread_id -
+ *   thread_id - get the identifier of the calling worker
  *
  * ARGUMENTS
  *   This function takes no arguments.
  *
  * DESCRIPTION
- *   -
+ *   Look for the calling thread in the array of the worker threads, where the
+ *   first worker has the identifier 1.  The result is used as the identifier of
+ *   the worker in the log lines for which the worker is not known.
  *
  * RETURN VALUE
- *   -
+ *   It returns the identifier of the calling worker thread, or 0 if the thread
+ *   is not one of the workers.
  */
 static __always_inline int thread_id(void)
 {
@@ -779,16 +824,18 @@ static __always_inline int thread_id(void)
 
 /***
  * NAME
- *   time_elapsed -
+ *   time_elapsed - measure the elapsed time
  *
  * ARGUMENTS
- *   tv -
+ *   tv - point in time from which the interval is measured
  *
  * DESCRIPTION
- *   -
+ *   Compute the time interval between the current time and the time <tv>.  The
+ *   current time is read using gettimeofday().
  *
  * RETURN VALUE
- *   -
+ *   It returns the number of the microseconds elapsed since the time <tv>, or
+ *   the current time in microseconds if <tv> is a NULL pointer.
  */
 uint64_t time_elapsed(const struct timeval *tv)
 {
@@ -802,14 +849,18 @@ uint64_t time_elapsed(const struct timeval *tv)
 
 /***
  * NAME
- *   c_log -
+ *   c_log - write a client log message
  *
  * ARGUMENTS
- *   client -
- *   format -
+ *   client - client for which the message is written
+ *   format - printf(3) style format of the message
  *
  * DESCRIPTION
- *   -
+ *   Write the message <format> to the standard output.  The message is prefixed
+ *   with the identifier of the worker that serves the client <client>, the
+ *   program runtime, and the identifier and the file descriptor of the client.
+ *   If the client or its worker is not known, the identifier of the calling
+ *   thread is used and the client data are left out.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -837,14 +888,18 @@ void c_log(const struct client *client, const char *format, ...)
 
 /***
  * NAME
- *   f_log -
+ *   f_log - write a frame log message
  *
  * ARGUMENTS
- *   frame  -
- *   format -
+ *   frame  - frame for which the message is written
+ *   format - printf(3) style format of the message
  *
  * DESCRIPTION
- *   -
+ *   Write the message <format> to the standard output.  The message is prefixed
+ *   with the identifier of the worker of the frame <frame>, the program runtime
+ *   and the identifier of the client of the frame.  If the worker is not known,
+ *   the identifier of the calling thread is used, and the client identifier is
+ *   left out if the frame or its client is not known.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -873,14 +928,16 @@ void f_log(const struct spoe_frame *frame, const char *format, ...)
 
 /***
  * NAME
- *   w_log -
+ *   w_log - write a worker log message
  *
  * ARGUMENTS
- *   worker -
- *   format -
+ *   worker - worker for which the message is written
+ *   format - printf(3) style format of the message
  *
  * DESCRIPTION
- *   -
+ *   Write the message <format> to the standard output.  The message is prefixed
+ *   with the identifier of the worker <worker> and the program runtime.  The
+ *   identifier of the calling thread is used if <worker> is a NULL pointer.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -903,16 +960,17 @@ void w_log(const struct worker *worker, const char *format, ...)
 
 /***
  * NAME
- *   socket_set_nonblocking -
+ *   socket_set_nonblocking - set the non-blocking mode of a socket
  *
  * ARGUMENTS
- *   fd -
+ *   fd - file descriptor that is set
  *
  * DESCRIPTION
- *   -
+ *   Add the flag O_NONBLOCK to the flags of the file descriptor <fd>, so that
+ *   the operations on it do not block.
  *
  * RETURN VALUE
- *   -
+ *   It returns FUNC_RET_OK (0) on success, FUNC_RET_ERROR (-1) otherwise.
  */
 int socket_set_nonblocking(int fd)
 {
@@ -934,20 +992,25 @@ int socket_set_nonblocking(int fd)
 
 /***
  * NAME
- *   socket_set_keepalive -
+ *   socket_set_keepalive - set the keepalive of a socket
  *
  * ARGUMENTS
- *   socket_fd -
- *   alive     -
- *   idle      -
- *   intvl     -
- *   cnt       -
+ *   socket_fd - socket file descriptor
+ *   alive     - whether the keepalive is enabled on the socket
+ *   idle      - idle time in seconds before the first keepalive probe
+ *   intvl     - time in seconds between two keepalive probes
+ *   cnt       - number of the probes before the connection is dropped
  *
  * DESCRIPTION
- *   -
+ *   Set the keepalive of the socket <socket_fd>, so that the idle connections
+ *   are checked and dropped when the other side stops to answer.  A negative
+ *   value of <idle>, <intvl> or <cnt> leaves the related setting unchanged, and
+ *   the same is done for a value of <alive> that is neither 0 nor 1.  Not all
+ *   of these settings can be changed on every operating system.
  *
  * RETURN VALUE
- *   -
+ *   It returns FUNC_RET_OK (0) if all the settings are applied, FUNC_RET_ERROR
+ *   (-1) otherwise.
  */
 int socket_set_keepalive(int socket_fd, int alive, int idle, int intvl, int cnt)
 {
@@ -997,16 +1060,18 @@ int socket_set_keepalive(int socket_fd, int alive, int idle, int intvl, int cnt)
 
 /***
  * NAME
- *   rlimit_setnofile -
+ *   rlimit_setnofile - raise the limit of the open files
  *
  * ARGUMENTS
  *   This function takes no arguments.
  *
  * DESCRIPTION
- *   -
+ *   Raise the soft RLIMIT_NOFILE limit, the number of the file descriptors that
+ *   the process may have open, to the hard limit, so that the program can serve
+ *   as many connections as the system allows.
  *
  * RETURN VALUE
- *   -
+ *   It returns FUNC_RET_OK (0) on success, FUNC_RET_ERROR (-1) otherwise.
  */
 int rlimit_setnofile(void)
 {
@@ -1030,13 +1095,14 @@ int rlimit_setnofile(void)
 
 /***
  * NAME
- *   logfile_mark -
+ *   logfile_mark - write a marker line to the log
  *
  * ARGUMENTS
- *   msg -
+ *   msg - message that is written in the marker line
  *
  * DESCRIPTION
- *   -
+ *   Write a marker line with the message <msg> and the current local time to
+ *   the log, showing where the program run starts and where it ends.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -1055,16 +1121,20 @@ void logfile_mark(const char *msg)
 
 /***
  * NAME
- *   logfile -
+ *   logfile - open the log file
  *
  * ARGUMENTS
- *   filename -
+ *   filename - name of the log file, with the optional mode prefix
  *
  * DESCRIPTION
- *   -
+ *   Open the log file <filename> and redirect both the standard output and the
+ *   standard error output to it.  The name may start with the mode prefix 'a:'
+ *   or 'w:', which selects whether the data is appended to the file or the file
+ *   is truncated; the same prefix written in the upper case additionally sets
+ *   the line buffered output.  A file whose name has no prefix must not exist.
  *
  * RETURN VALUE
- *   -
+ *   It returns FUNC_RET_OK (0) on success, FUNC_RET_ERROR (-1) otherwise.
  */
 int logfile(const char *filename)
 {
@@ -1122,17 +1192,22 @@ int logfile(const char *filename)
 
 /***
  * NAME
- *   pidfile -
+ *   pidfile - handle the pid file
  *
  * ARGUMENTS
- *   filename -
- *   fd       -
+ *   filename - name of the pid file, or NULL to write the process identifier
+ *   fd       - pointer to the file descriptor of the pid file
  *
  * DESCRIPTION
- *   -
+ *   Handle the pid file, in the way that depends on the arguments.  If the name
+ *   <filename> is given and the descriptor <*fd> is negative, then the file is
+ *   created, it must not exist before, and its descriptor is saved in <*fd>.
+ *   If <filename> is a NULL pointer, the identifier of the process is written
+ *   to the already open file, and if both the name and an open descriptor are
+ *   given, the file is closed and removed.
  *
  * RETURN VALUE
- *   -
+ *   It returns FUNC_RET_OK (0) on success, FUNC_RET_ERROR (-1) otherwise.
  */
 int pidfile(const char *filename, int *fd)
 {
@@ -1177,19 +1252,26 @@ int pidfile(const char *filename, int *fd)
 
 /***
  * NAME
- *   daemonize -
+ *   daemonize - move the program to the background
  *
  * ARGUMENTS
- *   flag_chdir   -
- *   flag_fdclose -
- *   fd           -
- *   n            -
+ *   flag_chdir   - whether the working directory is changed to the root one
+ *   flag_fdclose - whether the standard descriptors are redirected
+ *   fd           - array of the file descriptors that are left open
+ *   n            - number of the elements of the array <fd>
  *
  * DESCRIPTION
- *   -
+ *   Move the program to the background.  The process forks twice and becomes
+ *   the leader of a new session, detached from the controlling terminal; both
+ *   parents exit, so the function returns in the second child only.  The file
+ *   mode mask is cleared and, if the flag <flag_chdir> is set, the working
+ *   directory is changed to the root directory.  All open file descriptors are
+ *   then closed, except the standard ones and those listed in the array <fd>.
+ *   If the flag <flag_fdclose> is set, the standard input, the standard output
+ *   and the standard error output are redirected to /dev/null.
  *
  * RETURN VALUE
- *   -
+ *   It returns FUNC_RET_OK (0) on success, FUNC_RET_ERROR (-1) otherwise.
  */
 int daemonize(bool_t flag_chdir, bool_t flag_fdclose, int *fd, size_t n)
 {

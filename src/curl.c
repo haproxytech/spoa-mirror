@@ -24,14 +24,15 @@
 
 /***
  * NAME
- *   mir_curl_slist_dump -
+ *   mir_curl_slist_dump - write a cURL string list to the log
  *
  * ARGUMENTS
- *   list -
- *   msg  -
+ *   list - cURL string list that is written
+ *   msg  - text written in front of the list
  *
  * DESCRIPTION
- *   -
+ *   Write all the elements of the string list <list> to the log, prefixed with
+ *   the text <msg>.  The function is compiled in the debug build only.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -58,17 +59,18 @@ static void mir_curl_slist_dump(const struct curl_slist *list, const char *msg)
  *   mir_curl_debug_cb - CURLOPT_DEBUGFUNCTION callback function
  *
  * ARGUMENTS
- *   handle  -
- *   type    -
- *   data    -
- *   size    -
- *   userptr -
+ *   handle  - cURL easy handle of the transfer
+ *   type    - kind of the reported data
+ *   data    - data that is reported
+ *   size    - size of the data, in bytes
+ *   userptr - user data pointer, not used
  *
  * DESCRIPTION
- *   -
+ *   Write the data that the cURL library reports about a transfer to the log.
+ *   The function is compiled in the debug build only.
  *
  * RETURN VALUE
- *   -
+ *   It always returns CURLE_OK (0).
  */
 static int mir_curl_debug_cb(CURL *handle, curl_infotype type, char *data, size_t size, void *userptr)
 {
@@ -84,13 +86,15 @@ static int mir_curl_debug_cb(CURL *handle, curl_infotype type, char *data, size_
 
 /***
  * NAME
- *   mir_curl_handle_close -
+ *   mir_curl_handle_close - close a mirroring connection
  *
  * ARGUMENTS
- *   con -
+ *   con - connection that is closed
  *
  * DESCRIPTION
- *   -
+ *   Remove the easy handle of the connection <con> from the multi handle, then
+ *   release the list of the HTTP headers, the easy handle and the mirror data
+ *   of the connection, and the connection itself.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -123,22 +127,25 @@ static void mir_curl_handle_close(struct curl_con *con)
 
 /***
  * NAME
- *   mir_curl_get_http_version -
+ *   mir_curl_get_http_version - get the name of an HTTP version
  *
  * ARGUMENTS
- *   version -
+ *   version - HTTP version as the cURL library reports it
  *
  * DESCRIPTION
- *   -
+ *   Look for the version <version> in the table that pairs every HTTP version
+ *   that the cURL library can report with its name.
  *
  * RETURN VALUE
- *   -
+ *   It returns the name of the version <version>, or "?" if the version is not
+ *   in the table.
  */
 static const char *mir_curl_get_http_version(long version)
 {
+	/* The HTTP versions that the cURL library can report, and their names. */
 	static struct {
-		const char *str;
-		long        value;
+		const char *str;   /* The name of the HTTP version. */
+		long        value; /* The HTTP version as the library reports it. */
 	} http_version[] = {
 		{ "HTTP/???", CURL_HTTP_VERSION_NONE },
 		{ "HTTP/1.0", CURL_HTTP_VERSION_1_0  },
@@ -162,13 +169,16 @@ static const char *mir_curl_get_http_version(long version)
 
 /***
  * NAME
- *   mir_curl_check_multi_info -
+ *   mir_curl_check_multi_info - check the completed transfers
  *
  * ARGUMENTS
- *   curl -
+ *   curl - cURL data of the worker
  *
  * DESCRIPTION
- *   Check for completed transfers, and remove their easy handles.
+ *   Check for completed transfers, and remove their easy handles.  For every
+ *   transfer that is done, the URL, the HTTP version, the response code, the
+ *   number of the transferred bytes and the duration are written to the log,
+ *   and its connection is then closed.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -234,12 +244,14 @@ static void mir_curl_check_multi_info(struct curl_data *curl)
  *   mir_curl_ev_socket_cb - libev socket action callback function
  *
  * ARGUMENTS
- *   loop    -
- *   ev      -
- *   revents -
+ *   loop    - event loop of the worker
+ *   ev      - socket watcher of the transfer
+ *   revents - received event flags
  *
  * DESCRIPTION
- *   Called by libev when we get action on a multi socket.
+ *   Called by libev when we get action on a multi socket.  The action is passed
+ *   to the cURL library and the completed transfers are then checked; the timer
+ *   of the multi handle is stopped when no transfer is running any more.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -273,20 +285,22 @@ static void mir_curl_ev_socket_cb(struct ev_loop *loop __maybe_unused, struct ev
 
 /***
  * NAME
- *   mir_curl_socket_set -
+ *   mir_curl_socket_set - set the data of a cURL socket
  *
  * ARGUMENTS
- *   socket -
- *   easy   -
- *   s      -
- *   what   -
- *   curl   -
+ *   socket - socket structure that is set
+ *   easy   - cURL easy handle of the transfer
+ *   s      - socket file descriptor
+ *   what   - action that the cURL library waits for
+ *   curl   - cURL data of the worker
  *
  * DESCRIPTION
- *   Assign information to a curl_sock structure.
+ *   Assign information to a curl_sock structure.  The watcher that waits for
+ *   the action <what> on the socket <s> is then started, so that the library is
+ *   told when that action happens.
  *
  * RETURN VALUE
- *   -
+ *   It always returns 0.
  */
 static int mir_curl_socket_set(struct curl_sock *socket, CURL *easy, curl_socket_t s, int what, struct curl_data *curl)
 {
@@ -316,19 +330,22 @@ static int mir_curl_socket_set(struct curl_sock *socket, CURL *easy, curl_socket
 
 /***
  * NAME
- *   mir_curl_socket_add -
+ *   mir_curl_socket_add - add a cURL socket
  *
  * ARGUMENTS
- *   easy -
- *   s    -
- *   what -
- *   curl -
+ *   easy - cURL easy handle of the transfer
+ *   s    - socket file descriptor
+ *   what - action that the cURL library waits for
+ *   curl - cURL data of the worker
  *
  * DESCRIPTION
- *   Initialize a new curl_sock structure.
+ *   Initialize a new curl_sock structure.  The structure is passed to the cURL
+ *   library, which gives it back with every action that happens on the socket
+ *   <s>.
  *
  * RETURN VALUE
- *   -
+ *   It returns a pointer to the allocated socket structure, or a NULL pointer
+ *   in case of the error.
  */
 static struct curl_sock *mir_curl_socket_add(CURL *easy, curl_socket_t s, int what, struct curl_data *curl)
 {
@@ -356,17 +373,18 @@ static struct curl_sock *mir_curl_socket_add(CURL *easy, curl_socket_t s, int wh
 
 /***
  * NAME
- *   mir_curl_socket_remove -
+ *   mir_curl_socket_remove - remove a cURL socket
  *
  * ARGUMENTS
- *   socket -
- *   curl   -
+ *   socket - socket structure that is released
+ *   curl   - cURL data of the worker
  *
  * DESCRIPTION
- *   Clean up the curl_sock structure.
+ *   Clean up the curl_sock structure.  The watcher of the socket is stopped
+ *   before the structure is released.
  *
  * RETURN VALUE
- *   -
+ *   It always returns 0.
  */
 static int mir_curl_socket_remove(struct curl_sock *socket, struct curl_data *curl)
 {
@@ -390,17 +408,19 @@ static int mir_curl_socket_remove(struct curl_sock *socket, struct curl_data *cu
  *   mir_curl_socket_cb - CURLMOPT_SOCKETFUNCTION callback function
  *
  * ARGUMENTS
- *   easy    -
- *   s       -
- *   what    -
- *   userp   -
- *   socketp -
+ *   easy    - cURL easy handle of the transfer
+ *   s       - socket file descriptor
+ *   what    - action that the cURL library waits for
+ *   userp   - cURL data of the worker
+ *   socketp - socket structure of the socket <s>
  *
  * DESCRIPTION
- *   -
+ *   Follow what the cURL library asks for the socket <s>; the socket structure
+ *   is released when the socket is not used any more, its data is set again
+ *   when the structure exists, and a new structure is added otherwise.
  *
  * RETURN VALUE
- *   -
+ *   It returns 0 on success, or -1 if the socket structure cannot be added.
  */
 static int mir_curl_socket_cb(CURL *easy, curl_socket_t s, int what, void *userp, void *socketp)
 {
@@ -426,12 +446,14 @@ static int mir_curl_socket_cb(CURL *easy, curl_socket_t s, int what, void *userp
  *   mir_curl_ev_timer_cb - libev socket timer callback function
  *
  * ARGUMENTS
- *   loop    -
- *   ev      -
- *   revents -
+ *   loop    - event loop of the worker
+ *   ev      - timer watcher of the multi handle
+ *   revents - received event flags
  *
  * DESCRIPTION
- *   Called by libev when our timeout expires.
+ *   Called by libev when our timeout expires.  The cURL library is told that
+ *   the timeout of the multi handle expired, and the completed transfers are
+ *   then checked.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -457,15 +479,17 @@ static void mir_curl_ev_timer_cb(struct ev_loop *loop __maybe_unused, struct ev_
  *   mir_curl_timer_cb - CURLMOPT_TIMERFUNCTION callback function
  *
  * ARGUMENTS
- *   multi      -
- *   timeout_ms -
- *   userp      -
+ *   multi      - cURL multi handle
+ *   timeout_ms - timeout in milliseconds
+ *   userp      - cURL data of the worker
  *
  * DESCRIPTION
- *   Update the event timer after curl_multi library calls.
+ *   Update the event timer after curl_multi library calls.  The timer wakes the
+ *   cURL library up after <timeout_ms> milliseconds; a negative timeout only
+ *   stops the timer, and a zero one is turned into a single millisecond.
  *
  * RETURN VALUE
- *   -
+ *   It always returns CURLM_OK (0).
  */
 static int mir_curl_timer_cb(CURLM *multi __maybe_unused, long timeout_ms, void *userp)
 {
@@ -499,17 +523,20 @@ static int mir_curl_timer_cb(CURLM *multi __maybe_unused, long timeout_ms, void 
 
 /***
  * NAME
- *   mir_curl_set_headers -
+ *   mir_curl_set_headers - set the HTTP headers of a transfer
  *
  * ARGUMENTS
- *   con -
- *   mir -
+ *   con - connection that is set up
+ *   mir - mirror data of the message
  *
  * DESCRIPTION
- *   -
+ *   Build the cURL list of the HTTP headers out of the headers of the mirror
+ *   data <mir>, and set that list, together with the HTTP request method, on
+ *   the easy handle of the connection <con>.
  *
  * RETURN VALUE
- *   -
+ *   It returns CURLE_OK (0) on success, or the error that the cURL library
+ *   reported.
  */
 static CURLcode mir_curl_set_headers(struct curl_con *con, const struct mirror *mir)
 {
@@ -550,18 +577,21 @@ static CURLcode mir_curl_set_headers(struct curl_con *con, const struct mirror *
 
 /***
  * NAME
- *   mir_curl_init -
+ *   mir_curl_init - initialize the cURL mirroring
  *
  * ARGUMENTS
- *   loop -
- *   ev   -
- *   curl -
+ *   loop - event loop of the worker
+ *   ev   - async watcher of the worker
+ *   curl - cURL data that is initialized
  *
  * DESCRIPTION
- *   -
+ *   Initialize the cURL data <curl> of a worker; the multi handle is created,
+ *   and the callback functions with which the library asks for the socket and
+ *   the timer actions are set.  Everything that was allocated is released again
+ *   when any of these steps fails.
  *
  * RETURN VALUE
- *   -
+ *   It returns FUNC_RET_OK (0) on success, FUNC_RET_ERROR (-1) otherwise.
  */
 int mir_curl_init(struct ev_loop *loop, struct ev_async *ev, struct curl_data *curl)
 {
@@ -611,13 +641,14 @@ int mir_curl_init(struct ev_loop *loop, struct ev_async *ev, struct curl_data *c
 
 /***
  * NAME
- *   mir_curl_close -
+ *   mir_curl_close - release the cURL mirroring
  *
  * ARGUMENTS
- *   curl -
+ *   curl - cURL data that is released
  *
  * DESCRIPTION
- *   -
+ *   Release the multi handle of the cURL data <curl>, stop the timer of the
+ *   multi handle and clear the whole structure.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -651,16 +682,18 @@ void mir_curl_close(struct curl_data *curl)
  *   mir_curl_read_cb - CURLOPT_READFUNCTION callback function
  *
  * ARGUMENTS
- *   buffer   -
- *   size     -
- *   nitems   -
- *   instream -
+ *   buffer   - buffer in which the data is written
+ *   size     - size of one item, in bytes
+ *   nitems   - number of the items that fit into the buffer
+ *   instream - connection whose request body is sent
  *
  * DESCRIPTION
- *   -
+ *   Copy the next part of the body of the mirrored request into the buffer
+ *   <buffer>, and remember how much of the body is already sent.
  *
  * RETURN VALUE
- *   -
+ *   It returns the number of the copied bytes, or 0 when the whole body is
+ *   sent.
  */
 static size_t mir_curl_read_cb(void *buffer __maybe_unused, size_t size, size_t nitems, void *instream)
 {
@@ -690,16 +723,18 @@ static size_t mir_curl_read_cb(void *buffer __maybe_unused, size_t size, size_t 
  *   mir_curl_write_cb - CURLOPT_WRITEFUNCTION callback function
  *
  * ARGUMENTS
- *   buffer    -
- *   size      -
- *   nitems    -
- *   outstream -
+ *   buffer    - buffer with the received data
+ *   size      - size of one item, in bytes
+ *   nitems    - number of the received items
+ *   outstream - user data pointer, not used
  *
  * DESCRIPTION
- *   -
+ *   Discard the data that the mirror server answered, telling the cURL library
+ *   that all of it is taken.
  *
  * RETURN VALUE
- *   -
+ *   It returns the number of the discarded bytes, that is <size> multiplied by
+ *   <nitems>.
  */
 static size_t mir_curl_write_cb(void *buffer __maybe_unused, size_t size, size_t nitems, void *outstream __maybe_unused)
 {
@@ -716,17 +751,19 @@ static size_t mir_curl_write_cb(void *buffer __maybe_unused, size_t size, size_t
  *   mir_curl_xferinfo_cb - CURLOPT_XFERINFOFUNCTION/CURLOPT_PROGRESSFUNCTION callback function
  *
  * ARGUMENTS
- *   clientp -
- *   dltotal -
- *   dlnow   -
- *   ultotal -
- *   ulnow   -
+ *   clientp - connection whose progress is reported
+ *   dltotal - number of the bytes that are expected to be received
+ *   dlnow   - number of the bytes that are received so far
+ *   ultotal - number of the bytes that are expected to be sent
+ *   ulnow   - number of the bytes that are sent so far
  *
  * DESCRIPTION
- *   -
+ *   Write the progress of the transfer of the connection <clientp> to the log.
+ *   The older cURL libraries report the sizes as floating point numbers, hence
+ *   the two versions of the function.
  *
  * RETURN VALUE
- *   -
+ *   It always returns 0.
  */
 #if CURL_AT_LEAST_VERSION(7, 32, 0)
 
@@ -759,19 +796,22 @@ static int mir_curl_xferinfo_cb(void *clientp, double dltotal __maybe_unused, do
 
 /***
  * NAME
- *   mir_curl_add_keepalive -
+ *   mir_curl_add_keepalive - set the keepalive of a transfer
  *
  * ARGUMENTS
- *   con        -
- *   flag_alive -
- *   idle       -
- *   intvl      -
+ *   con        - connection that is set up
+ *   flag_alive - whether the keepalive is enabled on the connection
+ *   idle       - idle time in seconds before the first keepalive probe
+ *   intvl      - time in seconds between two keepalive probes
  *
  * DESCRIPTION
- *   -
+ *   Set the TCP keepalive on the easy handle of the connection <con>.  Negative
+ *   values of <idle> and <intvl> leave the related settings as they are, and
+ *   neither of them is set when <flag_alive> is not set.
  *
  * RETURN VALUE
- *   -
+ *   It returns CURLE_OK (0) on success, the error reported by the cURL library,
+ *   or CURLE_BAD_FUNCTION_ARGUMENT if <con> is a NULL pointer.
  */
 static CURLcode mir_curl_add_keepalive(struct curl_con *con, bool_t flag_alive, long idle, long intvl)
 {
@@ -797,17 +837,20 @@ static CURLcode mir_curl_add_keepalive(struct curl_con *con, bool_t flag_alive, 
 
 /***
  * NAME
- *   mir_curl_add_post -
+ *   mir_curl_add_post - set up an HTTP POST request
  *
  * ARGUMENTS
- *   con -
- *   mir -
+ *   con - connection that is set up
+ *   mir - mirror data of the message
  *
  * DESCRIPTION
- *   -
+ *   Set the options that the easy handle of the connection <con> needs to send
+ *   the body of a POST request; the size of the body and the callback function
+ *   that reads it.  Nothing is set for any other request method.
  *
  * RETURN VALUE
- *   -
+ *   It returns CURLE_OK (0) on success, the error reported by the cURL library,
+ *   or CURLE_BAD_FUNCTION_ARGUMENT if an argument is a NULL pointer.
  */
 static CURLcode mir_curl_add_post(struct curl_con *con, const struct mirror *mir)
 {
@@ -839,17 +882,21 @@ static CURLcode mir_curl_add_post(struct curl_con *con, const struct mirror *mir
 
 /***
  * NAME
- *   mir_curl_add_put -
+ *   mir_curl_add_put - set up an HTTP PUT request
  *
  * ARGUMENTS
- *   con -
- *   mir -
+ *   con - connection that is set up
+ *   mir - mirror data of the message
  *
  * DESCRIPTION
- *   -
+ *   Set the options that the easy handle of the connection <con> needs to send
+ *   the body of a PUT request; the uploading is switched on, the size of the
+ *   body is set, and so is the callback function that reads the body.  Nothing
+ *   is set for any other request method.
  *
  * RETURN VALUE
- *   -
+ *   It returns CURLE_OK (0) on success, the error reported by the cURL library,
+ *   or CURLE_BAD_FUNCTION_ARGUMENT if an argument is a NULL pointer.
  */
 static CURLcode mir_curl_add_put(struct curl_con *con, const struct mirror *mir)
 {
@@ -885,17 +932,19 @@ static CURLcode mir_curl_add_put(struct curl_con *con, const struct mirror *mir)
 
 /***
  * NAME
- *   mir_curl_add_out -
+ *   mir_curl_add_out - set the outgoing connection options
  *
  * ARGUMENTS
- *   con -
- *   mir -
+ *   con - connection that is set up
+ *   mir - mirror data of the message
  *
  * DESCRIPTION
- *   -
+ *   Set the interface and the range of the local ports that the connection
+ *   <con> uses for the mirrored request, as configured for the program.
  *
  * RETURN VALUE
- *   -
+ *   It returns CURLE_OK (0) on success, or the error that the cURL library
+ *   reported.
  */
 static CURLcode mir_curl_add_out(struct curl_con *con, const struct mirror *mir)
 {
@@ -923,17 +972,20 @@ static CURLcode mir_curl_add_out(struct curl_con *con, const struct mirror *mir)
 
 /***
  * NAME
- *   mir_curl_add_cert -
+ *   mir_curl_add_cert - set the SSL options of a transfer
  *
  * ARGUMENTS
- *   con -
- *   mir -
+ *   con - connection that is set up
+ *   mir - mirror data of the message
  *
  * DESCRIPTION
- *   -
+ *   Switch the verification of the peer certificate and of the host name off
+ *   when the mirror URL uses the 'https' scheme, so that the mirror server may
+ *   use a self-signed certificate as well.
  *
  * RETURN VALUE
- *   -
+ *   It returns CURLE_OK (0) on success, the error reported by the cURL library,
+ *   or CURLE_BAD_FUNCTION_ARGUMENT if an argument is a NULL pointer.
  */
 static CURLcode mir_curl_add_cert(struct curl_con *con, const struct mirror *mir)
 {
@@ -961,17 +1013,20 @@ static CURLcode mir_curl_add_cert(struct curl_con *con, const struct mirror *mir
 
 /***
  * NAME
- *   mir_curl_add_url -
+ *   mir_curl_add_url - set the URL of a transfer
  *
  * ARGUMENTS
- *   con -
- *   mir -
+ *   con - connection that is set up
+ *   mir - mirror data of the message
  *
  * DESCRIPTION
- *   -
+ *   Set the URL and the request target of the mirrored request on the easy
+ *   handle of the connection <con>.  The HTTP version 2.0 is selected when the
+ *   mirrored request announced it and the cURL library supports it.
  *
  * RETURN VALUE
- *   -
+ *   It returns CURLE_OK (0) on success, the error reported by the cURL library,
+ *   or CURLE_BAD_FUNCTION_ARGUMENT if an argument is a NULL pointer.
  */
 static CURLcode mir_curl_add_url(struct curl_con *con, const struct mirror *mir)
 {
@@ -1010,17 +1065,21 @@ static CURLcode mir_curl_add_url(struct curl_con *con, const struct mirror *mir)
 
 /***
  * NAME
- *   mir_curl_add -
+ *   mir_curl_add - add a mirrored request
  *
  * ARGUMENTS
- *   curl -
- *   mir  -
+ *   curl - cURL data of the worker
+ *   mir  - mirror data of the message
  *
  * DESCRIPTION
- *   Create a new easy handle, and add it to the global curl_multi.
+ *   Create a new easy handle, and add it to the global curl_multi.  All the
+ *   options of the handle are set before that; the URL, the HTTP headers, the
+ *   callback functions, the timeouts and the keepalive, and the multi handle
+ *   <curl> then runs the transfer.  The connection is closed again when any of
+ *   these steps fails.
  *
  * RETURN VALUE
- *   -
+ *   It returns FUNC_RET_OK (0) on success, FUNC_RET_ERROR (-1) otherwise.
  */
 int mir_curl_add(struct curl_data *curl, struct mirror *mir)
 {

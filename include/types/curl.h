@@ -106,29 +106,31 @@ enum CURL_HTTP_METHOD_enum
 #  define CURL_v076100(a,b)   b
 #endif
 
+/* The cURL multi interface data of a single worker. */
 struct curl_data {
-	struct ev_loop  *ev_base;         /* */
-	struct ev_async *ev_async;        /* */
-	struct ev_timer  ev_timer;        /* */
+	struct ev_loop  *ev_base;         /* The event loop of the worker. */
+	struct ev_async *ev_async;        /* The async watcher of the worker. */
+	struct ev_timer  ev_timer;        /* Watcher of the multi handle time-outs. */
 	CURLM           *multi;           /* cURL multi handle. */
 	int              running_handles; /* The number of running easy handles within the multi handle. */
 };
 
+/* Data of a single HTTP request mirrored through the easy interface. */
 struct curl_con {
 	CURL              *easy;                   /* cURL easy handle. */
 	struct curl_slist *hdrs;                   /* A linked list of HTTP headers. */
 	char               error[CURL_ERROR_SIZE]; /* Buffer to receive error messages in. */
-	struct curl_data  *curl;                   /* */
-	struct mirror     *mir;                    /* */
+	struct curl_data  *curl;                   /* The cURL data of the worker. */
+	struct mirror     *mir;                    /* The mirrored HTTP request. */
 };
 
 /* Information associated with a specific socket. */
 struct curl_sock {
-	curl_socket_t     fd;     /* */
-	CURL             *easy;   /* */
+	curl_socket_t     fd;     /* The monitored socket. */
+	CURL             *easy;   /* The easy handle that uses the socket. */
 	int               action; /* Set, but not used. */
-	struct ev_io      ev_io;  /* */
-	struct curl_data *curl;   /* */
+	struct ev_io      ev_io;  /* The IO watcher of the socket. */
+	struct curl_data *curl;   /* The cURL data of the worker. */
 };
 
 #endif /* _TYPES_CURL_H */

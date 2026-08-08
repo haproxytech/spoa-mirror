@@ -57,27 +57,28 @@ enum FLAG_OPT_enum {
 };
 
 
+/* The program configuration, mostly set from the command line. */
 struct config_data {
 #ifdef DEBUG
-	uint32_t      debug_level;
+	uint32_t      debug_level;         /* The debug mode level. */
 #endif
-	uint8_t       opt_flags;
-	unsigned int  max_frame_size;
-	int           num_workers;
-	const char   *server_address;
-	int           server_port;
-	int           connection_backlog;
-	uint64_t      processing_delay_us;
-	uint64_t      monitor_interval_us;
-	int64_t       runtime_us;
-	uint8_t       cap_flags;
-	const char   *logfile;
-	bool_t        logfile_in_use;
-	const char   *pidfile;
-	int           pidfile_fd;
-	uint          ev_backend;
+	uint8_t       opt_flags;           /* Options set on the command line. */
+	unsigned int  max_frame_size;      /* The maximum frame size. */
+	int           num_workers;         /* The number of the workers. */
+	const char   *server_address;      /* The address to listen on. */
+	int           server_port;         /* The port to listen on. */
+	int           connection_backlog;  /* The connection backlog size. */
+	uint64_t      processing_delay_us; /* The delay to process a message. */
+	uint64_t      monitor_interval_us; /* The interval of the monitor messages. */
+	int64_t       runtime_us;          /* The time the program runs (0 = unlimited). */
+	uint8_t       cap_flags;           /* The enabled capabilities. */
+	const char   *logfile;             /* The file all the messages are logged to. */
+	bool_t        logfile_in_use;      /* Set when the log file is opened. */
+	const char   *pidfile;             /* The file the process-id is written to. */
+	int           pidfile_fd;          /* Descriptor of the opened pid file. */
+	uint          ev_backend;          /* The libev backend type. */
 #ifdef HAVE_LIBCURL
-	char         *mir_url;
+	char         *mir_url;             /* The URL used for the HTTP mirroring. */
 	const char   *mir_interface;       /* Outgoing connections interface (IP address). */
 	int           mir_port[2];         /* Outgoing connections port. */
 	uint64_t      conn_timeout_us;     /* The maximum time allowed to connect to the mirror server. */
@@ -85,11 +86,12 @@ struct config_data {
 #endif
 };
 
+/* The runtime data of the running program. */
 struct program_data {
-	const char     *name;
-	struct timeval  start_time;
-	struct worker  *workers;
-	unsigned long   clicount;
+	const char     *name;       /* The program name. */
+	struct timeval  start_time; /* The time the program started. */
+	struct worker  *workers;    /* The workers of the program. */
+	unsigned long   clicount;   /* The number of the accepted clients. */
 };
 
 

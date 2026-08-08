@@ -22,19 +22,21 @@
 
 /***
  * NAME
- *   check_proto_version_cb -
+ *   check_proto_version_cb - supported-versions item callback function
  *
  * ARGUMENTS
- *   frame -
- *   arg1  -
- *   arg2  -
+ *   frame - frame that is decoded
+ *   arg1  - value of the supported-versions item
+ *   arg2  - pointer to the length of the item value
  *
  * DESCRIPTION
- *   Check the protocol version.
+ *   Check the protocol versions that HAProxy announced in the HELLO frame.
+ *   They are written to the log only, since the agent answers with the version
+ *   that it uses itself.
  *
  * RETURN VALUE
- *   It returns FUNC_RET_ERROR (-1) if an error occurred,
- *   the number of read bytes otherwise.
+ *   It returns FUNC_RET_OK (0) if the item holds a value, FUNC_RET_ERROR (-1)
+ *   otherwise.
  */
 static int check_proto_version_cb(struct spoe_frame *frame __maybe_unused, void *arg1, void *arg2 __maybe_unused)
 {
@@ -55,19 +57,20 @@ static int check_proto_version_cb(struct spoe_frame *frame __maybe_unused, void 
 
 /***
  * NAME
- *   check_max_frame_size_cb -
+ *   check_max_frame_size_cb - max-frame-size item callback function
  *
  * ARGUMENTS
- *   frame -
- *   arg1  -
- *   arg2  -
+ *   frame - frame that is decoded
+ *   arg1  - pointer to the value of the max-frame-size item
+ *   arg2  - not used, always a NULL pointer
  *
  * DESCRIPTION
- *   Check max frame size value.
+ *   Check the maximum frame size that HAProxy announced in the HELLO frame.
+ *   The lower of that size and the maximum frame size of the client is kept, so
+ *   that neither side gets a frame that it cannot hold.
  *
  * RETURN VALUE
- *   It returns FUNC_RET_ERROR (-1) if an error occurred,
- *   the number of read bytes otherwise.
+ *   It always returns FUNC_RET_OK (0).
  */
 static int check_max_frame_size_cb(struct spoe_frame *frame, void *arg1, void *arg2 __maybe_unused)
 {
@@ -87,19 +90,20 @@ static int check_max_frame_size_cb(struct spoe_frame *frame, void *arg1, void *a
 
 /***
  * NAME
- *   check_healthcheck_cb -
+ *   check_healthcheck_cb - healthcheck item callback function
  *
  * ARGUMENTS
- *   frame -
- *   arg1  -
- *   arg2  -
+ *   frame - frame that is decoded
+ *   arg1  - pointer to the value of the healthcheck item
+ *   arg2  - not used, always a NULL pointer
  *
  * DESCRIPTION
- *   Check healthcheck value.
+ *   Check the healthcheck item of the HELLO frame, and mark the frame as a
+ *   healthcheck frame when the item is set.  Such a client is released as soon
+ *   as the answer is sent to it.
  *
  * RETURN VALUE
- *   It returns FUNC_RET_ERROR (-1) if an error occurred,
- *   the number of read bytes otherwise.
+ *   It always returns FUNC_RET_OK (0).
  */
 static int check_healthcheck_cb(struct spoe_frame *frame, void *arg1, void *arg2 __maybe_unused)
 {
@@ -118,19 +122,22 @@ static int check_healthcheck_cb(struct spoe_frame *frame, void *arg1, void *arg2
 
 /***
  * NAME
- *   check_capabilities_cb -
+ *   check_capabilities_cb - capabilities item callback function
  *
  * ARGUMENTS
- *   frame -
- *   arg1  -
- *   arg2  -
+ *   frame - frame that is decoded
+ *   arg1  - value of the capabilities item
+ *   arg2  - pointer to the length of the item value
  *
  * DESCRIPTION
- *   Check the capabilities value.
+ *   Check the capabilities that HAProxy announced in the HELLO frame.  The
+ *   pipelining, the asynchronous mode and the fragmentation are recognized, and
+ *   every one of them that is found is enabled for the client.  An item without
+ *   a value is not an error, because that is how a healthcheck looks like.
  *
  * RETURN VALUE
- *   It returns FUNC_RET_ERROR (-1) if an error occurred,
- *   the number of read bytes otherwise.
+ *   It returns FUNC_RET_OK (0) on success, FUNC_RET_ERROR (-1) if the list of
+ *   the capabilities cannot be parsed.
  */
 static int check_capabilities_cb(struct spoe_frame *frame, void *arg1, void *arg2)
 {
@@ -208,19 +215,21 @@ static int check_capabilities_cb(struct spoe_frame *frame, void *arg1, void *arg
 
 /***
  * NAME
- *   check_engine_id_cb -
+ *   check_engine_id_cb - engine-id item callback function
  *
  * ARGUMENTS
- *   frame -
- *   arg1  -
- *   arg2  -
+ *   frame - frame that is decoded
+ *   arg1  - value of the engine-id item
+ *   arg2  - pointer to the length of the item value
  *
  * DESCRIPTION
- *   Check the engine-id value.
+ *   Save the engine identifier that HAProxy announced in the HELLO frame, so
+ *   that the client can be attached to the SPOE engine of that name.  The value
+ *   is duplicated only once, the first one being kept.
  *
  * RETURN VALUE
- *   It returns FUNC_RET_ERROR (-1) if an error occurred,
- *   the number of read bytes otherwise.
+ *   It returns FUNC_RET_OK (0) on success, or FUNC_RET_ERROR (-1) if the value
+ *   cannot be duplicated.
  */
 static int check_engine_id_cb(struct spoe_frame *frame, void *arg1, void *arg2)
 {
@@ -244,13 +253,16 @@ static int check_engine_id_cb(struct spoe_frame *frame, void *arg1, void *arg2)
 
 /***
  * NAME
- *   use_spoe_engine -
+ *   use_spoe_engine - attach a client to a SPOE engine
  *
  * ARGUMENTS
- *   client -
+ *   client - client that is attached
  *
  * DESCRIPTION
- *   -
+ *   Add the client <client> to the list of the clients of the SPOE engine whose
+ *   identifier the client announced, creating the engine if it does not exist
+ *   yet.  A client that announced no identifier is left as it is, and one whose
+ *   engine cannot be allocated gets the asynchronous mode switched off.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -294,18 +306,22 @@ end:
 
 /***
  * NAME
- *   handle_hahello -
+ *   handle_hahello - decode a HELLO frame
  *
  * ARGUMENTS
- *   frame -
+ *   frame - frame that is decoded
  *
  * DESCRIPTION
- *   Decode a HELLO frame received from HAProxy.
+ *   Decode a HELLO frame received from HAProxy and check all the key/value
+ *   items that it holds; the supported versions, the maximum frame size, the
+ *   healthcheck, the capabilities and the engine identifier.  The capabilities
+ *   that the program is not configured to use are then switched off, and the
+ *   client is attached to a SPOE engine if the asynchronous mode is kept.
  *
  * RETURN VALUE
  *   It returns FUNC_RET_ERROR (-1) if an error occurred, otherwise the number
- *   of read bytes.  HELLO frame cannot be ignored and having another frame
- *   than a HELLO frame is an error.
+ *   of read bytes.  HELLO frame cannot be ignored and having another frame than
+ *   a HELLO frame is an error.
  */
 int handle_hahello(struct spoe_frame *frame)
 {
@@ -348,17 +364,19 @@ int handle_hahello(struct spoe_frame *frame)
 
 /***
  * NAME
- *   prepare_agenthello -
+ *   prepare_agenthello - encode a HELLO frame
  *
  * ARGUMENTS
- *   frame -
+ *   frame - frame that is encoded
  *
  * DESCRIPTION
- *   Encode a HELLO frame to send it to HAProxy.
+ *   Encode the agent HELLO frame that answers the HELLO frame of HAProxy.  The
+ *   frame holds the version of the protocol that the agent speaks, the maximum
+ *   frame size of the client and the capabilities that both sides support.
  *
  * RETURN VALUE
- *   It returns the number of written bytes,
- *   or FUNC_RET_ERROR (-1) in case of the error.
+ *   It returns the length of the encoded frame, or FUNC_RET_ERROR (-1) in case
+ *   of the error.
  */
 int prepare_agenthello(struct spoe_frame *frame)
 {
