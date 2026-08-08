@@ -262,7 +262,8 @@ ssize_t buffer_grow(struct buffer *data, const void *src, size_t n)
 			/* Copying src data to buffer. */
 			(void)memcpy(ptr + data->len, src, n);
 
-			data->len += n;
+			data->len  += n;
+			data->size += size;
 		}
 
 		data->ptr = ptr;
