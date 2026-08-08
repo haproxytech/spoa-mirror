@@ -523,7 +523,8 @@ int spoe_decode_kv(struct spoe_frame *frame, const char **buf, const char *end, 
 		/* Decode the item name. */
 		retval = spoe_decode_buffer(&ptr, end, &str, &len);
 		if (_ERROR(retval) || _NULL(str)) {
-			FC_PTR->status_code = SPOE_FRM_ERR_INVALID;
+			if (_nNULL(FC_PTR))
+				FC_PTR->status_code = SPOE_FRM_ERR_INVALID;
 
 			DBG_RETURN_INT(FUNC_RET_ERROR);
 		}
@@ -547,7 +548,8 @@ int spoe_decode_kv(struct spoe_frame *frame, const char **buf, const char *end, 
 
 		/* An item that cannot be decoded aborts the whole frame. */
 		if (_ERROR(retval)) {
-			FC_PTR->status_code = SPOE_FRM_ERR_INVALID;
+			if (_nNULL(FC_PTR))
+				FC_PTR->status_code = SPOE_FRM_ERR_INVALID;
 
 			DBG_RETURN_INT(FUNC_RET_ERROR);
 		}
@@ -557,7 +559,8 @@ int spoe_decode_kv(struct spoe_frame *frame, const char **buf, const char *end, 
 			F_DBG(SPOA, frame, "Skip K/V item: key=%.*s", (int)len, str);
 
 			if (_ERROR(spoe_skip_data(&ptr, end))) {
-				FC_PTR->status_code = SPOE_FRM_ERR_INVALID;
+				if (_nNULL(FC_PTR))
+					FC_PTR->status_code = SPOE_FRM_ERR_INVALID;
 
 				DBG_RETURN_INT(FUNC_RET_ERROR);
 			}
@@ -689,22 +692,25 @@ int spoe_decode_frame(const char *msg, struct spoe_frame *frame, uint8_t spoe_ty
 		if (!frame->fragmented
 		    || (frame->stream_id != stream_id)
 		    || (frame->frame_id  != frame_id)) {
-			FC_PTR->status_code = SPOE_FRM_ERR_INTERLACED_FRAMES;
+			if (_nNULL(FC_PTR))
+				FC_PTR->status_code = SPOE_FRM_ERR_INTERLACED_FRAMES;
 
 			DBG_RETURN_INT(FUNC_RET_ERROR);
 		}
 	}
 	else if (TEST_OR2(stype, SPOE_FRM_T_HAPROXY_DISCON, SPOE_FRM_T_HAPROXY_HELLO)) {
 		/* Fragmentation is not supported. */
-		if (!(frame->flags & SPOE_FRM_FL_FIN)) {
-			FC_PTR->status_code = SPOE_FRM_ERR_FRAG_NOT_SUPPORTED;
+		if ((frame->flags & SPOE_FRM_FL_FIN) == 0) {
+			if (_nNULL(FC_PTR))
+				FC_PTR->status_code = SPOE_FRM_ERR_FRAG_NOT_SUPPORTED;
 
 			DBG_RETURN_INT(FUNC_RET_ERROR);
 		}
 
 		/* stream-id and frame-id must be cleared. */
 		if ((stream_id != 0) || (frame_id != 0)) {
-			FC_PTR->status_code = SPOE_FRM_ERR_INVALID;
+			if (_nNULL(FC_PTR))
+				FC_PTR->status_code = SPOE_FRM_ERR_INVALID;
 
 			DBG_RETURN_INT(FUNC_RET_ERROR);
 		}

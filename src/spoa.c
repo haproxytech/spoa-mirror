@@ -388,7 +388,15 @@ static void process_frame_cb(struct ev_loop *loop __maybe_unused, struct ev_time
 	}
 
 	/* Prepare agent ACK frame. */
-	rc  = prepare_agentack(frame);
+	rc = prepare_agentack(frame);
+	if (_ERROR(rc)) {
+		f_log(frame, _E("Failed to encode ACK frame"));
+
+		release_frame(frame);
+
+		DBG_RETURN();
+	}
+
 	buf = frame->buf + rc;
 
 	if (ip_score != SPOE_MSG_IPREP_UNSET)

@@ -1144,6 +1144,12 @@ int logfile(const char *filename)
 
 	DBG_FUNC(NULL, "\"%s\"", filename);
 
+	if (*filename == '\0') {
+		(void)fprintf(stderr, "ERROR: logfile name not defined\n");
+
+		DBG_RETURN_INT(retval);
+	}
+
 	if (filename[1] == ':') {
 		if (TEST_OR2(filename[0], 'a', 'A')) {
 			flags      |= O_APPEND;

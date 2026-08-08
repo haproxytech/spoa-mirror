@@ -316,8 +316,11 @@ static int decode_frame(const char *data, size_t len)
 	(void)printf("%.*s\n", (int)len, data);
 
 	buflen = hex2uint8(data, len, &buffer);
-	if (_ERROR(buflen))
+	if (_ERROR(buflen)) {
+		PTR_FREE(buffer);
+
 		return retval;
+	}
 
 	(void)memset(&frame, 0, sizeof(frame));
 	SPOE_FRAME_BUFFER_SET(&frame, (typeof(frame.buf))buffer, 0, buflen, 0);
@@ -328,16 +331,23 @@ static int decode_frame(const char *data, size_t len)
 			break;
 
 	/* Invalid frame type. */
-	if (i >= TABLESIZE(frame_type))
+	if (i >= TABLESIZE(frame_type)) {
+		PTR_FREE(buffer);
+
 		return retval;
+	}
 
 	flag_log_nl = 1;
 
 	rc = spoe_decode_frame(frame_type[i].msg, &frame, frame_type[i].type, FUNC_RET_ERROR, SPOE_DEC_END);
-	if (_ERROR(rc))
-		return retval;
 
 	flag_log_nl = 0;
+
+	if (_ERROR(rc)) {
+		PTR_FREE(buffer);
+
+		return retval;
+	}
 
 	ptr = frame.buf + rc;
 	end = frame.buf + frame.len;
@@ -468,23 +478,28 @@ static int decode_frame(const char *data, size_t len)
 		retval = FUNC_RET_OK;
 	}
 
+	PTR_FREE(buffer);
+
 	return retval;
 }
 
 
 /***
  * NAME
- *   main -
+ *   main - program entry point
  *
  * ARGUMENTS
- *   argv -
- *   argc -
+ *   argc - number of the command line arguments
+ *   argv - array of the command line arguments
  *
  * DESCRIPTION
- *   -
+ *   Parse the command line options and write the data given with them to the
+ *   standard output, either as a decoded SPOE frame or as strings.  The help
+ *   text and the program version are written when they are asked for.
  *
  * RETURN VALUE
- *   -
+ *   It returns EX_OK (0) on success, EX_USAGE for a command line that is not
+ *   correct, or the value that the decoding of the data returned.
  */
 int main(int argc, char **argv)
 {
