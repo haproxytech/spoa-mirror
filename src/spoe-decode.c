@@ -294,9 +294,13 @@ static int spoe_vdecode(struct spoe_frame *frame, const char **buf, const char *
 		else if (type == SPOE_DEC_UINT32) {
 			uint32_t *addr32 = va_arg(ap, typeof(addr32));
 
-			/* The frame flags are not aligned in the buffer. */
-			(void)memcpy(addr32, ptr, sizeof(*addr32));
-			ptr += sizeof(*addr32);
+			if (sizeof(*addr32) > (size_t)(end - ptr)) {
+				retval = FUNC_RET_ERROR;
+			} else {
+				/* The frame flags are not aligned in the buffer. */
+				(void)memcpy(addr32, ptr, sizeof(*addr32));
+				ptr += sizeof(*addr32);
+			}
 		}
 		else if (type == SPOE_DEC_VARINT0) {
 			uint64_t *value = va_arg(ap, typeof(value));
@@ -412,8 +416,10 @@ static int spoe_decode_kv_item(struct spoe_frame *frame, const char **buf, const
 		retval = cb_func(frame, (char *)ptr++, NULL);
 	}
 	else if (type == SPOE_DEC_UINT32) {
-		retval  = cb_func(frame, (char *)ptr, NULL);
-		ptr    += sizeof(uint32_t);
+		if (sizeof(uint32_t) <= (size_t)(end - ptr)) {
+			retval  = cb_func(frame, (char *)ptr, NULL);
+			ptr    += sizeof(uint32_t);
+		}
 	}
 	else if (type == SPOE_DEC_VARINT0) {
 		/* Do nothing. */
