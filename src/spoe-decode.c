@@ -524,6 +524,13 @@ int spoe_decode_kv(struct spoe_frame *frame, const char **buf, const char *end, 
 		}
 		va_end(ap);
 
+		/* An item that cannot be decoded aborts the whole frame. */
+		if (_ERROR(retval)) {
+			FC_PTR->status_code = SPOE_FRM_ERR_INVALID;
+
+			DBG_RETURN_INT(FUNC_RET_ERROR);
+		}
+
 		/* Silently ignore unknown item. */
 		if (type == SPOE_DEC_END) {
 			F_DBG(SPOA, frame, "Skip K/V item: key=%.*s", (int)len, str);
