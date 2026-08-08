@@ -89,8 +89,12 @@ static __always_inline int spoe_decode_buffer(const char **buf, const char *end,
 	*str = NULL;
 	*len = 0;
 
+	/*
+	 * The decoded length is compared to the remaining space instead of
+	 * computing 'ptr + retval', which may wrap around.
+	 */
 	rc = spoe_decode_varint(&ptr, end, &retval);
-	if (_ERROR(rc) || ((ptr + retval) > end))
+	if (_ERROR(rc) || (retval > (uint64_t)(end - ptr)))
 		return FUNC_RET_ERROR;
 
 	if (retval > 0) {
