@@ -50,13 +50,13 @@ int handle_hafrag(struct spoe_frame *frame)
 		DBG_RETURN_INT(rc);
 
 	/* Check if fragmentation is supported. */
-	if (!(cfg.cap_flags & FLAG_CAP_FRAGMENTATION)) {
+	if ((cfg.cap_flags & FLAG_CAP_FRAGMENTATION) == 0) {
 		FC_PTR->status_code = SPOE_FRM_ERR_FRAG_NOT_SUPPORTED;
 
 		DBG_RETURN_INT(FUNC_RET_ERROR);
 	}
 
-	if (frame->flags & SPOE_FRM_FL_ABRT) {
+	if ((frame->flags & SPOE_FRM_FL_ABRT) != 0) {
 		F_DBG(SPOA, frame, "--> UNSET - Abort processing of a fragmented frame"
 		      " - frag_len=%zu - len=%zu - offset=%zu",
 		      frame->frag.len, frame->len, frame->offset);

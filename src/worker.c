@@ -211,7 +211,7 @@ static void worker_thread_monitor_cb(struct ev_loop *loop __maybe_unused, struct
 
 	DBG_FUNC(w, "%p, %p, 0x%08x", loop, ev, revents);
 
-	if (w->nbclients || ev_async_pending(&(w->ev_async)))
+	if ((w->nbclients > 0) || ev_async_pending(&(w->ev_async)))
 		W_DBG(WORKER, w, "%u clients connected (%u frames), async event %spending",
 		      w->nbclients, w->nbframes, ev_async_pending(&(w->ev_async)) ? "" : "not ");
 #endif

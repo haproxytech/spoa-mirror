@@ -353,7 +353,7 @@ int handle_hahello(struct spoe_frame *frame)
 
 	if (!(cfg.cap_flags & FLAG_CAP_ASYNC) || _NULL(FC_PTR->engine_id))
 		FC_PTR->async = false;
-	if (!(cfg.cap_flags & FLAG_CAP_PIPELINING))
+	if ((cfg.cap_flags & FLAG_CAP_PIPELINING) == 0)
 		FC_PTR->pipelining = false;
 	if (FC_PTR->async)
 		use_spoe_engine(FC_PTR);
@@ -385,18 +385,18 @@ int prepare_agenthello(struct spoe_frame *frame)
 
 	DBG_FUNC(FW_PTR, "%p", frame);
 
-	if (cfg.cap_flags & FLAG_CAP_FRAGMENTATION) {
+	if ((cfg.cap_flags & FLAG_CAP_FRAGMENTATION) != 0) {
 		(void)memcpy(ptr, STR_ADDRSIZE(STR_CAP_FRAGMENTATION));
 		ptr += STR_SIZE(STR_CAP_FRAGMENTATION);
 	}
 	if (FC_PTR->pipelining) {
-		if (cfg.cap_flags & FLAG_CAP_FRAGMENTATION)
+		if ((cfg.cap_flags & FLAG_CAP_FRAGMENTATION) != 0)
 			*(ptr++) = ',';
 		(void)memcpy(ptr, STR_ADDRSIZE(STR_CAP_PIPELINING));
 		ptr += STR_SIZE(STR_CAP_PIPELINING);
 	}
 	if (FC_PTR->async) {
-		if ((cfg.cap_flags & FLAG_CAP_FRAGMENTATION) || FC_PTR->pipelining)
+		if (((cfg.cap_flags & FLAG_CAP_FRAGMENTATION) != 0) || FC_PTR->pipelining)
 			*(ptr++) = ',';
 		(void)memcpy(ptr, STR_ADDRSIZE(STR_CAP_ASYNC));
 		ptr += STR_SIZE(STR_CAP_ASYNC);

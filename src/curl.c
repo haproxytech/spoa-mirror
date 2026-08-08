@@ -551,11 +551,9 @@ static CURLcode mir_curl_set_headers(struct curl_con *con, const struct mirror *
 
 	list_for_each_entry_safe(hdr, hdr_back, &(mir->hdrs), list) {
 		slist = curl_slist_append(con->hdrs, (const char *)hdr->ptr);
-		if (_NULL(slist)) {
+		if (_NULL(slist))
 			DBG_RETURN_INT(CURLE_OUT_OF_MEMORY);
 
-			break;
-		}
 		con->hdrs = slist;
 	}
 

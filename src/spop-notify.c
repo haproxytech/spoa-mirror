@@ -49,7 +49,7 @@ int handle_hanotify(struct spoe_frame *frame)
 		DBG_RETURN_INT(rc);
 
 	/* Check if fragmentation is supported. */
-	if (!(frame->flags & SPOE_FRM_FL_FIN) && !(cfg.cap_flags & FLAG_CAP_FRAGMENTATION)) {
+	if (((frame->flags & SPOE_FRM_FL_FIN) == 0) && ((cfg.cap_flags & FLAG_CAP_FRAGMENTATION) == 0)) {
 		FC_PTR->status_code = SPOE_FRM_ERR_FRAG_NOT_SUPPORTED;
 
 		DBG_RETURN_INT(FUNC_RET_ERROR);

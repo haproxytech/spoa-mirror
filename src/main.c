@@ -293,7 +293,7 @@ static int getopt_set_time(const char *delay, uint64_t *time_us, uint64_t val_mi
 
 		if (errno == ERANGE)
 			(void)fprintf(stderr, "ERROR: wrong amount of time (allowed range [%s, %s]): '%s'\n", str_delay(val_min), str_delay(val_max), delay);
-		else if (errno)
+		else if (errno != 0)
 			(void)fprintf(stderr, "ERROR: invalid time format: '%s'\n", delay);
 		else
 			*time_us = delay_us;
@@ -487,10 +487,10 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 			flag_error = 1;
 	}
 
-	if (cfg.opt_flags & FLAG_OPT_HELP) {
+	if ((cfg.opt_flags & FLAG_OPT_HELP) != 0) {
 		usage(prg.name, 1);
 	}
-	else if (cfg.opt_flags & FLAG_OPT_VERSION) {
+	else if ((cfg.opt_flags & FLAG_OPT_VERSION) != 0) {
 		(void)printf("\n%s v%s [build %d] by %s, %s\n\n", prg.name, PACKAGE_VERSION, PACKAGE_BUILD, PACKAGE_AUTHOR, __DATE__);
 	}
 	else {
@@ -551,7 +551,7 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 		}
 
 	if (!flag_error && (retval == EX_OK))
-		if (cfg.opt_flags & FLAG_OPT_DAEMONIZE)
+		if ((cfg.opt_flags & FLAG_OPT_DAEMONIZE) != 0)
 			retval = daemonize(1, !cfg.logfile_in_use, &(cfg.pidfile_fd), 1);
 
 	/* Writing PID into the pidfile. */

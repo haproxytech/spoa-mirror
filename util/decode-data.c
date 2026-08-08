@@ -521,10 +521,10 @@ int main(int argc, char **argv)
 			flag_error = 1;
 	}
 
-	if (_prg.opt_flags & FLAG_OPT_HELP) {
+	if ((_prg.opt_flags & FLAG_OPT_HELP) != 0) {
 		usage(_prg.name, 1);
 	}
-	else if (_prg.opt_flags & FLAG_OPT_VERSION) {
+	else if ((_prg.opt_flags & FLAG_OPT_VERSION) != 0) {
 		(void)printf("\n%s v%s [build %d] by %s, %s\n\n", _prg.name, PACKAGE_VERSION, PACKAGE_BUILD, PACKAGE_AUTHOR, __DATE__);
 	}
 	else if ((_prg.bin_data == NULL) && (_prg.frame_data == NULL)) {
@@ -533,7 +533,7 @@ int main(int argc, char **argv)
 		usage(_prg.name, 0);
 	}
 
-	if (flag_error || (_prg.opt_flags & (FLAG_OPT_HELP | FLAG_OPT_VERSION)))
+	if (flag_error || ((_prg.opt_flags & (FLAG_OPT_HELP | FLAG_OPT_VERSION)) != 0))
 		return flag_error ? EX_USAGE : EX_OK;
 
 	if (_prg.bin_data != NULL)

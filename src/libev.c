@@ -114,7 +114,7 @@ const char *ev_backends_supported(void)
 	ev_backends = ev_supported_backends();
 
 	for (i = 1; i <= EVBACKEND_ALL; i <<= 1)
-		if (ev_backends & i) {
+		if ((ev_backends & i) != 0) {
 			if (*retbuf != '\0')
 				(void)strncat(retbuf, ", ", SIZEOF_1(retbuf));
 

@@ -292,7 +292,7 @@ static int spoa_msg_arg_hdrs_bin(struct spoe_frame *frame, const char *buf, cons
 
 		F_DBG(SPOA, frame, "str[%d]: <%.*s>", i, (int)len, str);
 
-		if (i & 1) {
+		if ((i & 1) != 0) {
 			if (_NULL(str)) {
 				/* HTTP header has no value. */
 				if (_ERROR(retval = buffer_grow(hdr, ";\0", 2)))

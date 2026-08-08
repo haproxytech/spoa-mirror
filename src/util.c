@@ -558,7 +558,7 @@ uint64_t parse_delay_us(const char *delay, uint64_t val_min, uint64_t val_max)
 	else
 		errno = EINVAL;                     /* Invalid unit. */
 
-	if (errno) {
+	if (errno != 0) {
 		retval = ULLONG_MAX;
 	}
 	else if (!IN_RANGE(retval, val_min, val_max)) {
