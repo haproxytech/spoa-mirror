@@ -150,6 +150,23 @@ starts HAProxy in master-worker mode and declares the agent as a program, and
 ssl-cert.pem is a certificate intended for testing the HTTPS frontend.  The
 get-absolute-uri.sh script sends a request with an absolute-form target.
 
+The spop-test.sh script runs the SPOP regression tests.  It starts the program
+itself, talks to it with the spop-client.py client, which implements the SPOP
+protocol independently of the program, and checks the frames that it gets back.
+The program that is tested is chosen with the '-a' option, the cases to run may
+be named on the command line, and the '-l' option lists them.  Besides the frame
+exchange, the script also checks that the program refuses command line arguments
+that are out of range.
+
+A case fails when the client reports an error, when a sanitizer writes to the
+log of the program, or when the program is no longer running once the client is
+done; the logs of a run that failed are kept.  The cases that send a fragmented
+frame or a truncated header block, and the one that leaves the mirrored requests
+running while the program is stopped, are reported as skipped unless the program
+is built with the address sanitizer, which is what makes the overflow and the
+leaks that they leave behind visible.  A case that needs an option the program
+was not built with is skipped as well.
+
 The test/debug subdirectory holds the same configurations extended with the
 SPOE variable captures, and its spoe.cfg also refers to the check-client-ip
 and test messages.  Those messages are commented out there and are meant to
