@@ -20,6 +20,8 @@
 #ifndef _TYPES_WORKER_H
 #define _TYPES_WORKER_H
 
+#define WORKER_LOCK(w,f)   do { (void)pthread_mutex_lock(&((w)->mutex)); f; (void)pthread_mutex_unlock(&((w)->mutex)); } while (0)
+
 /* Data of a single worker thread. */
 struct worker {
 	pthread_t         thread;     /* The thread of the worker. */
@@ -28,6 +30,11 @@ struct worker {
 	struct ev_async   ev_async;   /* The watcher that wakes the worker up. */
 	struct ev_loop   *ev_base;    /* The event loop of the worker. */
 	struct ev_timer   ev_monitor; /* The timer of the monitor messages. */
+
+	pthread_mutex_t   mutex;      /* Guards the members that follow. */
+	struct list       accepted;   /* Clients the main thread accepted. */
+	bool_t            flag_ready; /* Set when the worker can be woken up. */
+	bool_t            flag_stop;  /* Set when the worker has to stop. */
 
 	struct list       engines;    /* The SPOE engines of the worker. */
 

@@ -22,6 +22,73 @@
 
 /***
  * NAME
+ *   worker_clients_adopt - take the accepted clients over
+ *
+ * ARGUMENTS
+ *   worker - worker that takes the clients over
+ *
+ * DESCRIPTION
+ *   Move all the clients that the main thread accepted for the worker <worker>
+ *   to the list of the clients that the worker serves, and start the read
+ *   watcher of every one of them.  This has to run in the thread of the worker,
+ *   because libev allows only one thread at a time in the calls that use the
+ *   same event loop, and that thread is the one that runs the loop.
+ *
+ * RETURN VALUE
+ *   This function does not return a value.
+ */
+static void worker_clients_adopt(struct worker *worker)
+{
+	struct client *c, *cback;
+
+	DBG_FUNC(worker, "%p", worker);
+
+	WORKER_LOCK(worker, list_for_each_entry_safe(c, cback, &(worker->accepted), by_worker) {
+		LIST_DEL(&(c->by_worker));
+		LIST_ADDQ(&(worker->clients), &(c->by_worker));
+		worker->nbclients++;
+
+		ev_io_init(&(c->ev_frame_rd), read_frame_cb, c->fd, EV_READ);
+		ev_io_init(&(c->ev_frame_wr), write_frame_cb, c->fd, EV_WRITE);
+		ev_io_start(worker->ev_base, &(c->ev_frame_rd));
+
+		W_DBG(WORKER, worker, "<%lu> Client taken over, read event added", c->id);
+	});
+
+	DBG_RETURN();
+}
+
+
+/***
+ * NAME
+ *   worker_wakeup - wake the event loop of a worker up
+ *
+ * ARGUMENTS
+ *   worker - worker whose event loop is woken up
+ *
+ * DESCRIPTION
+ *   Wake the event loop of the worker <worker> up from another thread, which is
+ *   the only thing that libev allows to be done with a loop that a different
+ *   thread runs.  A worker whose loop is not running is not woken up; one that
+ *   did not start yet takes the queued work over by itself, and one that left
+ *   its loop has nothing to take over any more.  The mutex is held over the
+ *   wakeup, so that the loop cannot be destroyed in the middle of it.
+ *
+ * RETURN VALUE
+ *   This function does not return a value.
+ */
+static void worker_wakeup(struct worker *worker)
+{
+	DBG_FUNC(worker, "%p", worker);
+
+	WORKER_LOCK(worker, if (worker->flag_ready) ev_async_send(worker->ev_base, &(worker->ev_async)));
+
+	DBG_RETURN();
+}
+
+
+/***
+ * NAME
  *   worker_async_cb - libev async watcher callback function
  *
  * ARGUMENTS
@@ -30,19 +97,26 @@
  *   revents - received event flags
  *
  * DESCRIPTION
- *   Do nothing but write the entry to the log, because the async watcher is
- *   only used to wake the event loop of the worker up from another thread.
+ *   Take the clients that the main thread accepted over and break the event
+ *   loop when the server is stopping.  Both are done here because the main
+ *   thread may not touch the event loop of the worker itself.
  *
  * RETURN VALUE
  *   This function does not return a value.
  */
-static void worker_async_cb(struct ev_loop *loop __maybe_unused, struct ev_async *ev __maybe_unused, int revents __maybe_unused)
+static void worker_async_cb(struct ev_loop *loop, struct ev_async *ev __maybe_unused, int revents __maybe_unused)
 {
-#ifdef DEBUG
-	const STRUCT_ADDR(worker, w, ev_async);
+	STRUCT_ADDR(worker, w, ev_async);
+	bool_t flag_stop;
 
 	DBG_FUNC(w, "%p, %p, 0x%08x", loop, ev, revents);
-#endif
+
+	worker_clients_adopt(w);
+
+	WORKER_LOCK(w, flag_stop = w->flag_stop);
+
+	if (flag_stop)
+		ev_break(loop, EVBREAK_ONE);
 
 	DBG_RETURN();
 }
@@ -279,6 +353,7 @@ static void *worker_thread(void *data)
 	struct client     *c, *cback;
 	struct spoe_frame *f, *fback;
 	struct worker     *w = data;
+	bool_t             flag_stop;
 
 	DBG_FUNC(w, "%p", data);
 
@@ -321,7 +396,20 @@ static void *worker_thread(void *data)
 
 	W_DBG(WORKER, w, "Worker ready to process client messages");
 
-	(void)ev_run(w->ev_base, 0);
+	/*
+	 * The worker is announced only now, so that the main thread does not
+	 * wake the event loop up before the loop and its watchers are set up.
+	 */
+	WORKER_LOCK(w, w->flag_ready = 1; flag_stop = w->flag_stop);
+
+	/* Take over the clients that arrived while the worker was starting. */
+	worker_clients_adopt(w);
+
+	if (!flag_stop)
+		(void)ev_run(w->ev_base, 0);
+
+	/* The loop is left, so it may not be woken up any more. */
+	WORKER_LOCK(w, w->flag_ready = 0);
 
 	list_for_each_entry_safe(c, cback, &(w->clients), by_worker)
 		release_client(c);
@@ -404,9 +492,15 @@ static void worker_stop(struct ev_loop *loop, const char *msg __maybe_unused)
 
 	W_DBG(WORKER, NULL, "Main event loop stopped");
 
+	/*
+	 * The event loop of a worker is broken by the worker itself, in the
+	 * callback of its async watcher, because only that watcher may be
+	 * used on a loop that another thread runs.
+	 */
 	for (i = 0; i < cfg.num_workers; i++) {
-		ev_once(prg.workers[i].ev_base, -1, 0, 0, worker_stop_ev, prg.workers[i].ev_base);
-		ev_async_send(prg.workers[i].ev_base, &(prg.workers[i].ev_async));
+		WORKER_LOCK(prg.workers + i, prg.workers[i].flag_stop = 1);
+
+		worker_wakeup(prg.workers + i);
 
 		W_DBG(WORKER, NULL, "Worker %02d: event loop stopped", prg.workers[i].id);
 	}
@@ -578,15 +672,15 @@ static void worker_accept_cb(struct ev_loop *loop __maybe_unused, struct ev_io *
 	LIST_INIT(&(c->processing_frames));
 	LIST_INIT(&(c->outgoing_frames));
 
-	LIST_ADDQ(&(w->clients), &(c->by_worker));
-	w->nbclients++;
+	/*
+	 * This function runs in the main thread, so the client is only queued
+	 * here; the worker adds it to its own list and starts its watchers.
+	 */
+	WORKER_LOCK(w, LIST_ADDQ(&(w->accepted), &(c->by_worker)));
 
-	ev_io_init(&(c->ev_frame_rd), read_frame_cb, fd, EV_READ);
-	ev_io_init(&(c->ev_frame_wr), write_frame_cb, fd, EV_WRITE);
-	ev_io_start(w->ev_base, &(c->ev_frame_rd));
-	ev_async_send(w->ev_base, &(w->ev_async));
+	worker_wakeup(w);
 
-	W_DBG(WORKER, NULL, "<%lu> New read event added to worker %02d", prg.clicount, w->id);
+	W_DBG(WORKER, NULL, "<%lu> New client queued for worker %02d", prg.clicount, w->id);
 
 	DBG_RETURN();
 }
@@ -716,7 +810,12 @@ int worker_run(void)
 		w->id = i + 1;
 		w->fd = fd;
 
-		if (_nOK(pthread_create(&(w->thread), NULL, worker_thread, w)))
+		/* The list and the mutex are used before the worker starts. */
+		LIST_INIT(&(w->accepted));
+
+		if (_nOK(pthread_mutex_init(&(w->mutex), NULL)))
+			w_log(NULL, _E("Failed to initialize mutex for worker %02d: %m"), w->id);
+		else if (_nOK(pthread_create(&(w->thread), NULL, worker_thread, w)))
 			w_log(NULL, _E("Failed to start thread for worker %02d: %m"), w->id);
 	}
 
@@ -746,10 +845,23 @@ int worker_run(void)
 
 	for (i = 0; i < cfg.num_workers; i++) {
 		struct worker *w = prg.workers + i;
+		struct client *c, *cback;
 
 		rc = pthread_join(w->thread, NULL);
 		if (rc != 0)
 			w_log(w, _E("Failed to join worker thread %02d: %s"), w->id, strerror(rc));
+
+		/*
+		 * A client that was accepted but never taken over has no
+		 * watcher started, so only its socket has to be closed.
+		 */
+		list_for_each_entry_safe(c, cback, &(w->accepted), by_worker) {
+			LIST_DEL(&(c->by_worker));
+			FD_CLOSE(c->fd);
+			PTR_FREE(c);
+		}
+
+		(void)pthread_mutex_destroy(&(w->mutex));
 
 		W_DBG(WORKER, NULL, "Worker %02d: terminated (%d)", w->id, rc);
 	}
