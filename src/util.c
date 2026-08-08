@@ -1235,8 +1235,8 @@ int daemonize(bool_t flag_chdir, bool_t flag_fdclose, int *fd, size_t n)
 	(void)umask(0);
 
 	/* Change working directory. */
-	if (flag_chdir)
-		(void)chdir("/");
+	if (flag_chdir && _ERROR(chdir("/")))
+		DBG_RETURN_INT(FUNC_RET_ERROR);
 
 	/*
 	 * Close off file descriptors; except stdin, stdout, stderr and those
