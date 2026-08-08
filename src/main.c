@@ -425,6 +425,8 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 
 	(void)gettimeofday(&(prg.start_time), NULL);
 
+	srandom((uint)TIMEVAL_US(&(prg.start_time)));
+
 	prg.name = basename(argv[0]);
 
 	DBG_FUNC(NULL, "%d, %p:%p, %p", argc, DPTR_ARGS(argv), envp);
@@ -512,11 +514,16 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 			flag_error = 1;
 		}
 
+		if (!IN_RANGE(cfg.connection_backlog, 1, 65535)) {
+			(void)fprintf(stderr, "ERROR: invalid connection backlog '%d'\n", cfg.connection_backlog);
+			flag_error = 1;
+		}
+
 		if (flag_error)
 			usage(prg.name, 0);
 	}
 
-	if (flag_error || (cfg.opt_flags & (FLAG_OPT_HELP | FLAG_OPT_VERSION)))
+	if (flag_error || ((cfg.opt_flags & (FLAG_OPT_HELP | FLAG_OPT_VERSION)) != 0))
 		DBG_RETURN_INT(flag_error ? EX_USAGE : EX_OK);
 
 #ifdef HAVE_LIBCURL
