@@ -238,6 +238,22 @@ AC_DEFUN([AM_ENABLE_GPROF], [
 	)
 ])
 
+AC_DEFUN([AM_ENABLE_SANITIZER], [
+	AC_ARG_ENABLE([sanitizer],
+		[AS_HELP_STRING([--enable-sanitizer@<:@=LIST@:>@], [compile with the sanitizers @<:@default=address@:>@])],
+		[if test "${enableval}" != "no"; then
+			if test "${enableval}" = "yes"; then
+				_var_sanitizer="address"
+			else
+				_var_sanitizer="${enableval}"
+			fi
+			AC_DEFINE([SANITIZER], [1], [Define to 1 if you want to compile with the sanitizers.])
+			CFLAGS="${CFLAGS} -g -fsanitize=${_var_sanitizer} -fno-omit-frame-pointer"
+			LDFLAGS="${LDFLAGS} -fsanitize=${_var_sanitizer}"
+		 fi]
+	)
+])
+
 AC_DEFUN([AM_VARIABLE_SET], [
 _am_cache_test ()
 {

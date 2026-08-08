@@ -64,6 +64,13 @@ not recommended for actual use:
 
   % ./configure --enable-debug
 
+The program can also be built with the sanitizers, which is how the SPOP
+regression tests detect the memory errors.  The address sanitizer is used
+when no list is given, and any list that the compiler accepts may be set:
+
+  % ./configure --enable-sanitizer
+  % ./configure --enable-sanitizer=address,undefined
+
 To configure the program, the system must have installed development packages
 for cURL and libev, which will be selected automatically when running the
 configure script.
