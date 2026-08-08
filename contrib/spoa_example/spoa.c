@@ -1412,6 +1412,13 @@ read_frame_cb(evutil_socket_t fd, short events, void *arg)
 		frame->buf   += 4;
 		frame->offset = 0;
 		frame->len    = ntohl(netint);
+
+		/* The announced frame data must fit into the allocated buffer */
+		if (frame->len > max_frame_size) {
+			LOG(client->worker, "Frame too big : %u > %u",
+			    frame->len, max_frame_size);
+			goto close;
+		}
 	}
 
 	/* Read the frame: frame->buf points on frame part (frame->data+4)*/
