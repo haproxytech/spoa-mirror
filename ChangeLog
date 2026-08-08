@@ -1,6 +1,42 @@
 ChangeLog :
 ===========
 
+2026/08/08 : 1.2.20
+
+    Corrected the decoding of the frames received from HAProxy.  The announced
+    frame length is now limited to the maximum frame size, the decoded lengths
+    are checked against the space left in the frame, and an item that cannot
+    be decoded aborts the whole frame.  The same corrections were also made in
+    the example agent.
+
+    The program learned the '--connection-timeout' and '--timeout' command-line
+    arguments and the connection timeouts are now given in milliseconds, while
+    the README got a section that describes the compatibility with HAProxy.
+
+    The build system now supports a separate build directory and enables the
+    compilation warnings.
+
+    - BUG/MINOR: set minimum value limit for max-frame-size
+    - MINOR: debug: added the mir_curl_slist_dump() function
+    - CLEANUP: using the UINT64_C() macro when defining an unsigned long long value
+    - MINOR: added '--connection-timeout' and '--timeout' program command-line arguments
+    - CLEANUP: fixed spoa_msg_arg_hdrs() function declaration
+    - BUILD/MINOR: added support for separate build directory
+    - BUILD/MINOR: enable warnings and compilation errors
+    - BUG/MINOR: changed connection timeouts from microseconds to milliseconds
+    - BUILD/MINOR: replaced deprecated macro AC_TRY_COMPILE() (again)
+    - BUG/MINOR: fixed buffer overflow on an oversized frame length
+    - BUG/MINOR: fixed pointer arithmetic overflow when decoding a buffer
+    - BUG/MINOR: fixed unaligned access to the frame flags
+    - BUG/MINOR: examples: fixed buffer overflow and pointer arithmetic overflow
+    - BUG/MINOR: fixed out-of-bounds read when decoding a 32-bit item
+    - BUG/MINOR: aborted the frame decoding on a K/V item error
+    - CLEANUP: checked the return value of the chdir() function
+    - DOC: noted that async and fragmentation need an older HAProxy
+    - DOC: added a section about the HAProxy compatibility
+    - DOC: corrected the timeout defaults shown in the README
+    - DOC: populated the ChangeLog
+
 2024/04/21 : 1.2.19
 
     Added support for the absolute-form request target and corrected the use

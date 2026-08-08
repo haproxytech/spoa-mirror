@@ -108,7 +108,7 @@ static void usage(const char *program_name, bool_t flag_verbose)
 		(void)printf("for the mode, then line buffering is used when writing to the log file.\n\n");
 		(void)printf("The time delay/interval is specified in milliseconds by default, but can be\n");
 		(void)printf("in any other unit if the number is suffixed by a unit (us, ms, s, m, h, d).\n\n");
-		(void)printf("Copyright 2018-2020 HAProxy Technologies\n");
+		(void)printf("Copyright 2018-2026 HAProxy Technologies\n");
 		(void)printf("SPDX-License-Identifier: GPL-2.0-or-later\n\n");
 	} else {
 		(void)printf("For help type: %s -h\n\n", program_name);
