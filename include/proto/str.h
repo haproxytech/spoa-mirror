@@ -1,5 +1,5 @@
 /***
- * Copyright 2023 HAProxy Technologies
+ * Copyright 2018-2026 HAProxy Technologies
  *
  * This file is part of spoa-mirror.
  *
@@ -17,15 +17,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-#ifndef _UTIL_H
-#define _UTIL_H
+#ifndef _PROTO_STR_H
+#define _PROTO_STR_H
 
-void        f_log(const struct spoe_frame *frame, const char *format, ...) __fmt(printf, 2, 3);
-void        w_log(const struct worker *worker, const char *format, ...) __fmt(printf, 2, 3);
+const char *str_hex(const void *data, size_t size);
+const char *str_ctrl(const void *data, size_t size);
 
-extern bool_t flag_log_nl;
-
-#endif /* _UTIL_H */
+#endif /* _PROTO_STR_H */
 
 /*
  * Local variables:

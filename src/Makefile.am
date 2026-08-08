@@ -18,6 +18,7 @@ common_SOURCES = \
 	spop-hello.c \
 	spop-notify.c \
 	spop-unset.c \
+	str.c \
 	tcp.c \
 	util.c \
 	worker.c

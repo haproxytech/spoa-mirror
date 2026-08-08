@@ -6,7 +6,7 @@
               AM_CFLAGS = @SPOA_MIRROR_CFLAGS@
              AM_LDFLAGS = @SPOA_MIRROR_LDFLAGS@
 
-         common_SOURCES = ../src/spoe-decode.c decode-data.c util.c
+         common_SOURCES = ../src/spoe-decode.c ../src/str.c decode-data.c util.c
 
 if WANT_DEBUG
 decode_data_dbg_LDFLAGS =

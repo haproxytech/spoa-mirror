@@ -126,6 +126,7 @@
 #include "proto/spop-hello.h"
 #include "proto/spop-notify.h"
 #include "proto/spop-unset.h"
+#include "proto/str.h"
 #include "proto/tcp.h"
 #include "proto/util.h"
 #include "proto/worker.h"

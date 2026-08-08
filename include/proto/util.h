@@ -26,8 +26,6 @@ struct buffer *buffer_alloc(size_t size, const void *src, ...);
 void buffer_ptr_free(struct buffer **data);
 ssize_t buffer_grow(struct buffer *data, const void *src, size_t n);
 ssize_t buffer_grow_va(struct buffer *data, const void *src, size_t n, ...);
-const char *str_hex(const void *data, size_t size);
-const char *str_ctrl(const void *data, size_t size);
 void *mem_dup(const void *s, size_t size);
 bool_t str_toull(const char *str, char **endptr, bool_t flag_end, int base, uint64_t *value, uint64_t val_min, uint64_t val_max);
 bool_t str_toll(const char *str, char **endptr, bool_t flag_end, int base, int64_t *value, int64_t val_min, int64_t val_max);

@@ -319,92 +319,27 @@ ssize_t buffer_grow_va(struct buffer *data, const void *src, size_t n, ...)
 
 /***
  * NAME
- *   str_hex -
+ *   str_toull - convert a string to an unsigned integer
  *
  * ARGUMENTS
- *   data -
- *   size -
+ *   str      - string that is converted
+ *   endptr   - pointer to the first character after the number
+ *   flag_end - whether the whole string has to be a number
+ *   base     - base of the conversion, or 0 to take it from the string
+ *   value    - pointer to the converted value
+ *   val_min  - lowest allowed value
+ *   val_max  - highest allowed value
  *
  * DESCRIPTION
- *   -
+ *   Convert the string <str> into an unsigned integer value and save the result
+ *   in <*value>.  If <endptr> is not a NULL pointer, the address of the first
+ *   character that does not belong to the number is stored there.  When the
+ *   flag <flag_end> is set, the whole string has to be a number.  The result is
+ *   checked against the range [<val_min>, <val_max>], but only if <val_min> is
+ *   not greater than <val_max>.  Every error found is logged.
  *
  * RETURN VALUE
- *   -
- */
-const char *str_hex(const void *data, size_t size)
-{
-	static __THR char  retbuf[BUFSIZ];
-	const uint8_t     *ptr = data;
-	size_t             i;
-
-	if (_NULL(data))
-		return "(null)";
-	else if (size == 0)
-		return "()";
-
-	for (i = 0, size <<= 1; (i < SIZEOF_N(retbuf, 2)) && (i < size); ptr++) {
-		retbuf[i++] = NIBBLE_TO_HEX(*ptr >> 4);
-		retbuf[i++] = NIBBLE_TO_HEX(*ptr & 0x0f);
-	}
-
-	retbuf[i] = '\0';
-
-	return retbuf;
-}
-
-
-/***
- * NAME
- *   str_ctrl -
- *
- * ARGUMENTS
- *   data -
- *   size -
- *
- * DESCRIPTION
- *   -
- *
- * RETURN VALUE
- *   -
- */
-const char *str_ctrl(const void *data, size_t size)
-{
-	static __THR char  retbuf[BUFSIZ];
-	const uint8_t     *ptr = data;
-	size_t             i, n = 0;
-
-	if (_NULL(data))
-		return "(null)";
-	else if (size == 0)
-		return "()";
-
-	for (i = 0; (n < SIZEOF_N(retbuf, 1)) && (i < size); i++)
-		retbuf[n++] = IN_RANGE(ptr[i], 0x20, 0x7e) ? ptr[i] : '.';
-
-	retbuf[n] = '\0';
-
-	return retbuf;
-}
-
-
-/***
- * NAME
- *   str_toull -
- *
- * ARGUMENTS
- *   str      -
- *   endptr   -
- *   flag_end -
- *   base     -
- *   value    -
- *   val_min  -
- *   val_max  -
- *
- * DESCRIPTION
- *   -
- *
- * RETURN VALUE
- *   -
+ *   It returns true if the string is converted, false otherwise.
  */
 bool_t str_toull(const char *str, char **endptr, bool_t flag_end, int base, uint64_t *value, uint64_t val_min, uint64_t val_max)
 {
