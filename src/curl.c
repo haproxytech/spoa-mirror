@@ -92,9 +92,10 @@ static int mir_curl_debug_cb(CURL *handle, curl_infotype type, char *data, size_
  *   con - connection that is closed
  *
  * DESCRIPTION
- *   Remove the easy handle of the connection <con> from the multi handle, then
- *   release the list of the HTTP headers, the easy handle and the mirror data
- *   of the connection, and the connection itself.
+ *   Remove the easy handle of the connection <con> from the multi handle and
+ *   from the list of the connections that the multi handle serves, then release
+ *   the list of the HTTP headers, the easy handle and the mirror data of the
+ *   connection, and the connection itself.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -107,6 +108,10 @@ static void mir_curl_handle_close(struct curl_con *con)
 		DBG_RETURN();
 
 	CURL_DBG("Closing handle { %p %p \"%s\" %p }", con->easy, con->hdrs, con->error, con->curl);
+
+	/* A connection that was never added is not on the list. */
+	if (_nNULL(con->list.p) && _nNULL(con->list.n))
+		LIST_DEL(&(con->list));
 
 	if (_nNULL(con->curl) && _nNULL(con->curl->multi))
 		(void)curl_multi_remove_handle(con->curl->multi, con->easy);
@@ -224,7 +229,7 @@ static void mir_curl_check_multi_info(struct curl_data *curl)
 				CURL_ERR_EASY("Failed to get number of downloaded bytes", rc);
 
 			w_log(NULL, "\"%s %s %s\" %ld " CURL_v075500("%ld/%ld", "%.0f/%.0f") " %.3f %s",
-			      con->mir->method, url, mir_curl_get_http_version(version),
+			      STRUCT_ELEM_SAFE(con->mir, method, "?"), url, mir_curl_get_http_version(version),
 			      response_code, size_upload, size_download,
 			      CURL_v076100(total_time / 1000.0, total_time * 1000.0),
 			      (msg->data.result != CURLE_OK) ? con->error : "ok");
@@ -605,6 +610,7 @@ int mir_curl_init(struct ev_loop *loop, struct ev_async *ev, struct curl_data *c
 		DBG_RETURN_INT(retval);
 
 	(void)memset(curl, 0, sizeof(*curl));
+	LIST_INIT(&(curl->cons));
 
 	curl->ev_base  = loop;
 	curl->ev_async = ev;
@@ -645,18 +651,26 @@ int mir_curl_init(struct ev_loop *loop, struct ev_async *ev, struct curl_data *c
  *   curl - cURL data that is released
  *
  * DESCRIPTION
- *   Release the multi handle of the cURL data <curl>, stop the timer of the
- *   multi handle and clear the whole structure.
+ *   Close all the connections that are still added to the multi handle of the
+ *   cURL data <curl>, which aborts the transfers that did not finish, then
+ *   release the multi handle, stop its timer and clear the whole structure.
+ *   The easy handles have to be removed before the multi handle is released,
+ *   so the connections cannot be left to it.
  *
  * RETURN VALUE
  *   This function does not return a value.
  */
 void mir_curl_close(struct curl_data *curl)
 {
+	struct curl_con *con, *con_back;
+
 	DBG_FUNC(NULL, "%p", curl);
 
 	if (_NULL(curl))
 		DBG_RETURN();
+
+	list_for_each_entry_safe(con, con_back, &(curl->cons), list)
+		mir_curl_handle_close(con);
 
 	if (_nNULL(curl->multi))
 		(void)curl_multi_cleanup(curl->multi);
@@ -771,7 +785,7 @@ static int mir_curl_xferinfo_cb(void *clientp, curl_off_t dltotal __maybe_unused
 
 	DBG_FUNC(NULL, "%p, %"PRId64", %"PRId64", %"PRId64", %"PRId64, clientp, dltotal, dlnow, ultotal, ulnow);
 
-	CURL_DBG("Progress: %s (%"PRId64"/%"PRId64" %"PRId64"/%"PRId64")", con->mir->url, dlnow, dltotal, ulnow, ultotal);
+	CURL_DBG("Progress: %s (%"PRId64"/%"PRId64" %"PRId64"/%"PRId64")", STRUCT_ELEM_SAFE(con->mir, url, "?"), dlnow, dltotal, ulnow, ultotal);
 
 	DBG_RETURN_INT(0);
 }
@@ -784,7 +798,7 @@ static int mir_curl_xferinfo_cb(void *clientp, double dltotal __maybe_unused, do
 
 	DBG_FUNC(NULL, "%p, %f, %f, %f, %f", clientp, dltotal, dlnow, ultotal, ulnow);
 
-	CURL_DBG("Progress: %s (%.0f/%.0f %.0f/%.0f)", con->mir->url, dlnow, dltotal, ulnow, ultotal);
+	CURL_DBG("Progress: %s (%.0f/%.0f %.0f/%.0f)", STRUCT_ELEM_SAFE(con->mir, url, "?"), dlnow, dltotal, ulnow, ultotal);
 
 	DBG_RETURN_INT(0);
 }
@@ -1150,6 +1164,7 @@ int mir_curl_add(struct curl_data *curl, struct mirror *mir)
 			CURL_ERR_MULTI("Failed to add easy handle", rcm);
 		} else {
 			con->mir = mir;
+			LIST_ADDQ(&(curl->cons), &(con->list));
 
 			retval = FUNC_RET_OK;
 		}

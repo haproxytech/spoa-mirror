@@ -419,6 +419,12 @@ static void *worker_thread(void *data)
 		free(f);
 	}
 
+#ifdef HAVE_LIBCURL
+	/* The event loop is still needed here, so this is done before the exit. */
+	if (_nNULL(cfg.mir_url))
+		mir_curl_close(&(w->curl));
+#endif
+
 	DBG_RETURN_PTR(worker_thread_exit(w));
 }
 

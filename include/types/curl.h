@@ -112,6 +112,7 @@ struct curl_data {
 	struct ev_async *ev_async;        /* The async watcher of the worker. */
 	struct ev_timer  ev_timer;        /* Watcher of the multi handle time-outs. */
 	CURLM           *multi;           /* cURL multi handle. */
+	struct list      cons;            /* Connections added to the multi handle. */
 	int              running_handles; /* The number of running easy handles within the multi handle. */
 };
 
@@ -122,6 +123,7 @@ struct curl_con {
 	char               error[CURL_ERROR_SIZE]; /* Buffer to receive error messages in. */
 	struct curl_data  *curl;                   /* The cURL data of the worker. */
 	struct mirror     *mir;                    /* The mirrored HTTP request. */
+	struct list        list;                   /* Connections of the multi handle. */
 };
 
 /* Information associated with a specific socket. */
