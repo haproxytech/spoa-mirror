@@ -307,6 +307,8 @@ static int getopt_set_time(const char *delay, uint64_t *time_us, uint64_t val_mi
 }
 
 
+#ifdef HAVE_LIBCURL
+
 /***
  * NAME
  *   getopt_set_ports - set a port range from the command line
@@ -363,6 +365,8 @@ static int getopt_set_ports(const char *ports, int *range)
 
 	DBG_RETURN_INT(retval);
 }
+
+#endif /* HAVE_LIBCURL */
 
 
 /***

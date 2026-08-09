@@ -418,6 +418,8 @@ static int spoa_msg_arg_hdrs(struct spoe_frame *frame __maybe_unused, const char
 }
 
 
+#ifdef HAVE_LIBCURL
+
 /***
  * NAME
  *   spoa_msg_url - construct the URL of the mirrored request
@@ -478,6 +480,8 @@ static int spoa_msg_url(struct spoe_frame *frame, struct mirror *mir)
 
 	DBG_RETURN_INT(retval);
 }
+
+#endif /* HAVE_LIBCURL */
 
 
 /***
