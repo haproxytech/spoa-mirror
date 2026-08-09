@@ -1,6 +1,37 @@
 ChangeLog :
 ===========
 
+2026/08/09 : 1.2.21
+
+    Added the SPOP regression tests, in which the spop-client.py client speaks
+    the protocol on its own and the spop-test.sh script starts the program for
+    every test case and checks what it answers.  The new '--enable-sanitizer'
+    configure option lets the tests detect the memory faults.
+
+    Fixed the heap overflow that the second fragment of a frame caused, several
+    defects in the memory allocation of the program and of the example agent,
+    the handover of a new client to a busy worker, the release of the cURL data
+    when a worker stops, the build without the cURL library, and the checks in
+    several error paths.
+
+    The connection backlog value is checked and the random generator is seeded
+    at the program start now.  The string helpers moved to a shared source file,
+    and the functions and the structures got their descriptions.
+
+    - DOC: added the function and the structure descriptions
+    - BUILD/MINOR: added the '--enable-sanitizer' configure option
+    - MINOR: test: added the SPOP regression tests
+    - BUG/MEDIUM: fixed the heap overflow when a frame was fragmented
+    - BUG/MINOR: corrected the checks in several error paths
+    - MINOR: checked the connection backlog and seeded the generator
+    - BUILD/MINOR: moved the string helpers to a shared source file
+    - CLEANUP: used explicit comparisons in the conditionals
+    - BUG/MEDIUM: fixed several defects in the memory allocation
+    - BUG/MINOR: examples: fixed three faults in the memory allocation
+    - BUG/MEDIUM: moved the client handover into the thread of the worker
+    - BUG/MEDIUM: released the cURL data when a worker stops
+    - BUG/MINOR: fixed the build without the cURL library
+
 2026/08/08 : 1.2.20
 
     Corrected the decoding of the frames received from HAProxy.  The announced
