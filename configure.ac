@@ -77,8 +77,6 @@ AC_SEARCH_LIBS([inet_ntop], [nsl])
 dnl Checks for library functions.
 dnl
 AC_FUNC_FORK
-AC_FUNC_MALLOC
-AC_FUNC_REALLOC
 AC_FUNC_STRERROR_R
 AC_CHECK_FUNCS([gettimeofday localtime_r])
 AC_CHECK_FUNCS([memchr memset])
