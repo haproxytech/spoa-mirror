@@ -255,7 +255,7 @@ static int create_server_socket(void)
 	freeaddrinfo(res);
 
 	if (_ERROR(retval))
-		w_log(NULL, _E("Failed to create server socket: %m"));
+		w_log(NULL, _E("Failed to create server socket"));
 
 	DBG_RETURN_INT(retval);
 }
@@ -374,7 +374,7 @@ static void *worker_thread(void *data)
 
 	w->ev_base = ev_loop_new(cfg.ev_backend);
 	if (_NULL(w->ev_base)) {
-		w_log(w, _F("Failed to initialize libev for worker %02d: %m"), w->id);
+		w_log(w, _F("Failed to initialize libev for worker %02d"), w->id);
 
 		DBG_RETURN_PTR(worker_thread_exit(w));
 	}
@@ -783,7 +783,7 @@ int worker_run(void)
 
 	ev_base = ev_default_loop(cfg.ev_backend);
 	if (_NULL(ev_base)) {
-		w_log(NULL, _F("Failed to initialize libev: %m"));
+		w_log(NULL, _F("Failed to initialize libev"));
 
 		DBG_RETURN_INT(EX_SOFTWARE);
 	}
@@ -819,10 +819,10 @@ int worker_run(void)
 		/* The list and the mutex are used before the worker starts. */
 		LIST_INIT(&(w->accepted));
 
-		if (_nOK(pthread_mutex_init(&(w->mutex), NULL)))
-			w_log(NULL, _E("Failed to initialize mutex for worker %02d: %m"), w->id);
-		else if (_nOK(pthread_create(&(w->thread), NULL, worker_thread, w)))
-			w_log(NULL, _E("Failed to start thread for worker %02d: %m"), w->id);
+		if (_nOK(rc = pthread_mutex_init(&(w->mutex), NULL)))
+			w_log(NULL, _E("Failed to initialize mutex for worker %02d: %s"), w->id, strerror(rc));
+		else if (_nOK(rc = pthread_create(&(w->thread), NULL, worker_thread, w)))
+			w_log(NULL, _E("Failed to start thread for worker %02d: %s"), w->id, strerror(rc));
 	}
 
 	ev_io_init(&ev_accept, worker_accept_cb, fd, EV_READ);

@@ -1134,9 +1134,9 @@ int logfile(const char *filename)
 		static char linebuf[2][BUFSIZ];
 
 		if (flag_iolbf && _ERROR(setvbuf(stdout, linebuf[0], _IOLBF, sizeof(linebuf[0]))))
-			(void)fprintf(stderr, "WARNING: unable to set stdout buffering mode: %m\n");
+			(void)fprintf(stderr, "WARNING: unable to set stdout buffering mode\n");
 		if (flag_iolbf && _ERROR(setvbuf(stderr, linebuf[1], _IOLBF, sizeof(linebuf[1]))))
-			(void)fprintf(stderr, "WARNING: unable to set stderr buffering mode: %m\n");
+			(void)fprintf(stderr, "WARNING: unable to set stderr buffering mode\n");
 
 		logfile_mark("start");
 	}
