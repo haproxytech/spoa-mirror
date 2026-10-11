@@ -234,9 +234,16 @@ they no longer have any effect: 'option async', 'option send-frag-payload',
 HAProxy should be used in SSL termination mode if HTTPS is used in the HAProxy
 frontend part.
 
-HTTP methods that certainly work are GET, HEAD, POST and PUT.  Other methods
-can be added if necessary.  In order for the HTTP PUT method to work properly,
-it is necessary to add the 'option http-buffer-request' to the HAProxy
-configuration, because otherwise the contents of the HTTP body will not be
-transferred.
+All the HTTP methods are mirrored.  The body of a request is sent with every
+method that carries one, and the agent leaves the framing of the request to
+the cURL library, so the length that is announced always matches the body that
+is really sent.  A request that has no body is mirrored as it came.
+
+The agent removes client framing and hop-by-hop headers before mirroring the
+request.  This includes every header named in any client Connection header,
+regardless of its position or case.  Other client headers are preserved.
+
+The 'option http-buffer-request' must be set in the HAProxy configuration,
+because otherwise the contents of the HTTP body are not transferred to the
+agent, and the mirrored request carries no body.
 

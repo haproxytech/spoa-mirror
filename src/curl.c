@@ -528,6 +528,130 @@ static int mir_curl_timer_cb(CURLM *multi __maybe_unused, long timeout_ms, void 
 
 /***
  * NAME
+ *   mir_curl_hdr_is - test the name of a "name: value" header line
+ *
+ * ARGUMENTS
+ *   hdr  - header line as built by spoa_msg_arg_hdrs_bin() ("name: value" or "name;")
+ *   name - lowercase header name
+ *
+ * DESCRIPTION
+ *   Compare the name of the header line <hdr> to <name>, which is written in
+ *   lower case.  The name of the header is the part of the line before the
+ *   first colon, or before the semicolon that replaces the value of a header
+ *   which has none.  The comparison ignores the case.
+ *
+ * RETURN VALUE
+ *   It returns true if the header has the name <name>, false otherwise.
+ */
+static bool_t mir_curl_hdr_is(const char *hdr, const char *name)
+{
+	bool_t retval = false;
+
+	DBG_FUNC(NULL, "\"%s\", \"%s\"", hdr, name);
+
+	if (_nNULL(hdr) && _nNULL(name)) {
+		size_t len = strcspn(hdr, ":;");
+
+		retval = (len == strlen(name)) && (strncasecmp(hdr, name, len) == 0);
+	}
+
+	DBG_RETURN_EX(retval, bool_t, "%hhu");
+}
+
+
+/***
+ * NAME
+ *   mir_curl_hdr_skip - test if a client header must not be forwarded
+ *
+ * ARGUMENTS
+ *   hdr - header line as built by spoa_msg_arg_hdrs_bin() ("name: value" or "name;")
+ *
+ * DESCRIPTION
+ *   The message framing of the mirrored request is rebuilt by cURL from the
+ *   body that HAProxy actually handed over, so the client's framing headers
+ *   (Content-Length, Transfer-Encoding, Expect) and the hop-by-hop headers are
+ *   dropped.  Forwarding the original Content-Length of a request whose body
+ *   is not sent (GET/DELETE/PATCH before this fix) or is shorter than declared
+ *   makes the target wait for bytes that never come.
+ *
+ * RETURN VALUE
+ *   It returns true if the header is dropped, false otherwise.
+ */
+static bool_t mir_curl_hdr_skip(const char *hdr)
+{
+	static const char *const skip[] = {
+		"content-length", "transfer-encoding", "expect", "connection",
+		"keep-alive", "proxy-connection", "te", "trailer", "upgrade"
+	};
+	size_t i;
+
+	DBG_FUNC(NULL, "\"%s\"", hdr);
+
+	for (i = 0; i < TABLESIZE(skip); i++)
+		if (mir_curl_hdr_is(hdr, skip[i]))
+			DBG_RETURN_EX(true, bool_t, "%hhu");
+
+	DBG_RETURN_EX(false, bool_t, "%hhu");
+}
+
+
+/***
+ * NAME
+ *   mir_curl_drop_connection_headers - remove headers named by Connection
+ *
+ * ARGUMENTS
+ *   mir - mirror data of the message
+ *
+ * DESCRIPTION
+ *   Remove headers whose names appear in the comma-separated values of the
+ *   Connection headers in <mir>.  Names ignore case and surrounding spaces or
+ *   tabs.  Keep the Connection headers until all their values have been read,
+ *   because a value may name Connection itself or precede another declaration.
+ *
+ * RETURN VALUE
+ *   This function does not return a value.
+ */
+static void mir_curl_drop_connection_headers(struct mirror *mir)
+{
+	struct buffer *connection, *hdr, *hdr_back;
+	const char    *name, *value;
+	size_t         len;
+
+	DBG_FUNC(NULL, "%p", mir);
+
+	list_for_each_entry(connection, &(mir->hdrs), list) {
+		if (!mir_curl_hdr_is((const char *)connection->ptr, "connection"))
+			continue;
+
+		value = strchr((const char *)connection->ptr, ':');
+		if (_NULL(value))
+			continue;
+
+		for (value++; value[0] != '\0'; ) {
+			value += strspn(value, " \t,");
+			name   = value;
+			len    = strcspn(value, ",");
+			value += len;
+			while ((len != 0) && ((name[len - 1] == ' ') || (name[len - 1] == '\t')))
+				len--;
+
+			if ((len == 0) || ((len == STR_SIZE("connection")) && (strncasecmp(name, "connection", len) == 0)))
+				continue;
+
+			list_for_each_entry_safe(hdr, hdr_back, &(mir->hdrs), list)
+				if ((strcspn((const char *)hdr->ptr, ":;") == len) && (strncasecmp((const char *)hdr->ptr, name, len) == 0)) {
+					LIST_DEL(&(hdr->list));
+					buffer_ptr_free(&hdr);
+				}
+		}
+	}
+
+	DBG_RETURN();
+}
+
+
+/***
+ * NAME
  *   mir_curl_set_headers - set the HTTP headers of a transfer
  *
  * ARGUMENTS
@@ -535,27 +659,46 @@ static int mir_curl_timer_cb(CURLM *multi __maybe_unused, long timeout_ms, void 
  *   mir - mirror data of the message
  *
  * DESCRIPTION
- *   Build the cURL list of the HTTP headers out of the headers of the mirror
- *   data <mir>, and set that list, together with the HTTP request method, on
- *   the easy handle of the connection <con>.
+ *   Remove headers named by the client's Connection headers from <mir>, then
+ *   build the cURL list of the remaining headers.  Set that list, together
+ *   with the HTTP request method, on the easy handle of the connection <con>.
  *
  * RETURN VALUE
  *   It returns CURLE_OK (0) on success, or the error that the cURL library
  *   reported.
  */
-static CURLcode mir_curl_set_headers(struct curl_con *con, const struct mirror *mir)
+static CURLcode mir_curl_set_headers(struct curl_con *con, struct mirror *mir)
 {
+	static const char *const suppress[] = { "Expect:", "Content-Type:", "Accept:" };
 	struct buffer     *hdr, *hdr_back;
 	struct curl_slist *slist;
 	CURLcode           retval = CURLE_OK;
+	size_t             i;
 
 	DBG_FUNC(NULL, "%p, %p", con, mir);
 
 	if (_NULL(con) || _NULL(mir))
 		DBG_RETURN_INT(retval);
 
+	mir_curl_drop_connection_headers(mir);
+
 	list_for_each_entry_safe(hdr, hdr_back, &(mir->hdrs), list) {
+		if (mir_curl_hdr_skip((const char *)hdr->ptr))
+			continue;
+
 		slist = curl_slist_append(con->hdrs, (const char *)hdr->ptr);
+		if (_NULL(slist))
+			DBG_RETURN_INT(CURLE_OUT_OF_MEMORY);
+
+		con->hdrs = slist;
+	}
+
+	/*
+	 * An empty "Name:" entry keeps cURL from adding that header on its
+	 * own; a header of the same name that the client sent is not touched.
+	 */
+	for (i = 0; i < TABLESIZE(suppress); i++) {
+		slist = curl_slist_append(con->hdrs, suppress[i]);
 		if (_NULL(slist))
 			DBG_RETURN_INT(CURLE_OUT_OF_MEMORY);
 
@@ -849,7 +992,7 @@ static CURLcode mir_curl_add_keepalive(struct curl_con *con, bool_t flag_alive, 
 
 /***
  * NAME
- *   mir_curl_add_post - set up an HTTP POST request
+ *   mir_curl_add_body - set up the body of an HTTP request
  *
  * ARGUMENTS
  *   con - connection that is set up
@@ -857,14 +1000,15 @@ static CURLcode mir_curl_add_keepalive(struct curl_con *con, bool_t flag_alive, 
  *
  * DESCRIPTION
  *   Set the options that the easy handle of the connection <con> needs to send
- *   the body of a POST request; the size of the body and the callback function
- *   that reads it.  Nothing is set for any other request method.
+ *   the body of the request whose data is <mir>, for a POST request or for a
+ *   request of any other method, except PUT and HEAD, that carries a body.
+ *   Nothing is set for a request that has no body.
  *
  * RETURN VALUE
  *   It returns CURLE_OK (0) on success, the error reported by the cURL library,
  *   or CURLE_BAD_FUNCTION_ARGUMENT if an argument is a NULL pointer.
  */
-static CURLcode mir_curl_add_post(struct curl_con *con, const struct mirror *mir)
+static CURLcode mir_curl_add_body(struct curl_con *con, const struct mirror *mir)
 {
 	CURLcode retval = CURLE_BAD_FUNCTION_ARGUMENT;
 
@@ -873,20 +1017,28 @@ static CURLcode mir_curl_add_post(struct curl_con *con, const struct mirror *mir
 	if (_NULL(con) || _NULL(mir))
 		DBG_RETURN_INT(retval);
 
-	if (mir->request_method != CURL_HTTP_METHOD_POST)
+	/*
+	 * Any method that carries a body (GET, DELETE, PATCH, OPTIONS, ...) is
+	 * sent the POST way; the request line keeps the original method, which
+	 * was set with CURLOPT_CUSTOMREQUEST.  Before, only POST bodies were
+	 * sent and every other body was silently dropped.  PUT keeps its own
+	 * upload path, HEAD never carries a body.
+	 *
+	 * The body is passed with CURLOPT_POSTFIELDS (not copied, it lives as
+	 * long as the transfer), so cURL can resend it if a reused keep-alive
+	 * connection turns out to be closed.
+	 */
+	if ((mir->request_method == CURL_HTTP_METHOD_PUT) || (mir->request_method == CURL_HTTP_METHOD_HEAD) ||
+	    ((mir->request_method != CURL_HTTP_METHOD_POST) && (mir->body_size == 0)))
 		retval = CURLE_OK;
 	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_HTTP_CONTENT_DECODING, 0L)) != CURLE_OK)
 		CURL_ERR_EASY("Failed to set HTTP content decoding", retval);
 	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_HTTP_TRANSFER_DECODING, 0L)) != CURLE_OK)
 		CURL_ERR_EASY("Failed to set HTTP transfer decoding", retval);
-	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_POST, 1L)) != CURLE_OK)
-		CURL_ERR_EASY("Failed to init HTTP POST data", retval);
 	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t)mir->body_size)) != CURLE_OK)
 		CURL_ERR_EASY("Failed to set HTTP POST data size", retval);
-	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_READFUNCTION, mir_curl_read_cb)) != CURLE_OK)
-		CURL_ERR_EASY("Failed to set read callback function", retval);
-	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_READDATA, con)) != CURLE_OK)
-		CURL_ERR_EASY("Failed to set read callback function data", retval);
+	else if ((retval = curl_easy_setopt(con->easy, CURLOPT_POSTFIELDS, _nNULL(mir->body) ? mir->body : "")) != CURLE_OK)
+		CURL_ERR_EASY("Failed to set HTTP POST data", retval);
 
 	DBG_RETURN_INT(retval);
 }
@@ -1153,7 +1305,7 @@ int mir_curl_add(struct curl_data *curl, struct mirror *mir)
 		CURL_ERR_EASY("Failed to set read timeout", rc);
 	else if ((rc = mir_curl_add_keepalive(con, 1, CURL_KEEPIDLE_TIME, CURL_KEEPINTVL_TIME)) != CURLE_OK)
 		/* Do nothing. */;
-	else if ((rc = mir_curl_add_post(con, mir)) != CURLE_OK)
+	else if ((rc = mir_curl_add_body(con, mir)) != CURLE_OK)
 		/* Do nothing. */;
 	else if ((rc = mir_curl_add_put(con, mir)) == CURLE_OK) {
 		CURL_DBG("Adding easy %p to multi %p (%s)", con->easy, curl->multi, mir->url);
