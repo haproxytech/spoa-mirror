@@ -767,7 +767,7 @@ int worker_run(void)
 	struct ev_timer  ev_runtime;
 	struct ev_loop  *ev_base;
 	struct ev_io     ev_accept;
-	int              rc, i, fd = -1;
+	int              rc, i, j, fd = -1;
 
 	DBG_FUNC(NULL, "");
 
@@ -819,10 +819,38 @@ int worker_run(void)
 		/* The list and the mutex are used before the worker starts. */
 		LIST_INIT(&(w->accepted));
 
-		if (_nOK(pthread_mutex_init(&(w->mutex), NULL)))
+		if (_nOK(pthread_mutex_init(&(w->mutex), NULL))) {
 			w_log(NULL, _E("Failed to initialize mutex for worker %02d: %m"), w->id);
-		else if (_nOK(pthread_create(&(w->thread), NULL, worker_thread, w)))
+
+			break;
+		}
+		else if (_nOK(pthread_create(&(w->thread), NULL, worker_thread, w))) {
 			w_log(NULL, _E("Failed to start thread for worker %02d: %m"), w->id);
+
+			(void)pthread_mutex_destroy(&(w->mutex));
+
+			break;
+		}
+	}
+
+	/*
+	 * A worker that cannot be set up takes the program down, so the
+	 * workers that were started are stopped and joined here.
+	 */
+	if (i < cfg.num_workers) {
+		for (j = 0; j < i; j++)
+			WORKER_LOCK(prg.workers + j, prg.workers[j].flag_stop = 1);
+
+		for (j = 0; j < i; j++) {
+			worker_wakeup(prg.workers + j);
+
+			(void)pthread_join(prg.workers[j].thread, NULL);
+			(void)pthread_mutex_destroy(&(prg.workers[j].mutex));
+		}
+
+		W_DBG(WORKER, NULL, "A worker could not be set up, the server is not started");
+
+		DBG_RETURN_INT(worker_run_exit(fd, ev_base, ev_signals, TABLESIZE(ev_signals), &ev_accept, EX_SOFTWARE));
 	}
 
 	ev_io_init(&ev_accept, worker_accept_cb, fd, EV_READ);
