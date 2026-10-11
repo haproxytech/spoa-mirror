@@ -205,7 +205,8 @@ static int bind_server_socket(struct addrinfo *ai)
  *
  * DESCRIPTION
  *   Resolve the configured server address and port, then create the server
- *   socket for the first IPv4 address that can be bound.
+ *   socket for the first IPv4 address that can be bound.  If no IPv4 address
+ *   can be bound, try the IPv6 addresses in their resolved order.
  *
  * RETURN VALUE
  *   It returns the file descriptor of the server socket, or FUNC_RET_ERROR (-1)
@@ -242,14 +243,15 @@ static int create_server_socket(void)
 			W_DBG(INFO, NULL, "  ai_addr:      %p", ai->ai_addr);
 			W_DBG(INFO, NULL, "  ai_next:      %p", ai->ai_next);
 
-			/*
-			 * getaddrinfo() returns a list of address structures.
-			 * Try each address until we successfully bind().
-			 * If bind_server_socket() fail, try the next address.
-			 */
+			/* Prefer IPv4 when the name resolves to both families. */
 			if (_ERROR(retval) && (ai->ai_family == AF_INET))
 				retval = bind_server_socket(ai);
 		}
+
+		if (_ERROR(retval))
+			for (ai = res; _nNULL(ai) && _ERROR(retval); ai = ai->ai_next)
+				if (ai->ai_family == AF_INET6)
+					retval = bind_server_socket(ai);
 	}
 
 	freeaddrinfo(res);

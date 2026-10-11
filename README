@@ -144,6 +144,10 @@ SPDX-License-Identifier: GPL-2.0-or-later
 The program simultaneously supports short and long format options.
 
 
+The '-a' option accepts an IPv4 address, an IPv6 address, or a host name.  The
+agent tries IPv4 addresses first, preserving IPv4 connections to names such as
+'localhost'.  It tries IPv6 addresses only if no IPv4 address can be bound.
+
 The test directory contains the configuration files for HAProxy (haproxy.cfg)
 and SPOE (spoe.cfg).  haproxy-ssl.cfg adds an HTTPS frontend, haproxy-mw.cfg
 starts HAProxy in master-worker mode and declares the agent as a program, and
