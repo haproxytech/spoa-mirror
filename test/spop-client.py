@@ -584,6 +584,158 @@ def case_mirror_body(port, report):
     report("body of %d bytes answered" % len(body))
 
 
+def read_mirror_request(sock):
+    """Read the request line, the headers and the body of a mirrored request.
+
+    The headers are read up to the empty line that ends them, and the body
+    up to the length that the 'Content-Length' header announces.  A socket
+    that stops in the middle raises a Failure.  The function returns the
+    header block as a string, the body, and the announced body length.
+    """
+    sock.settimeout(3.0)
+    data = b""
+    while b"\r\n\r\n" not in data:
+        chunk = sock.recv(4096)
+        if not chunk:
+            raise Failure("the mirrored request has no complete header block")
+        data += chunk
+    head, _, body = data.partition(b"\r\n\r\n")
+
+    length = 0
+    for line in head.split(b"\r\n")[1:]:
+        name, _, value = line.partition(b":")
+        if name.strip().lower() == b"content-length":
+            length = int(value.strip())
+
+    while len(body) < length:
+        chunk = sock.recv(4096)
+        if not chunk:
+            raise Failure("the mirrored request stopped at %d of %d body bytes" % (len(body), length))
+        body += chunk
+
+    return head.decode("latin1"), body, length
+
+
+class MirrorSink:
+    """A socket that captures the mirrored requests and answers them.
+
+    Every request is read in a background thread and appended to the list
+    of the captured ones.  The answer closes the connection, so that the
+    next request arrives on a new connection.
+    """
+
+    def __init__(self, port):
+        self.requests = []
+        self.error = None
+        self.stop = threading.Event()
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.bind(("127.0.0.1", port))
+        self.sock.listen(64)
+        self.sock.settimeout(0.5)
+        self.thread = threading.Thread(target=self.run)
+        self.thread.daemon = True
+        self.thread.start()
+
+    def run(self):
+        while not self.stop.is_set():
+            try:
+                conn, _ = self.sock.accept()
+            except socket.timeout:
+                continue
+            except OSError:
+                break
+            try:
+                self.requests.append(read_mirror_request(conn))
+                conn.sendall(b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+            except (OSError, Failure) as e:
+                self.error = e
+            finally:
+                conn.close()
+
+    def wait(self, count, timeout=5.0):
+        """Wait for <count> requests, and return the list of the captured ones."""
+        deadline = time.monotonic() + timeout
+        while (len(self.requests) < count) and (time.monotonic() < deadline):
+            if self.error is not None:
+                raise Failure("the mirror socket failed: %s" % self.error)
+            time.sleep(0.05)
+        if self.error is not None:
+            raise Failure("the mirror socket failed: %s" % self.error)
+        if len(self.requests) < count:
+            raise Failure("only %d of %d mirrored requests arrived" % (len(self.requests), count))
+
+        return self.requests
+
+    def close(self):
+        self.stop.set()
+        self.thread.join(timeout=2)
+        self.sock.close()
+
+
+def case_mirror_methods(port, report):
+    """A 'mirror' message sends its body with every request method.
+
+    The mirrored requests are read from a socket that this case listens on,
+    and the body of each of them is checked against the body that was handed
+    over, together with the length that the agent announces for it.  A request
+    that carries a body is sent with it regardless of its method, and that
+    length always matches the body that is really sent.
+    """
+    if MIRROR_PORT == 0:
+        raise Failure("the port of the mirror socket is not given")
+
+    # the method, the length the original header declares, the body
+    cases = (
+        ("POST", 13, b'{"id":"POST"}'),
+        ("GET", 12, b'{"id":"GET"}'),
+        ("DELETE", 15, b'{"id":"DELETE"}'),
+        ("PATCH", 14, b'{"id":"PATCH"}'),
+        ("PUT", 12, b'{"id":"PUT"}'),
+        ("OPTIONS", 9, b'{"id":"OP"}'),
+        # the declared length is longer than the body that is handed over
+        ("PATCH", 99, b'{"id":"SHORT"}'),
+    )
+
+    sink = MirrorSink(MIRROR_PORT)
+    try:
+        agent = Agent(port)
+        handshake(agent)
+        for i, (method, declared, body) in enumerate(cases):
+            args = (
+                ("arg_method", T_STR, method),
+                ("arg_path", T_STR, "/method"),
+                ("arg_ver", T_STR, "1.1"),
+                ("arg_hdrs", T_STR, "Host: example.com\r\n"
+                                    "Content-Type: application/json\r\n"
+                                    "Content-Length: %d\r\n" % declared),
+                ("arg_body", T_BIN, body),
+            )
+            agent.send(Frame(FRM_HAPROXY_NOTIFY, FL_FIN, i + 1, i + 1, message("mirror", args)))
+            expect_ack(agent, i + 1, i + 1)
+        agent.close()
+
+        requests = sink.wait(len(cases))
+    finally:
+        sink.close()
+
+    expected = [(method, body) for method, _, body in cases]
+    for head, body, length in requests:
+        line = head.split("\r\n", 1)[0]
+        found = None
+        for i, (method, want) in enumerate(expected):
+            if line.startswith("%s /method " % method) and (body == want):
+                found = i
+                break
+        if found is None:
+            raise Failure("unexpected mirrored request: %s" % line)
+        if length != len(body):
+            raise Failure("the %s request announces %d body bytes, %d sent" % (method, length, len(body)))
+        del expected[found]
+
+    report("%d request methods mirrored with their body" % len(cases))
+
+
 def case_mirror_url(port, report):
     """The path of a 'mirror' message becomes the URL to mirror to.
 
@@ -939,6 +1091,7 @@ CASES = {
     "iprep_ipv6":      case_iprep_ipv6,
     "mirror_hdrs":     case_mirror_hdrs,
     "mirror_body":     case_mirror_body,
+    "mirror_methods":  case_mirror_methods,
     "mirror_url":      case_mirror_url,
     "mirror_stop":     case_mirror_stop,
     "fragmented":      case_fragmented,
