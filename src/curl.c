@@ -356,7 +356,7 @@ static struct curl_sock *mir_curl_socket_add(CURL *easy, curl_socket_t s, int wh
 {
 	struct curl_sock *retptr;
 	int               rc;
-	CURLMcode         rcm;
+	CURLMcode         rcm = CURLM_OK;
 
 	DBG_FUNC(NULL, "%p, %d, %d, %p", easy, s, what, curl);
 
@@ -368,8 +368,13 @@ static struct curl_sock *mir_curl_socket_add(CURL *easy, curl_socket_t s, int wh
 		else if ((rcm = curl_multi_assign(curl->multi, s, retptr)) != CURLM_OK)
 			CURL_ERR_MULTI("Failed to set socket data", rcm);
 
-		if ((rc != 0) || (rcm != CURLM_OK))
+		if ((rc != 0) || (rcm != CURLM_OK)) {
+			/* The watcher of the socket was started above. */
+			if (ev_is_active(&(retptr->ev_io)) || ev_is_pending(&(retptr->ev_io)))
+				ev_io_stop(curl->ev_base, &(retptr->ev_io));
+
 			PTR_FREE(retptr);
+		}
 	}
 
 	DBG_RETURN_PTR(retptr);
