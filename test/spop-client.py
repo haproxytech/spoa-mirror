@@ -382,6 +382,18 @@ def case_handshake(port, report):
         items.get("version"), size, ",".join(caps) if caps else "<none>"))
 
 
+def case_listen_localhost(port, report):
+    """A host name resolving to both families still accepts IPv4 clients."""
+    agent = Agent(port)
+    try:
+        handshake(agent)
+        agent.send(Frame(FRM_HAPROXY_NOTIFY, FL_FIN, 1, 1, message("test")))
+        expect_ack(agent, 1, 1)
+    finally:
+        agent.close()
+    report("localhost listener accepted IPv4 and answered a NOTIFY")
+
+
 def case_healthcheck(port, report):
     """A HELLO that only checks the health closes the connection."""
     agent = Agent(port)
@@ -916,6 +928,7 @@ def case_disconnect(port, report):
 
 CASES = {
     "handshake":       case_handshake,
+    "listen_localhost": case_listen_localhost,
     "healthcheck":     case_healthcheck,
     "frame_size":      case_frame_size,
     "notify_ack":      case_notify_ack,
