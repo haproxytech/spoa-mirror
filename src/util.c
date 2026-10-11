@@ -1098,7 +1098,7 @@ int logfile(const char *filename)
 
 	DBG_FUNC(NULL, "\"%s\"", filename);
 
-	if (*filename == '\0') {
+	if (_NULL(filename) || (*filename == '\0')) {
 		(void)fprintf(stderr, "ERROR: logfile name not defined\n");
 
 		DBG_RETURN_INT(retval);
@@ -1176,6 +1176,9 @@ int pidfile(const char *filename, int *fd)
 	int  n, retval = FUNC_RET_OK;
 
 	DBG_FUNC(NULL, "\"%s\", %p", filename, fd);
+
+	if (_NULL(fd))
+		DBG_RETURN_INT(FUNC_RET_ERROR);
 
 	if (_NULL(filename)) {
 		if (*fd < 0)
