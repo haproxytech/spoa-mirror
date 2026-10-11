@@ -153,7 +153,12 @@ static int spoe_vencode(struct spoe_frame *frame, char **buf, int type, va_list 
 	end = frame->buf + cfg.max_frame_size;
 
 	for ( ; _nERROR(retval) && (type != SPOE_ENC_END); type = va_arg(ap, typeof(type))) {
-		if (type == SPOE_ENC_UINT8) {
+		if (ptr >= end) {
+			retval = FUNC_RET_ERROR;
+
+			break;
+		}
+		else if (type == SPOE_ENC_UINT8) {
 			*(ptr++) = va_arg(ap, int);
 		}
 		else if (type == SPOE_ENC_VARINT) {
@@ -173,6 +178,12 @@ static int spoe_vencode(struct spoe_frame *frame, char **buf, int type, va_list 
 			retval = spoe_encode_buffer(str, len, &ptr, end);
 			if (_ERROR(retval))
 				break;
+
+			if (ptr >= end) {
+				retval = FUNC_RET_ERROR;
+
+				break;
+			}
 
 			*(ptr++) = data;
 			if (data == SPOE_DATA_T_UINT32) {
