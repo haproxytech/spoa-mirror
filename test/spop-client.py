@@ -608,7 +608,10 @@ def read_mirror_request(sock):
             length = int(value.strip())
 
     while len(body) < length:
-        chunk = sock.recv(4096)
+        try:
+            chunk = sock.recv(4096)
+        except socket.timeout:
+            chunk = b""
         if not chunk:
             raise Failure("the mirrored request stopped at %d of %d body bytes" % (len(body), length))
         body += chunk
@@ -734,6 +737,107 @@ def case_mirror_methods(port, report):
         del expected[found]
 
     report("%d request methods mirrored with their body" % len(cases))
+
+
+def case_mirror_framing(port, report):
+    """The mirrored request carries the headers that belong to it.
+
+    The framing of the body and the hop-by-hop headers are written by the
+    cURL library, so what the client sent for any of them must not be taken
+    over, while a Content-Type and an Accept of the client must survive.
+    A header that cURL would add on its own is not invented either, so a
+    request that came without one goes out without it.
+    """
+    if MIRROR_PORT == 0:
+        raise Failure("the port of the mirror socket is not given")
+
+    # the method, the body, the client headers, the headers that have to be
+    # there, and the ones that must not
+    cases = (
+        ("POST", b"hello",
+         "Host: example.com\r\n"
+         "Content-Type: text/plain\r\n"
+         "Accept: text/html\r\n"
+         "Content-Length: 99\r\n"
+         "Transfer-Encoding: chunked\r\n"
+         "Expect: 100-continue\r\n"
+         "Connection: keep-alive\r\n",
+         ("Content-Type: text/plain", "Accept: text/html"),
+         ("Content-Length: 99", "Transfer-Encoding: chunked",
+          "Expect: 100-continue", "Connection: keep-alive")),
+        ("GET", b"hello",
+         "Host: example.com\r\n",
+         (),
+         ("Content-Type:", "Accept:", "Expect:")),
+        ("PATCH", b"connection",
+         "Host: example.com\r\n"
+         "X-Before: secret\r\n"
+         "Connection: , \t x-before \t, Connection,, \t\r\n"
+         "X-After: secret\r\n"
+         "cOnNeCtIoN: X-aFtEr, x-before\r\n"
+         "X-Before-Suffix: keep\r\n"
+         "X-Unrelated: keep\r\n",
+         ("X-Before-Suffix: keep", "X-Unrelated: keep"),
+         ("X-Before:", "X-After:", "Connection:", "cOnNeCtIoN:")),
+        ("DELETE", b"binary",
+         buffer_encode("Host") + buffer_encode("example.com") +
+         buffer_encode("Connection") + buffer_encode("") +
+         buffer_encode("X-Hop") + buffer_encode("") +
+         buffer_encode("Connection") + buffer_encode("X-Hop, Content-Type, Accept, connection") +
+         buffer_encode("Content-Type") + buffer_encode("text/plain") +
+         buffer_encode("Accept") + buffer_encode("text/html") +
+         buffer_encode("X-Hop") + buffer_encode("secret") +
+         buffer_encode("X-Hop-Suffix") + buffer_encode("keep") + b"\x00\x00",
+         ("X-Hop-Suffix: keep",),
+         ("X-Hop:", "Connection:", "Content-Type:", "Accept:")),
+    )
+
+    sink = MirrorSink(MIRROR_PORT)
+    try:
+        agent = Agent(port)
+        handshake(agent)
+        for i, (method, body, hdrs, _, _) in enumerate(cases, 1):
+            args = (
+                ("arg_method", T_STR, method),
+                ("arg_path", T_STR, "/framing"),
+                ("arg_ver", T_STR, "1.1"),
+                ("arg_hdrs", T_BIN if isinstance(hdrs, bytes) else T_STR, hdrs),
+                ("arg_body", T_BIN, body),
+            )
+            agent.send(Frame(FRM_HAPROXY_NOTIFY, FL_FIN, i, i, message("mirror", args)))
+            expect_ack(agent, i, i)
+        agent.close()
+
+        requests = sink.wait(len(cases))
+    finally:
+        sink.close()
+
+    pending = list(cases)
+    for head, body, length in requests:
+        line = head.split("\r\n", 1)[0]
+        found = None
+        for i, (method, want_body, _, want, unwanted) in enumerate(pending):
+            if line.startswith("%s /framing " % method) and (body == want_body):
+                found = i
+                break
+        if found is None:
+            raise Failure("unexpected mirrored request: %s" % line)
+        method, want_body, _, want, unwanted = pending[found]
+        del pending[found]
+
+        if length != len(want_body):
+            raise Failure("the %s request announces %d body bytes, %d sent" % (
+                method, length, len(want_body)))
+        for hdr in want:
+            if ("\r\n%s\r\n" % hdr) not in ("\r\n" + head + "\r\n"):
+                raise Failure("the %s request lost '%s': %s" % (
+                    method, hdr, head.replace("\r\n", " | ")))
+        for hdr in unwanted:
+            if hdr in head:
+                raise Failure("the %s request kept '%s': %s" % (
+                    method, hdr, head.replace("\r\n", " | ")))
+
+    report("%d mirrored requests carry the rewritten headers" % len(requests))
 
 
 def case_mirror_url(port, report):
@@ -1092,6 +1196,7 @@ CASES = {
     "mirror_hdrs":     case_mirror_hdrs,
     "mirror_body":     case_mirror_body,
     "mirror_methods":  case_mirror_methods,
+    "mirror_framing":  case_mirror_framing,
     "mirror_url":      case_mirror_url,
     "mirror_stop":     case_mirror_stop,
     "fragmented":      case_fragmented,
