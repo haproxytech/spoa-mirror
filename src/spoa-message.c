@@ -554,6 +554,11 @@ int spoa_msg_mirror(struct spoe_frame *frame, const char **buf, const char *end)
 
 					retval = FUNC_RET_ERROR;
 				}
+				else if (data.chk.len == 0) {
+					f_log(frame, _E("arg[%d] '%.*s': Empty argument"), i, (int)len, str);
+
+					retval = FUNC_RET_ERROR;
+				}
 				else
 					retval = spoa_msg_arg_hdrs(frame, data.chk.ptr, data.chk.ptr + data.chk.len - 1, &(mir->hdrs));
 
@@ -574,6 +579,11 @@ int spoa_msg_mirror(struct spoe_frame *frame, const char **buf, const char *end)
 			if ((len == STR_SIZE(SPOE_MSG_ARG_HDRS)) && (memcmp(str, STR_ADDRSIZE(SPOE_MSG_ARG_HDRS)) == 0)) {
 				if (!LIST_ISEMPTY(&(mir->hdrs))) {
 					f_log(frame, _E("arg[%d] '%.*s': Duplicated argument"), i, (int)len, str);
+
+					retval = FUNC_RET_ERROR;
+				}
+				else if (data.chk.len == 0) {
+					f_log(frame, _E("arg[%d] '%.*s': Empty argument"), i, (int)len, str);
 
 					retval = FUNC_RET_ERROR;
 				}

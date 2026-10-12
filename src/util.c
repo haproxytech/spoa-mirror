@@ -356,17 +356,23 @@ ssize_t buffer_grow_va(struct buffer *data, const void *src, size_t n, ...)
  */
 bool_t str_toull(const char *str, char **endptr, bool_t flag_end, int base, uint64_t *value, uint64_t val_min, uint64_t val_max)
 {
-	char   *ptr = NULL;
-	bool_t  retval = false;
+	const char *sign = str;
+	char       *ptr = NULL;
+	bool_t      retval = false;
 
 	if (_NULL(str) || _NULL(value))
 		return retval;
 
 	errno = 0;
 
+	while (isspace((unsigned char)*sign))
+		sign++;
+
 	*value = strtoull(str, PTR_SAFE(endptr, &ptr), base);
 	if ((*str == '\0') || (flag_end && (**PTR_SAFE(endptr, &ptr) != '\0')))
 		w_log(NULL, _E("Not a number: '%s'"), str);
+	else if (*sign == '-')
+		w_log(NULL, _E("Not an unsigned number: '%s'"), str);
 	else if ((*value == ULLONG_MAX) && (errno == ERANGE))
 		w_log(NULL, _E("Value out of range: %s"), str);
 	else if ((val_min <= val_max) && !IN_RANGE(*value, val_min, val_max))
@@ -417,7 +423,7 @@ bool_t str_toll(const char *str, char **endptr, bool_t flag_end, int base, int64
 	*value = strtoll(str, PTR_SAFE(endptr, &ptr), base);
 	if ((*str == '\0') || (flag_end && (**PTR_SAFE(endptr, &ptr) != '\0')))
 		w_log(NULL, _E("Not a number: '%s'"), str);
-	else if ((*value == LLONG_MAX) && (errno == ERANGE))
+	else if (((*value == LLONG_MAX) || (*value == LLONG_MIN)) && (errno == ERANGE))
 		w_log(NULL, _E("Value out of range: %s"), str);
 	else if ((val_min <= val_max) && !IN_RANGE(*value, val_min, val_max))
 		w_log(NULL, _E("Value out of range [%"PRIi64", %"PRIi64"]: %s"), val_min, val_max, str);
@@ -1092,7 +1098,7 @@ int logfile(const char *filename)
 
 	DBG_FUNC(NULL, "\"%s\"", filename);
 
-	if (*filename == '\0') {
+	if (_NULL(filename) || (*filename == '\0')) {
 		(void)fprintf(stderr, "ERROR: logfile name not defined\n");
 
 		DBG_RETURN_INT(retval);
@@ -1134,9 +1140,9 @@ int logfile(const char *filename)
 		static char linebuf[2][BUFSIZ];
 
 		if (flag_iolbf && _ERROR(setvbuf(stdout, linebuf[0], _IOLBF, sizeof(linebuf[0]))))
-			(void)fprintf(stderr, "WARNING: unable to set stdout buffering mode: %m\n");
+			(void)fprintf(stderr, "WARNING: unable to set stdout buffering mode\n");
 		if (flag_iolbf && _ERROR(setvbuf(stderr, linebuf[1], _IOLBF, sizeof(linebuf[1]))))
-			(void)fprintf(stderr, "WARNING: unable to set stderr buffering mode: %m\n");
+			(void)fprintf(stderr, "WARNING: unable to set stderr buffering mode\n");
 
 		logfile_mark("start");
 	}
@@ -1170,6 +1176,9 @@ int pidfile(const char *filename, int *fd)
 	int  n, retval = FUNC_RET_OK;
 
 	DBG_FUNC(NULL, "\"%s\", %p", filename, fd);
+
+	if (_NULL(fd))
+		DBG_RETURN_INT(FUNC_RET_ERROR);
 
 	if (_NULL(filename)) {
 		if (*fd < 0)

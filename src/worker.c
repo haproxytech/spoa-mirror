@@ -205,7 +205,8 @@ static int bind_server_socket(struct addrinfo *ai)
  *
  * DESCRIPTION
  *   Resolve the configured server address and port, then create the server
- *   socket for the first IPv4 address that can be bound.
+ *   socket for the first IPv4 address that can be bound.  If no IPv4 address
+ *   can be bound, try the IPv6 addresses in their resolved order.
  *
  * RETURN VALUE
  *   It returns the file descriptor of the server socket, or FUNC_RET_ERROR (-1)
@@ -242,20 +243,21 @@ static int create_server_socket(void)
 			W_DBG(INFO, NULL, "  ai_addr:      %p", ai->ai_addr);
 			W_DBG(INFO, NULL, "  ai_next:      %p", ai->ai_next);
 
-			/*
-			 * getaddrinfo() returns a list of address structures.
-			 * Try each address until we successfully bind().
-			 * If bind_server_socket() fail, try the next address.
-			 */
+			/* Prefer IPv4 when the name resolves to both families. */
 			if (_ERROR(retval) && (ai->ai_family == AF_INET))
 				retval = bind_server_socket(ai);
 		}
+
+		if (_ERROR(retval))
+			for (ai = res; _nNULL(ai) && _ERROR(retval); ai = ai->ai_next)
+				if (ai->ai_family == AF_INET6)
+					retval = bind_server_socket(ai);
 	}
 
 	freeaddrinfo(res);
 
 	if (_ERROR(retval))
-		w_log(NULL, _E("Failed to create server socket: %m"));
+		w_log(NULL, _E("Failed to create server socket"));
 
 	DBG_RETURN_INT(retval);
 }
@@ -374,7 +376,7 @@ static void *worker_thread(void *data)
 
 	w->ev_base = ev_loop_new(cfg.ev_backend);
 	if (_NULL(w->ev_base)) {
-		w_log(w, _F("Failed to initialize libev for worker %02d: %m"), w->id);
+		w_log(w, _F("Failed to initialize libev for worker %02d"), w->id);
 
 		DBG_RETURN_PTR(worker_thread_exit(w));
 	}
@@ -767,7 +769,7 @@ int worker_run(void)
 	struct ev_timer  ev_runtime;
 	struct ev_loop  *ev_base;
 	struct ev_io     ev_accept;
-	int              rc, i, fd = -1;
+	int              rc, i, j, fd = -1;
 
 	DBG_FUNC(NULL, "");
 
@@ -783,7 +785,7 @@ int worker_run(void)
 
 	ev_base = ev_default_loop(cfg.ev_backend);
 	if (_NULL(ev_base)) {
-		w_log(NULL, _F("Failed to initialize libev: %m"));
+		w_log(NULL, _F("Failed to initialize libev"));
 
 		DBG_RETURN_INT(EX_SOFTWARE);
 	}
@@ -819,10 +821,38 @@ int worker_run(void)
 		/* The list and the mutex are used before the worker starts. */
 		LIST_INIT(&(w->accepted));
 
-		if (_nOK(pthread_mutex_init(&(w->mutex), NULL)))
-			w_log(NULL, _E("Failed to initialize mutex for worker %02d: %m"), w->id);
-		else if (_nOK(pthread_create(&(w->thread), NULL, worker_thread, w)))
-			w_log(NULL, _E("Failed to start thread for worker %02d: %m"), w->id);
+		if (_nOK(rc = pthread_mutex_init(&(w->mutex), NULL))) {
+			w_log(NULL, _E("Failed to initialize mutex for worker %02d: %s"), w->id, strerror(rc));
+
+			break;
+		}
+		else if (_nOK(rc = pthread_create(&(w->thread), NULL, worker_thread, w))) {
+			w_log(NULL, _E("Failed to start thread for worker %02d: %s"), w->id, strerror(rc));
+
+			(void)pthread_mutex_destroy(&(w->mutex));
+
+			break;
+		}
+	}
+
+	/*
+	 * A worker that cannot be set up takes the program down, so the
+	 * workers that were started are stopped and joined here.
+	 */
+	if (i < cfg.num_workers) {
+		for (j = 0; j < i; j++)
+			WORKER_LOCK(prg.workers + j, prg.workers[j].flag_stop = 1);
+
+		for (j = 0; j < i; j++) {
+			worker_wakeup(prg.workers + j);
+
+			(void)pthread_join(prg.workers[j].thread, NULL);
+			(void)pthread_mutex_destroy(&(prg.workers[j].mutex));
+		}
+
+		W_DBG(WORKER, NULL, "A worker could not be set up, the server is not started");
+
+		DBG_RETURN_INT(worker_run_exit(fd, ev_base, ev_signals, TABLESIZE(ev_signals), &ev_accept, EX_SOFTWARE));
 	}
 
 	ev_io_init(&ev_accept, worker_accept_cb, fd, EV_READ);

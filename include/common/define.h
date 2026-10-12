@@ -76,7 +76,7 @@
 
 #define TEST_ARRAY2(p,i,a,b)       (((p)[i] == (a))                      && ((p)[(i) + 1] == (b)))
 #define TEST_ARRAY3(p,i,a,b,c)     (TEST_ARRAY2((p), (i), (a), (b))      && ((p)[(i) + 2] == (c)))
-#define TEST_ARRAY4(p,i,a,b,c,d)   (TEST_ARRAY2((p), (i), (a), (b), (c)) && ((p)[(i) + 3] == (d)))
+#define TEST_ARRAY4(p,i,a,b,c,d)   (TEST_ARRAY3((p), (i), (a), (b), (c)) && ((p)[(i) + 3] == (d)))
 
 #define VAL_ARRAY2(p)              (p)[0], (p)[1]
 #define VAL_ARRAY3(p)              VAL_ARRAY2(p), (p)[2]

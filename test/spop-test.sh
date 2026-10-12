@@ -16,7 +16,8 @@
 #
 # A case whose mirrored requests have to stay in flight is given a socket that
 # the script listens on without ever answering; its port is the port of the
-# case raised by 1000.
+# case raised by 1000.  A case that has to read the mirrored requests listens
+# on that port itself, and answers them.
 #
 # A case fails when the client reports an error, when a sanitizer writes to
 # the log of the program, or when the program is no longer running once the
@@ -34,7 +35,8 @@ SH_OPT_VERBOSE=
     SH_PROGRAM="$(basename "${0}")"
         SH_DIR="$(dirname "${0}")"
      SH_CLIENT="${SH_DIR}/spop-client.py"
-      SH_CASES="handshake healthcheck frame_size notify_ack unknown_message multi_message pipelining iprep_action iprep_ipv6 mirror_hdrs mirror_body mirror_url mirror_stop fragmented frag_abort frag_interlaced frag_cap no_frag_cap oversized bad_kv_item no_hello unknown_frame abrupt_close many_clients handover disconnect"
+      SH_CASES="handshake healthcheck frame_size notify_ack unknown_message multi_message pipelining iprep_action iprep_ipv6 mirror_hdrs mirror_body mirror_methods mirror_framing mirror_url mirror_stop fragmented frag_abort frag_interlaced frag_cap no_frag_cap oversized bad_kv_item no_hello unknown_frame abrupt_close many_clients handover disconnect"
+      SH_CASES="${SH_CASES} listen_localhost"
  SH_MIRROR_URL="http://127.0.0.1:1/"
       SH_AGENT=
    SH_AGENT_RC="0"
@@ -179,7 +181,7 @@ sh_needs_option ()
 {
 	_arg_case="${1}"
 
-	if test "${_arg_case}" = "mirror_url" -o "${_arg_case}" = "mirror_stop"; then
+	if test "${_arg_case}" = "mirror_url" -o "${_arg_case}" = "mirror_methods" -o "${_arg_case}" = "mirror_framing" -o "${_arg_case}" = "mirror_stop"; then
 		echo "--mirror-url"
 	fi
 }
@@ -201,8 +203,12 @@ sh_agent_options ()
 
 	if test "${_arg_case}" = "fragmented" -o "${_arg_case}" = "frag_abort" -o "${_arg_case}" = "frag_interlaced" -o "${_arg_case}" = "frag_cap"; then
 		echo "-c fragmentation -c pipelining"
+	elif test "${_arg_case}" = "listen_localhost"; then
+		echo "-c pipelining -a localhost"
 	elif test "${_arg_case}" = "mirror_url"; then
 		echo "-c pipelining -u ${SH_MIRROR_URL}"
+	elif test "${_arg_case}" = "mirror_methods" -o "${_arg_case}" = "mirror_framing"; then
+		echo "-c pipelining -u http://127.0.0.1:${SH_SINK_PORT}/"
 	elif test "${_arg_case}" = "mirror_stop"; then
 		echo "-c pipelining -u http://127.0.0.1:${SH_SINK_PORT}/"
 	else

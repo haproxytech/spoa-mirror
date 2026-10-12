@@ -283,6 +283,8 @@ static void write_frame(struct client *client, struct spoe_frame *frame)
 	DBG_FUNC(STRUCT_ELEM_SAFE(client, worker, NULL), "%p, %p", client, frame);
 
 	LIST_DEL(&(frame->list));
+	/* The frame is linked again below only in some of the cases. */
+	LIST_INIT(&(frame->list));
 
 	frame->buf    = frame->data;
 	frame->offset = 0;
@@ -498,11 +500,13 @@ static struct spoe_frame *acquire_outgoing_frame(struct client *client)
 	else if (!LIST_ISEMPTY(&(client->outgoing_frames))) {
 		frame = LIST_NEXT(&(client->outgoing_frames), typeof(frame), list);
 		LIST_DEL(&(frame->list));
+		LIST_INIT(&(frame->list));
 		client->outgoing_frame = frame;
 	}
 	else if (_nNULL(client->engine) && !LIST_ISEMPTY(&(client->engine->outgoing_frames))) {
 		frame = LIST_NEXT(&(client->engine->outgoing_frames), typeof(frame), list);
 		LIST_DEL(&(frame->list));
+		LIST_INIT(&(frame->list));
 		client->outgoing_frame = frame;
 	}
 

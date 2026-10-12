@@ -51,6 +51,10 @@ static __always_inline int spoe_decode_varint(const char **buf, const char *end,
 			if (ptr >= (uint8_t *)end)
 				return retval;
 
+			/* Check if the value fits into 64 bits. */
+			if (shift >= 64)
+				return retval;
+
 			*value += (uint64_t)*ptr << shift;
 			shift  += 7;
 		} while (*(ptr++) >= 128);
