@@ -247,6 +247,12 @@ The agent removes client framing and hop-by-hop headers before mirroring the
 request.  This includes every header named in any client Connection header,
 regardless of its position or case.  Other client headers are preserved.
 
+Each worker opens at most 64 connections to the mirror (CURL_MAX_HOST_CONNS,
+which can be changed at build time).  The mirrored requests over that limit
+wait for a free connection.  With some cURL versions the transfer timeout is
+only checked once a request leaves that queue, so a waiting request can be
+kept for longer than the '-T' time.
+
 The 'option http-buffer-request' must be set in the HAProxy configuration,
 because otherwise the contents of the HTTP body are not transferred to the
 agent, and the mirrored request carries no body.
