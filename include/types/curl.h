@@ -88,7 +88,8 @@ enum CURL_HTTP_METHOD_enum
 };
 
 #ifndef CURL_AT_LEAST_VERSION
-#  define CURL_AT_LEAST_VERSION(x,y,z)   0
+#  define CURL_VERSION_BITS(x,y,z)       ((x) << 16 | (y) << 8 | (z))
+#  define CURL_AT_LEAST_VERSION(x,y,z)   (LIBCURL_VERSION_NUM >= CURL_VERSION_BITS((x), (y), (z)))
 #endif
 #if CURL_AT_LEAST_VERSION(7, 32, 0)
 #  define CURL_v073200(a,b)   a
