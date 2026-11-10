@@ -35,6 +35,10 @@
 #define CURL_TMOUT_MIN        1
 #define CURL_TMOUT_MAX        60000
 
+#ifndef CURL_MAX_HOST_CONNS
+#  define CURL_MAX_HOST_CONNS   64       /* per worker */
+#endif
+
 /*
  * If the download receives less than "low speed limit" bytes/second during
  * "low speed time" seconds, the operations is aborted.
