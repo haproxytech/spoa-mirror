@@ -424,6 +424,12 @@ sh_run_argchecks ()
 
 	sh_run_optcheck "--timeout"            "timeout-max"      "1000us, 60.00s" -r 1s -T 61s
 	sh_run_optcheck "--connection-timeout" "conn-timeout-max" "1000us, 60.00s" -r 1s -C 61s
+
+	sh_run_optcheck "--max-connections" "maxconn-negative" "invalid maximum connections" -r 1s -M -1
+	sh_run_optcheck "--max-connections" "maxconn-empty"    "invalid maximum connections" -r 1s -M ""
+	sh_run_optcheck "--max-connections" "maxconn-format"   "invalid maximum connections" -r 1s --max-connections=bogus
+	sh_run_optcheck "--max-connections" "maxconn-suffix"   "invalid maximum connections" -r 1s -M "2x"
+	sh_run_optcheck "--max-connections" "maxconn-overflow" "invalid maximum connections" -r 1s -M "9223372036854775808"
 }
 
 
