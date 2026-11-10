@@ -18,6 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 #include "include.h"
+#include <limits.h>
 
 
 struct config_data cfg = {
@@ -35,6 +36,7 @@ struct config_data cfg = {
 	.pidfile_fd          = -1,
 	.ev_backend          = EVFLAG_AUTO,
 #ifdef HAVE_LIBCURL
+	.max_connections     = 0,
 	.conn_timeout_us     = CURL_CON_TMOUT * UINT64_C(1000),
 	.timeout_us          = CURL_TMOUT * UINT64_C(1000),
 #endif
@@ -87,6 +89,9 @@ static void usage(const char *program_name, bool_t flag_verbose)
 		(void)printf("  -h, --help                      Show this text.\n");
 		(void)printf("  -i, --monitor-interval=TIME     Set the monitor interval (default: %s).\n", str_delay(DEFAULT_MONITOR_INTERVAL));
 		(void)printf("  -l, --logfile=[MODE:]FILE       Log all messages to logfile (default: stdout/stderr).\n");
+#ifdef HAVE_LIBCURL
+		(void)printf("  -M, --max-connections=VALUE     Limit mirror connections per worker (default: 0 = unlimited).\n");
+#endif
 		(void)printf("  -m, --max-frame-size=VALUE      Specify the maximum frame size (default: %d bytes).\n", DEFAULT_MAX_FRAME_SIZE);
 		(void)printf("  -n, --num-workers=VALUE         Specify the number of workers (default: %d).\n", DEFAULT_NUM_WORKERS);
 		(void)printf("  -p, --port=VALUE                Specify the port to listen on (default: %d).\n", DEFAULT_SERVER_PORT);
@@ -409,6 +414,7 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 		{ "processing-delay",   required_argument, NULL, 't' },
 #ifdef HAVE_LIBCURL
 		{ "connection-timeout", required_argument, NULL, 'C' },
+		{ "max-connections",    required_argument, NULL, 'M' },
 		{ "timeout",            required_argument, NULL, 'T' },
 		{ "mirror-url",         required_argument, NULL, 'u' },
 		{ "mirror-interface",   required_argument, NULL, 'I' },
@@ -476,6 +482,12 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 #ifdef HAVE_LIBCURL
 		else if (c == 'C')
 			flag_error |= _OK(getopt_set_time(optarg, (uint64_t *)&(cfg.conn_timeout_us), TIMEINT_S(CURL_CON_TMOUT_MIN * UINT64_C(1000)), TIMEINT_S(CURL_CON_TMOUT_MAX * UINT64_C(1000)))) ? 0 : 1;
+		else if (c == 'M') {
+			if (!str_toll(optarg, NULL, 1, 10, &(cfg.max_connections), 0, LONG_MAX)) {
+				(void)fprintf(stderr, "ERROR: invalid maximum connections (allowed range [0, %ld]): '%s'\n", LONG_MAX, optarg);
+				flag_error = 1;
+			}
+		}
 		else if (c == 'T')
 			flag_error |= _OK(getopt_set_time(optarg, (uint64_t *)&(cfg.timeout_us), TIMEINT_S(CURL_TMOUT_MIN * UINT64_C(1000)), TIMEINT_S(CURL_TMOUT_MAX * UINT64_C(1000)))) ? 0 : 1;
 		else if (c == 'u')
@@ -522,6 +534,14 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 			(void)fprintf(stderr, "ERROR: invalid connection backlog '%d'\n", cfg.connection_backlog);
 			flag_error = 1;
 		}
+#ifdef HAVE_LIBCURL
+#  if !CURL_AT_LEAST_VERSION(7, 30, 0)
+		if (cfg.max_connections != 0) {
+			(void)fprintf(stderr, "ERROR: --max-connections requires libcurl 7.30.0 or newer\n");
+			flag_error = 1;
+		}
+#  endif
+#endif
 
 		if (flag_error)
 			usage(prg.name, 0);

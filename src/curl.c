@@ -781,6 +781,10 @@ int mir_curl_init(struct ev_loop *loop, struct ev_async *ev, struct curl_data *c
 		CURL_ERR_MULTI("Failed to add timer callback function", rcm);
 	else if ((rcm = curl_multi_setopt(curl->multi, CURLMOPT_TIMERDATA, curl)) != CURLM_OK)
 		CURL_ERR_MULTI("Failed to set timer callback function data", rcm);
+#if CURL_AT_LEAST_VERSION(7, 30, 0)
+	else if ((cfg.max_connections > 0) && ((rcm = curl_multi_setopt(curl->multi, CURLMOPT_MAX_HOST_CONNECTIONS, (long)cfg.max_connections)) != CURLM_OK))
+		CURL_ERR_MULTI("Failed to set maximum host connections", rcm);
+#endif
 	else
 		DBG_RETURN_INT(FUNC_RET_OK);
 

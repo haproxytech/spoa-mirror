@@ -421,6 +421,12 @@ sh_run_argchecks ()
 	sh_run_optcheck "--mirror-url"        "url"        "Invalid URL scheme"        -r 1s -u "ftp://127.0.0.1/"
 	sh_run_optcheck "--mirror-local-port" "port-range" "invalid port range"        -r 1s -P "10-5"
 	sh_run_optcheck "--mirror-local-port" "port-empty" "port range is not defined" -r 1s -P ""
+
+	sh_run_optcheck "--max-connections" "maxconn-negative" "invalid maximum connections" -r 1s -M -1
+	sh_run_optcheck "--max-connections" "maxconn-empty"    "invalid maximum connections" -r 1s -M ""
+	sh_run_optcheck "--max-connections" "maxconn-format"   "invalid maximum connections" -r 1s --max-connections=bogus
+	sh_run_optcheck "--max-connections" "maxconn-suffix"   "invalid maximum connections" -r 1s -M "2x"
+	sh_run_optcheck "--max-connections" "maxconn-overflow" "invalid maximum connections" -r 1s -M "9223372036854775808"
 }
 
 

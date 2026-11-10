@@ -82,6 +82,7 @@ struct config_data {
 	char         *mir_url;             /* The URL used for the HTTP mirroring. */
 	const char   *mir_interface;       /* Outgoing connections interface (IP address). */
 	int           mir_port[2];         /* Outgoing connections port. */
+	int64_t       max_connections;     /* Maximum mirror connections per worker (0 = unlimited). */
 	uint64_t      conn_timeout_us;     /* The maximum time allowed to connect to the mirror server. */
 	uint64_t      timeout_us;          /* The maximum time allowed for a single transfer operation. */
 #endif
