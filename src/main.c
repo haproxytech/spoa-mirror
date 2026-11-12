@@ -475,9 +475,9 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 			flag_error |= _OK(getopt_set_time(optarg, &(cfg.processing_delay_us), 0, TIMEINT_S(1))) ? 0 : 1;
 #ifdef HAVE_LIBCURL
 		else if (c == 'C')
-			flag_error |= _OK(getopt_set_time(optarg, (uint64_t *)&(cfg.conn_timeout_us), TIMEINT_S(CURL_CON_TMOUT_MIN * UINT64_C(1000)), TIMEINT_S(CURL_CON_TMOUT_MAX * UINT64_C(1000)))) ? 0 : 1;
+			flag_error |= _OK(getopt_set_time(optarg, (uint64_t *)&(cfg.conn_timeout_us), CURL_CON_TMOUT_MIN * UINT64_C(1000), CURL_CON_TMOUT_MAX * UINT64_C(1000))) ? 0 : 1;
 		else if (c == 'T')
-			flag_error |= _OK(getopt_set_time(optarg, (uint64_t *)&(cfg.timeout_us), TIMEINT_S(CURL_TMOUT_MIN * UINT64_C(1000)), TIMEINT_S(CURL_TMOUT_MAX * UINT64_C(1000)))) ? 0 : 1;
+			flag_error |= _OK(getopt_set_time(optarg, (uint64_t *)&(cfg.timeout_us), CURL_TMOUT_MIN * UINT64_C(1000), CURL_TMOUT_MAX * UINT64_C(1000))) ? 0 : 1;
 		else if (c == 'u')
 			mir_url = optarg;
 		else if (c == 'I')
