@@ -421,6 +421,9 @@ sh_run_argchecks ()
 	sh_run_optcheck "--mirror-url"        "url"        "Invalid URL scheme"        -r 1s -u "ftp://127.0.0.1/"
 	sh_run_optcheck "--mirror-local-port" "port-range" "invalid port range"        -r 1s -P "10-5"
 	sh_run_optcheck "--mirror-local-port" "port-empty" "port range is not defined" -r 1s -P ""
+
+	sh_run_optcheck "--timeout"            "timeout-max"      "1000us, 60.00s" -r 1s -T 61s
+	sh_run_optcheck "--connection-timeout" "conn-timeout-max" "1000us, 60.00s" -r 1s -C 61s
 }
 
 
