@@ -619,6 +619,12 @@ def read_mirror_request(sock):
     return head.decode("latin1"), body, length
 
 
+def sink_response(status, length):
+    """Build a response head that announces <length> body bytes but sends none."""
+    return ("HTTP/1.1 %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n"
+            % (status, length)).encode("latin1")
+
+
 class MirrorSink:
     """A socket that captures the mirrored requests and answers them.
 
@@ -627,8 +633,12 @@ class MirrorSink:
     next request arrives on a new connection.
     """
 
-    def __init__(self, port):
+    def __init__(self, port, response=None, wait_close=False):
         self.requests = []
+        if response is None:
+            response = sink_response("200 OK", 0)
+        self.response = response
+        self.wait_close = wait_close
         self.error = None
         self.stop = threading.Event()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -649,8 +659,13 @@ class MirrorSink:
             except OSError:
                 break
             try:
-                self.requests.append(read_mirror_request(conn))
-                conn.sendall(b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+                request = read_mirror_request(conn)
+                conn.sendall(self.response)
+                if self.wait_close:
+                    conn.shutdown(socket.SHUT_WR)
+                    if conn.recv(1) != b"":
+                        raise Failure("the agent sent data after the mirrored request")
+                self.requests.append(request)
             except (OSError, Failure) as e:
                 self.error = e
             finally:
@@ -900,6 +915,80 @@ def case_mirror_stop(port, report):
     time.sleep(0.5)
     agent.close()
     report("%d transfers left running to the port %d" % (count, MIRROR_PORT))
+
+
+def mirror_request_to_sink(port, response=None):
+    """Mirror a request and wait for the agent to close its HTTP connection."""
+    if MIRROR_PORT == 0:
+        raise Failure("the port of the mirror socket is not given")
+
+    sink = MirrorSink(MIRROR_PORT, response=response, wait_close=True)
+    try:
+        agent = Agent(port)
+        handshake(agent)
+        args = (
+            ("arg_method", T_STR, "GET"),
+            ("arg_path", T_STR, "/access-log"),
+            ("arg_ver", T_STR, "1.1"),
+            ("arg_hdrs", T_STR, "Host: example.com\r\n"),
+        )
+        agent.send(Frame(FRM_HAPROXY_NOTIFY, FL_FIN, 1, 1, message("mirror", args)))
+        expect_ack(agent, 1, 1)
+        requests = sink.wait(1)
+        agent.close()
+    finally:
+        sink.close()
+
+    head = requests[0][0]
+    line = head.split("\r\n")[0]
+    if line != "GET /access-log HTTP/1.1":
+        raise Failure("the mirrored request line is '%s'" % line)
+
+    return head
+
+
+def case_mirror_access_completed(port, report):
+    """A mirrored transfer answered with a complete HTTP 200 response."""
+    head = mirror_request_to_sink(port)
+    report("mirrored %s" % head.split("\r\n")[0])
+
+
+def case_mirror_access_failed(port, report):
+    """A mirrored transfer whose HTTP 200 response ends before its body."""
+    mirror_request_to_sink(port, sink_response("200 OK", 1))
+    report("mirrored a request whose response body was truncated")
+
+
+def case_mirror_access_http_error(port, report):
+    """A mirrored transfer answered with a complete HTTP 500 response."""
+    response = sink_response("500 Internal Server Error", 0)
+    mirror_request_to_sink(port, response)
+    report("mirrored a request whose response status was 500")
+
+
+def case_mirror_access_http_truncated(port, report):
+    """A mirrored transfer whose HTTP 500 response ends before its body."""
+    response = sink_response("500 Internal Server Error", 1)
+    mirror_request_to_sink(port, response)
+    report("mirrored a truncated HTTP 500 response")
+
+
+def case_mirror_access_no_status(port, report):
+    """A mirrored transfer whose connection closes before any HTTP status."""
+    mirror_request_to_sink(port, b"")
+    report("mirrored a request whose connection closed without an HTTP status")
+
+
+def case_mirror_access_http_redirect(port, report):
+    """A mirrored transfer answered with 399, the highest non-error status."""
+    mirror_request_to_sink(port, sink_response("399 Test Status", 0))
+    report("mirrored a request whose response status was 399")
+
+
+def case_mirror_access_http_boundary(port, report):
+    """A mirrored transfer answered with 400, the lowest HTTP error status."""
+    mirror_request_to_sink(port, sink_response("400 Bad Request", 0))
+    report("mirrored a request whose response status was 400")
 
 
 def case_fragmented(port, report):
@@ -1213,6 +1302,19 @@ CASES = {
     "handover":        case_handover,
     "disconnect":      case_disconnect,
 }
+
+for mode in ("none", "curl_error", "curl_ok", "http_error", "http_ok",
+             "error", "ok", "all", "default"):
+    for outcome, case in (
+        ("completed", case_mirror_access_completed),
+        ("failed", case_mirror_access_failed),
+        ("servererror", case_mirror_access_http_error),
+        ("serverfailed", case_mirror_access_http_truncated),
+        ("nostatus", case_mirror_access_no_status),
+        ("redirect", case_mirror_access_http_redirect),
+        ("clienterror", case_mirror_access_http_boundary),
+    ):
+        CASES["mirror_access_%s_%s" % (mode, outcome)] = case
 
 
 def run_sink(port):

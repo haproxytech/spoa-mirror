@@ -109,6 +109,7 @@ Options are:
   -F, --pidfile=FILE              Specifies a file to write the process-id to.
   -h, --help                      Show this text.
   -i, --monitor-interval=TIME     Set the monitor interval (default: 5.00s).
+  -L, --access-log=MODE           Specify the mode of access logging (default: all).
   -l, --logfile=[MODE:]FILE       Log all messages to logfile (default: stdout/stderr).
   -M, --max-connections=VALUE     Limit mirror connections per worker (default: 0 = unlimited).
   -m, --max-frame-size=VALUE      Specify the maximum frame size (default: 16384 bytes).
@@ -136,6 +137,12 @@ for the mode, then line buffering is used when writing to the log file.
 
 The time delay/interval is specified in milliseconds by default, but can be
 in any other unit if the number is suffixed by a unit (us, ms, s, m, h, d).
+
+Supported access log modes: none, curl_error, curl_ok, http_error, http_ok,
+error, ok, all.  The curl_* modes select a transfer by its cURL result and the
+http_* modes by its HTTP status, where 400 and above is an error and a missing
+status matches neither.  The 'error' mode selects either kind of failure, and
+'ok' a transfer where both succeed.
 
 Copyright 2018-2026 HAProxy Technologies
 SPDX-License-Identifier: GPL-2.0-or-later
@@ -172,6 +179,9 @@ The program that is tested is chosen with the '-a' option, the cases to run may
 be named on the command line, and the '-l' option lists them.  Besides the frame
 exchange, the script also checks that the program refuses command line arguments
 that are out of range.
+
+The access log cases run every mode against complete and truncated responses,
+the statuses 399 and 400, and a connection closed before any status is sent.
 
 A case fails when the client reports an error, when a sanitizer writes to the
 log of the program, or when the program is no longer running once the client is

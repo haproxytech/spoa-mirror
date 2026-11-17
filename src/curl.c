@@ -182,8 +182,9 @@ static const char *mir_curl_get_http_version(long version)
  * DESCRIPTION
  *   Check for completed transfers, and remove their easy handles.  For every
  *   transfer that is done, the URL, the HTTP version, the response code, the
- *   number of the transferred bytes and the duration are written to the log,
- *   and its connection is then closed.
+ *   number of the transferred bytes and the duration are written to the log
+ *   if the access log mode selects the transfer, and its connection is then
+ *   closed.
  *
  * RETURN VALUE
  *   This function does not return a value.
@@ -194,6 +195,7 @@ static void mir_curl_check_multi_info(struct curl_data *curl)
 	const CURLMsg   *msg;
 	int              msgs_in_queue;
 	CURLcode         rc;
+	bool_t           curl_ok, http_error, http_ok, log_access;
 
 	DBG_FUNC(NULL, "%p", curl);
 
@@ -215,26 +217,44 @@ static void mir_curl_check_multi_info(struct curl_data *curl)
 
 			if ((rc = curl_easy_getinfo(msg->easy_handle, CURLINFO_EFFECTIVE_URL, &url)) != CURLE_OK)
 				CURL_ERR_EASY("Failed to get effective URL", rc);
+
+			curl_ok    = msg->data.result == CURLE_OK;
+			log_access = (cfg.access_log_mode == ACCESS_LOG_MODE_ALL) ||
+			             ((cfg.access_log_mode == ACCESS_LOG_MODE_CURL_OK) && curl_ok) ||
+			             ((cfg.access_log_mode == ACCESS_LOG_MODE_CURL_ERROR) && !curl_ok);
+			if (log_access || (cfg.access_log_mode == ACCESS_LOG_MODE_HTTP_ERROR) ||
+			    (cfg.access_log_mode == ACCESS_LOG_MODE_HTTP_OK) || (cfg.access_log_mode == ACCESS_LOG_MODE_ERROR) ||
+			    (cfg.access_log_mode == ACCESS_LOG_MODE_OK)) {
+				if ((rc = curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &response_code)) != CURLE_OK)
+					CURL_ERR_EASY("Failed to get response code", rc);
+				http_error = response_code >= 400;
+				http_ok    = (response_code > 0) && (response_code < 400);
+				log_access = log_access ||
+				             ((cfg.access_log_mode == ACCESS_LOG_MODE_HTTP_ERROR) && http_error) ||
+				             ((cfg.access_log_mode == ACCESS_LOG_MODE_HTTP_OK) && http_ok) ||
+				             ((cfg.access_log_mode == ACCESS_LOG_MODE_ERROR) && (!curl_ok || http_error)) ||
+				             ((cfg.access_log_mode == ACCESS_LOG_MODE_OK) && (curl_ok && http_ok));
+			}
+			if (log_access) {
 #if CURL_AT_LEAST_VERSION(7, 50, 0)
-			if ((rc = curl_easy_getinfo(msg->easy_handle, CURLINFO_HTTP_VERSION, &version)) != CURLE_OK)
-				CURL_ERR_EASY("Failed to get HTTP version", rc);
+				if ((rc = curl_easy_getinfo(msg->easy_handle, CURLINFO_HTTP_VERSION, &version)) != CURLE_OK)
+					CURL_ERR_EASY("Failed to get HTTP version", rc);
 #endif
-			if ((rc = curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &response_code)) != CURLE_OK)
-				CURL_ERR_EASY("Failed to get response code", rc);
-			if ((rc = curl_easy_getinfo(msg->easy_handle, CURL_v076100(CURLINFO_TOTAL_TIME_T, CURLINFO_TOTAL_TIME), &total_time)) != CURLE_OK)
-				CURL_ERR_EASY("Failed to get transfer total time", rc);
-			if ((rc = curl_easy_getinfo(msg->easy_handle, CURL_v075500(CURLINFO_SIZE_UPLOAD_T, CURLINFO_SIZE_UPLOAD), &size_upload)) != CURLE_OK)
-				CURL_ERR_EASY("Failed to get number of uploaded bytes", rc);
-			if ((rc = curl_easy_getinfo(msg->easy_handle, CURL_v075500(CURLINFO_SIZE_DOWNLOAD_T, CURLINFO_SIZE_DOWNLOAD), &size_download)) != CURLE_OK)
-				CURL_ERR_EASY("Failed to get number of downloaded bytes", rc);
+				if ((rc = curl_easy_getinfo(msg->easy_handle, CURL_v076100(CURLINFO_TOTAL_TIME_T, CURLINFO_TOTAL_TIME), &total_time)) != CURLE_OK)
+					CURL_ERR_EASY("Failed to get transfer total time", rc);
+				if ((rc = curl_easy_getinfo(msg->easy_handle, CURL_v075500(CURLINFO_SIZE_UPLOAD_T, CURLINFO_SIZE_UPLOAD), &size_upload)) != CURLE_OK)
+					CURL_ERR_EASY("Failed to get number of uploaded bytes", rc);
+				if ((rc = curl_easy_getinfo(msg->easy_handle, CURL_v075500(CURLINFO_SIZE_DOWNLOAD_T, CURLINFO_SIZE_DOWNLOAD), &size_download)) != CURLE_OK)
+					CURL_ERR_EASY("Failed to get number of downloaded bytes", rc);
 
-			w_log(NULL, "\"%s %s %s\" %ld " CURL_v075500("%ld/%ld", "%.0f/%.0f") " %.3f %s",
-			      STRUCT_ELEM_SAFE(con->mir, method, "?"), url, mir_curl_get_http_version(version),
-			      response_code, size_upload, size_download,
-			      CURL_v076100(total_time / 1000.0, total_time * 1000.0),
-			      (msg->data.result != CURLE_OK) ? con->error : "ok");
+				w_log(NULL, "\"%s %s %s\" %ld " CURL_v075500("%ld/%ld", "%.0f/%.0f") " %.3f %s",
+				      STRUCT_ELEM_SAFE(con->mir, method, "?"), url, mir_curl_get_http_version(version),
+				      response_code, size_upload, size_download,
+				      CURL_v076100(total_time / 1000.0, total_time * 1000.0),
+				      curl_ok ? "ok" : con->error);
+			}
 
-			CURL_DBG("Done: %s => (%d) %s", url, msg->data.result, con->error);
+			CURL_DBG("Done: %s => (%d) %s", url, msg->data.result, curl_ok ? "ok" : con->error);
 
 			mir_curl_handle_close(con);
 		}

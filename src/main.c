@@ -39,6 +39,7 @@ struct config_data cfg = {
 	.max_connections     = 0,
 	.conn_timeout_us     = CURL_CON_TMOUT * UINT64_C(1000),
 	.timeout_us          = CURL_TMOUT * UINT64_C(1000),
+	.access_log_mode     = DEFAULT_ACCESS_LOG_MODE,
 #endif
 };
 struct program_data prg;
@@ -47,6 +48,84 @@ struct program_data prg;
 __THR const void *dbg_w_ptr  = NULL;
 __THR int         dbg_indent = 0;
 #endif
+
+#ifdef HAVE_LIBCURL
+/* The supported access log modes and their names. */
+#  define ACCESS_LOG_MODE_DEF(a,b)   { b, ACCESS_LOG_MODE_##a },
+static const struct {
+	const char                *name; /* The name of the access log mode. */
+	enum ACCESS_LOG_MODE_enum  mode; /* The access log mode. */
+} access_log_modes[] = { ACCESS_LOG_MODE_DEFINES };
+#  undef ACCESS_LOG_MODE_DEF
+
+
+/***
+ * NAME
+ *   access_log_mode_name - get the name of an access log mode
+ *
+ * ARGUMENTS
+ *   mode - access log mode
+ *
+ * DESCRIPTION
+ *   Look for the mode <mode> in the table of the supported access log modes
+ *   and return its name.
+ *
+ * RETURN VALUE
+ *   It returns the name of the mode <mode>, or "invalid" if the mode is not in
+ *   the table.
+ */
+static const char *access_log_mode_name(enum ACCESS_LOG_MODE_enum mode)
+{
+	int i;
+
+	for (i = 0; i < TABLESIZE(access_log_modes); i++)
+		if (access_log_modes[i].mode == mode)
+			break;
+
+	return (i < TABLESIZE(access_log_modes)) ? access_log_modes[i].name : "invalid";
+}
+
+
+/***
+ * NAME
+ *   getopt_set_access_log_mode - set the access log mode from the command line
+ *
+ * ARGUMENTS
+ *   name - name of the access log mode
+ *   mode - pointer to the configured access log mode
+ *
+ * DESCRIPTION
+ *   Look for the mode <name> in the table of the supported access log modes
+ *   and save it in <*mode>.  A name that is not supported is reported on the
+ *   standard error output.
+ *
+ * RETURN VALUE
+ *   It returns FUNC_RET_OK (0) if the mode is set, and FUNC_RET_ERROR (-1) if
+ *   it is not.
+ */
+static int getopt_set_access_log_mode(const char *name, int *mode)
+{
+	int i, retval = FUNC_RET_ERROR;
+
+	DBG_FUNC(NULL, "\"%s\", %p", name, mode);
+
+	for (i = 0; i < TABLESIZE(access_log_modes); i++)
+		if (strcasecmp(access_log_modes[i].name, name) == 0)
+			break;
+
+	if (i < TABLESIZE(access_log_modes)) {
+		*mode  = access_log_modes[i].mode;
+		retval = FUNC_RET_OK;
+
+		W_DBG(NOTICE, NULL, "  mode set to %s", access_log_modes[i].name);
+	} else {
+		(void)fprintf(stderr, "ERROR: invalid access log mode '%s'\n", name);
+	}
+
+	DBG_RETURN_INT(retval);
+}
+
+#endif /* HAVE_LIBCURL */
 
 
 /***
@@ -88,6 +167,9 @@ static void usage(const char *program_name, bool_t flag_verbose)
 		(void)printf("  -F, --pidfile=FILE              Specifies a file to write the process-id to.\n");
 		(void)printf("  -h, --help                      Show this text.\n");
 		(void)printf("  -i, --monitor-interval=TIME     Set the monitor interval (default: %s).\n", str_delay(DEFAULT_MONITOR_INTERVAL));
+#ifdef HAVE_LIBCURL
+		(void)printf("  -L, --access-log=MODE           Specify the mode of access logging (default: %s).\n", access_log_mode_name(DEFAULT_ACCESS_LOG_MODE));
+#endif
 		(void)printf("  -l, --logfile=[MODE:]FILE       Log all messages to logfile (default: stdout/stderr).\n");
 #ifdef HAVE_LIBCURL
 		(void)printf("  -M, --max-connections=VALUE     Limit mirror connections per worker (default: 0 = unlimited).\n");
@@ -116,6 +198,13 @@ static void usage(const char *program_name, bool_t flag_verbose)
 		(void)printf("for the mode, then line buffering is used when writing to the log file.\n\n");
 		(void)printf("The time delay/interval is specified in milliseconds by default, but can be\n");
 		(void)printf("in any other unit if the number is suffixed by a unit (us, ms, s, m, h, d).\n\n");
+#ifdef HAVE_LIBCURL
+		(void)printf("Supported access log modes: none, curl_error, curl_ok, http_error, http_ok,\n");
+		(void)printf("error, ok, all.  The curl_* modes select a transfer by its cURL result and the\n");
+		(void)printf("http_* modes by its HTTP status, where 400 and above is an error and a missing\n");
+		(void)printf("status matches neither.  The 'error' mode selects either kind of failure, and\n");
+		(void)printf("'ok' a transfer where both succeed.\n\n");
+#endif
 		(void)printf("Copyright 2018-2026 HAProxy Technologies\n");
 		(void)printf("SPDX-License-Identifier: GPL-2.0-or-later\n\n");
 	} else {
@@ -419,6 +508,7 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 		{ "mirror-url",         required_argument, NULL, 'u' },
 		{ "mirror-interface",   required_argument, NULL, 'I' },
 		{ "mirror-local-port",  required_argument, NULL, 'P' },
+		{ "access-log",         required_argument, NULL, 'L' },
 #endif
 		{ "version",            no_argument,       NULL, 'V' },
 		{ NULL,                 0,                 NULL, 0   }
@@ -496,6 +586,8 @@ int main(int argc, char **argv, char **envp __maybe_unused)
 			cfg.mir_interface = optarg;
 		else if (c == 'P')
 			flag_error |= _OK(getopt_set_ports(optarg, cfg.mir_port)) ? 0 : 1;
+		else if (c == 'L')
+			flag_error |= _OK(getopt_set_access_log_mode(optarg, &(cfg.access_log_mode))) ? 0 : 1;
 #endif
 		else if (c == 'V')
 			cfg.opt_flags |= FLAG_OPT_VERSION;

@@ -37,6 +37,7 @@ SH_OPT_VERBOSE=
      SH_CLIENT="${SH_DIR}/spop-client.py"
       SH_CASES="handshake healthcheck frame_size notify_ack unknown_message multi_message pipelining iprep_action iprep_ipv6 mirror_hdrs mirror_body mirror_methods mirror_framing mirror_url mirror_stop fragmented frag_abort frag_interlaced frag_cap no_frag_cap oversized bad_kv_item no_hello unknown_frame abrupt_close many_clients handover disconnect"
       SH_CASES="${SH_CASES} listen_localhost"
+
  SH_MIRROR_URL="http://127.0.0.1:1/"
       SH_AGENT=
    SH_AGENT_RC="0"
@@ -57,6 +58,12 @@ SH_OPT_VERBOSE=
 SH_EX_UNAVAILABLE="69"
    SH_EX_SOFTWARE="70"
    SH_EX_TEMPFAIL="75"
+
+for _loop_mode in none curl_error curl_ok http_error http_ok error ok all default; do
+	for _loop_outcome in completed failed servererror serverfailed nostatus redirect clienterror; do
+		SH_CASES="${SH_CASES} mirror_access_${_loop_mode}_${_loop_outcome}"
+	done
+done
 
 
 sh_usage ()
@@ -184,6 +191,10 @@ sh_needs_option ()
 	if test "${_arg_case}" = "mirror_url" -o "${_arg_case}" = "mirror_methods" -o "${_arg_case}" = "mirror_framing" -o "${_arg_case}" = "mirror_stop"; then
 		echo "--mirror-url"
 	fi
+
+	if test "${_arg_case#mirror_access_}" != "${_arg_case}"; then
+		echo "--access-log"
+	fi
 }
 
 sh_needs_sink ()
@@ -211,6 +222,13 @@ sh_agent_options ()
 		echo "-c pipelining -u http://127.0.0.1:${SH_SINK_PORT}/"
 	elif test "${_arg_case}" = "mirror_stop"; then
 		echo "-c pipelining -u http://127.0.0.1:${SH_SINK_PORT}/"
+	elif test "${_arg_case#mirror_access_}" != "${_arg_case}"; then
+		_var_mode="${_arg_case#mirror_access_}"
+		_var_mode="${_var_mode%_*}"
+		echo "-c pipelining -u http://127.0.0.1:${SH_SINK_PORT}/"
+		if test "${_var_mode}" != "default"; then
+			echo "-L ${_var_mode}"
+		fi
 	else
 		echo "-c pipelining"
 	fi
@@ -226,6 +244,13 @@ sh_asan_options ()
 	else
 		echo "detect_leaks=0:abort_on_error=0"
 	fi
+}
+
+sh_has_access_log ()
+{
+	_arg_log="${1}"
+
+	grep -q -E '\] +"[A-Z]+ http' "${_arg_log}" 2>/dev/null
 }
 
 sh_scan_log ()
@@ -347,6 +372,39 @@ sh_run_case ()
 		_var_detail="$(sh_agent_death)"
 	fi
 
+	if test "${_arg_case#mirror_access_}" != "${_arg_case}"; then
+		_var_mode="${_arg_case#mirror_access_}"
+		_var_outcome="${_var_mode##*_}"
+		_var_mode="${_var_mode%_*}"
+		_var_access=
+		if test "${_var_outcome}" = "completed" -o "${_var_outcome}" = "redirect"; then
+			_var_modes="all default curl_ok http_ok ok"
+		elif test "${_var_outcome}" = "failed"; then
+			_var_modes="all default curl_error http_ok error"
+		elif test "${_var_outcome}" = "servererror" -o "${_var_outcome}" = "clienterror"; then
+			_var_modes="all default curl_ok http_error error"
+		elif test "${_var_outcome}" = "serverfailed"; then
+			_var_modes="all default curl_error http_error error"
+		else
+			_var_modes="all default curl_error error"
+		fi
+		for _loop_mode in ${_var_modes}; do
+			if test "${_var_mode}" = "${_loop_mode}"; then
+				_var_access="true"
+			fi
+		done
+
+		if test "${_var_access}" = "true"; then
+			if ! sh_has_access_log "${_var_log}"; then
+				_var_rc=1
+				_var_detail="the access line was not logged"
+			fi
+		elif sh_has_access_log "${_var_log}"; then
+			_var_rc=1
+			_var_detail="the access line was logged"
+		fi
+	fi
+
 	if test "${_var_rc}" -ne 0; then
 		SH_FAILED=$((SH_FAILED + 1))
 		sh_report "FAIL" "${_arg_case}" "${_var_detail}"
@@ -417,6 +475,11 @@ sh_run_argchecks ()
 	sh_run_argcheck "delay"      "invalid time format"          -r 1s -t bogus
 	sh_run_argcheck "logfile"    "logfile name not defined"     -r 1s -l ""
 	sh_run_argcheck "logmode"    "invalid logfile mode"         -r 1s -l "x:/dev/null"
+
+	sh_run_optcheck "--access-log" "access-log"     "invalid access log mode" -r 1s -L bogus
+	sh_run_optcheck "--access-log" "access-empty"   "invalid access log mode" -r 1s -L ""
+	sh_run_optcheck "--access-log" "access-old"     "invalid access log mode" -r 1s -L success
+	sh_run_optcheck "--access-log" "access-partial" "invalid access log mode" -r 1s -L curl
 
 	sh_run_optcheck "--mirror-url"        "url"        "Invalid URL scheme"        -r 1s -u "ftp://127.0.0.1/"
 	sh_run_optcheck "--mirror-local-port" "port-range" "invalid port range"        -r 1s -P "10-5"

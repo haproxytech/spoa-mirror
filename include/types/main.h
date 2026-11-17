@@ -29,6 +29,7 @@
 #define DEFAULT_PROCESSING_DELAY     0
 #define DEFAULT_CONNECTION_BACKLOG   10
 #define DEFAULT_RUNTIME              -1
+#define DEFAULT_ACCESS_LOG_MODE      ACCESS_LOG_MODE_ALL
 
 #define MIN_FRAME_SIZE               512
 #define MAX_FRAME_SIZE               1048576
@@ -50,6 +51,22 @@ enum FLAG_CAP_enum {
 	CAP_DEFINES
 };
 #undef CAP_DEF
+
+#define ACCESS_LOG_MODE_DEFINES                       \
+	ACCESS_LOG_MODE_DEF(NONE,       "none")       \
+	ACCESS_LOG_MODE_DEF(CURL_ERROR, "curl_error") \
+	ACCESS_LOG_MODE_DEF(CURL_OK,    "curl_ok")    \
+	ACCESS_LOG_MODE_DEF(HTTP_ERROR, "http_error") \
+	ACCESS_LOG_MODE_DEF(HTTP_OK,    "http_ok")    \
+	ACCESS_LOG_MODE_DEF(ERROR,      "error")      \
+	ACCESS_LOG_MODE_DEF(OK,         "ok")         \
+	ACCESS_LOG_MODE_DEF(ALL,        "all")
+
+#define ACCESS_LOG_MODE_DEF(a,b)   ACCESS_LOG_MODE_##a,
+enum ACCESS_LOG_MODE_enum {
+	ACCESS_LOG_MODE_DEFINES
+};
+#undef ACCESS_LOG_MODE_DEF
 
 enum FLAG_OPT_enum {
 	FLAG_OPT_HELP      = 0x01,
@@ -85,6 +102,7 @@ struct config_data {
 	int64_t       max_connections;     /* Maximum mirror connections per worker (0 = unlimited). */
 	uint64_t      conn_timeout_us;     /* The maximum time allowed to connect to the mirror server. */
 	uint64_t      timeout_us;          /* The maximum time allowed for a single transfer operation. */
+	int           access_log_mode;     /* The access log mode. */
 #endif
 };
 
